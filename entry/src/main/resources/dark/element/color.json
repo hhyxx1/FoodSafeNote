@@ -1,0 +1,56 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#000000"
+    },
+    {
+      "name": "page_background",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "card_background",
+      "value": "#2C2C2E"
+    },
+    {
+      "name": "text_primary",
+      "value": "#F5F5F5"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#A0A0A0"
+    },
+    {
+      "name": "text_hint",
+      "value": "#6C6C6C"
+    },
+    {
+      "name": "text_disabled",
+      "value": "#4A4A4A"
+    },
+    {
+      "name": "divider",
+      "value": "#3A3A3C"
+    },
+    {
+      "name": "input_background",
+      "value": "#3A3A3C"
+    },
+    {
+      "name": "chip_background",
+      "value": "#3A3A3C"
+    },
+    {
+      "name": "tab_bar_background",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "tab_inactive",
+      "value": "#6C6C6C"
+    },
+    {
+      "name": "overlay_background",
+      "value": "#CC000000"
+    }
+  ]
+}
