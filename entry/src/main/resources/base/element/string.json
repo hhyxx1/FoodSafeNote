@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "食安记 - 智能食品安全管理"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "食安记主界面"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "食安记"
+    },
+    {
+      "name": "camera_reason",
+      "value": "用于扫描商品条码和拍摄营养成分表"
+    },
+    {
+      "name": "distributed_reason",
+      "value": "用于同账号设备间同步食品库存数据"
+    }
+  ]
+}

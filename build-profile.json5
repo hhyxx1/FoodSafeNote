@@ -1,0 +1,50 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:/Users/Remote/Downloads/发布.cer",
+          "keyAlias": "aaa",
+          "keyPassword": "00000020A8EEE8EB0042B9570B6C746C884BD96EEE723456CD81DD44960D7B8BA93842250D7B7CBEBCBB6FD9EECCD98D",
+          "profile": "C:/Users/Remote/Downloads/aaaRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:/Project/keys/key.p12",
+          "storePassword": "00000020061143421825D340AEE3501D3FC049ED8450CEA05DE2F08BE6FCB1AFEDB95F5F9280B522B39C05147646E1D8"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.1.1(19)",
+        "targetSdkVersion": "5.1.1(19)",
+        "runtimeOS": "HarmonyOS"
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release",
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
