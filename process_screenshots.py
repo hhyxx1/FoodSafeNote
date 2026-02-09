@@ -3,14 +3,11 @@ import os
 from PIL import Image, ImageEnhance, ImageFilter
 import shutil
 
-def resize_image(img, target_width, target_height, force_size=False):
-    """调整图片尺寸，保持宽高比或强制尺寸"""
+def resize_image_with_aspect_ratio(img, target_width, target_height, background_color=(0, 0, 0)):
+    """调整图片尺寸，保持宽高比，用背景色填充"""
     original_width, original_height = img.size
     original_ratio = original_width / original_height
     target_ratio = target_width / target_height
-    
-    if force_size:
-        return img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
     if original_ratio > target_ratio:
         new_width = target_width
@@ -21,20 +18,42 @@ def resize_image(img, target_width, target_height, force_size=False):
     
     resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     
-    new_img = Image.new('RGB', (target_width, target_height), (0, 0, 0))
+    new_img = Image.new('RGB', (target_width, target_height), background_color)
     paste_x = (target_width - new_width) // 2
     paste_y = (target_height - new_height) // 2
     new_img.paste(resized, (paste_x, paste_y))
     
     return new_img
 
-def create_featured_image(img, width, height):
-    """创建推荐图片，添加一些视觉效果"""
-    img = img.resize((width, height), Image.Resampling.LANCZOS)
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(1.1)
-    enhancer = ImageEnhance.Brightness(img)
-    img = enhancer.enhance(1.05)
+def crop_or_pad_to_aspect_ratio(img, aspect_ratio=16/9):
+    """裁剪或填充图片到指定宽高比"""
+    original_width, original_height = img.size
+    original_ratio = original_width / original_height
+    
+    if original_ratio == aspect_ratio:
+        return img
+    
+    if original_ratio > aspect_ratio:
+        new_width = int(original_height * aspect_ratio)
+        left = (original_width - new_width) // 2
+        right = left + new_width
+        return img.crop((left, 0, right, original_height))
+    else:
+        new_height = int(original_width / aspect_ratio)
+        top = (original_height - new_height) // 2
+        bottom = top + new_height
+        return img.crop((0, top, original_width, bottom))
+
+def create_featured_image(img, width, height, enhance=True):
+    """创建推荐图片"""
+    img = resize_image_with_aspect_ratio(img, width, height, (30, 30, 30))
+    if enhance:
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.15)
+        enhancer = ImageEnhance.Brightness(img)
+        img = enhancer.enhance(1.08)
+        enhancer = ImageEnhance.Sharpness(img)
+        img = enhancer.enhance(1.1)
     return img
 
 def process_tv_screenshots():
@@ -45,12 +64,12 @@ def process_tv_screenshots():
     if not os.path.exists(backup_dir):
         shutil.copytree(tv_dir, backup_dir)
     
-    files = [f for f in os.listdir(tv_dir) if f.endswith('.png')]
+    files = [f for f in os.listdir(tv_dir) if f.endswith('.png') and 'recommended' not in f]
     
     for file in files:
         img_path = os.path.join(tv_dir, file)
         img = Image.open(img_path).convert('RGB')
-        resized = resize_image(img, 1920, 1080)
+        resized = resize_image_with_aspect_ratio(img, 1920, 1080)
         resized.save(img_path, 'PNG', optimize=True)
         print(f'处理TV截图: {file} -> 1920x1080')
     
@@ -80,7 +99,7 @@ def process_wearable_screenshots():
     for file in files:
         img_path = os.path.join(wearable_dir, file)
         img = Image.open(img_path).convert('RGB')
-        resized = resize_image(img, 840, 840)
+        resized = resize_image_with_aspect_ratio(img, 840, 840, (20, 20, 20))
         resized.save(img_path, 'PNG', optimize=True)
         print(f'处理wearable截图: {file} -> 840x840')
 
@@ -99,12 +118,19 @@ def process_pc_screenshots():
         img = Image.open(img_path).convert('RGB')
         width, height = img.size
         
-        if width < 1920 or height < 1080:
-            resized = resize_image(img, 1920, 1080)
+        print(f'PC截图原始尺寸: {file} -> {width}x{height}')
+        
+        img_cropped = crop_or_pad_to_aspect_ratio(img, 16/9)
+        
+        cropped_width, cropped_height = img_cropped.size
+        
+        if cropped_width < 1920 or cropped_height < 1080:
+            resized = resize_image_with_aspect_ratio(img_cropped, 1920, 1080)
             resized.save(img_path, 'PNG', optimize=True)
-            print(f'处理PC截图: {file} -> 1920x1080')
+            print(f'处理PC截图: {file} -> 1920x1080 (16:9)')
         else:
-            print(f'PC截图: {file} -> 尺寸已满足要求 ({width}x{height})')
+            img_cropped.save(img_path, 'PNG', optimize=True)
+            print(f'处理PC截图: {file} -> {cropped_width}x{cropped_height} (16:9)')
 
 if __name__ == '__main__':
     print('开始处理截图...\n')
