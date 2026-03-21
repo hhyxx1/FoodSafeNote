@@ -50,6 +50,11 @@ struct EntrySelectionPage {
             router.pushUrl({ url: 'pages/BatchAddPage' });
           })
 
+          // 剪贴板解析
+          this.buildEntryCard('📎', '剪贴板解析', '手动读取剪贴板中的购物清单并生成待入库卡片', () => {
+            router.pushUrl({ url: 'pages/ClipboardParsePage' });
+          })
+
           // 底部快捷入口
           Row({ space: 16 }) {
             Button('产品字典')

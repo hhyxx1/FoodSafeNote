@@ -10,9 +10,7 @@ import { TvMineView } from '../views/TvMineView';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { pasteboard } from '@kit.BasicServicesKit';
-import { preferences } from '@kit.ArkData';
-import { promptAction, router } from '@kit.ArkUI';
+import { router } from '@kit.ArkUI';
 
 @Entry
 @Component
@@ -47,48 +45,6 @@ struct Index {
   onPageShow(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.refreshKey = this.refreshKey + 1;
-      // 剪贴板自动检测（仅手机/平板/2in1，且开关开启时）
-      if (this.currentDeviceType !== 'wearable' && this.currentDeviceType !== 'tv') {
-        this.checkClipboard();
-      }
-    }
-  }
-
-  private checkClipboard(): void {
-    try {
-      const store: preferences.Preferences =
-        preferences.getPreferencesSync(getContext(this), { name: 'settings' });
-      const enabled: boolean = store.getSync('clipboard_auto', false) as boolean;
-      if (!enabled) return;
-      const sysBoard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      sysBoard.getData().then((data: pasteboard.PasteData) => {
-        if (data.getRecordCount() > 0) {
-          const record: pasteboard.PasteDataRecord = data.getRecord(0);
-          const text: string = record.plainText !== undefined ? record.plainText : '';
-          if (text.length > 2 && text.length < 500) {
-            // 检查是否包含食品相关关键词
-            const hasKeyword: boolean = text.indexOf('买') >= 0 || text.indexOf('购') >= 0 ||
-              text.indexOf('入库') >= 0 || text.indexOf('采购') >= 0 ||
-              text.indexOf('清单') >= 0 || text.indexOf('食') >= 0;
-            if (hasKeyword) {
-              promptAction.showDialog({
-                title: '检测到食品清单',
-                message: '剪贴板内容可能包含食品信息，是否批量添加？',
-                buttons: [
-                  { text: '忽略', color: '#999999' },
-                  { text: '去添加', color: '#007DFF' }
-                ]
-              }).then((result: promptAction.ShowDialogSuccessResponse) => {
-                if (result.index === 1) {
-                  router.pushUrl({ url: 'pages/ClipboardParsePage' });
-                }
-              });
-            }
-          }
-        }
-      });
-    } catch (e) {
-      // 剪贴板检测失败不影响使用
     }
   }
 

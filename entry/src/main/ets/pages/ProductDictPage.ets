@@ -14,6 +14,7 @@ struct ProductDictPage {
   @State totalCount: number = 0;
   @State showEditDialog: boolean = false;
   @State editItem: ProductDict | null = null;
+  @State editBarcode: string = '';
   @State editName: string = '';
   @State editCategory: string = '';
   @State editSpec: string = '';
@@ -60,6 +61,7 @@ struct ProductDictPage {
 
   private openEditDialog(item: ProductDict): void {
     this.editItem = item;
+    this.editBarcode = item.barcode;
     this.editName = item.name;
     this.editCategory = item.category;
     this.editSpec = item.spec;
@@ -104,6 +106,12 @@ struct ProductDictPage {
         pd.category = dict.category;
         pd.spec = dict.spec;
         pd.calories = dict.calories;
+        pd.rawEnergy = dict.rawEnergy;
+        pd.energyUnit = dict.energyUnit;
+        pd.basisType = dict.basisType;
+        pd.servingSize = dict.servingSize;
+        pd.servingUnit = dict.servingUnit;
+        pd.isReliable = dict.isReliable;
         pd.source = dict.source;
         await db.insertOrUpdateProductDict(pd);
       }
@@ -120,15 +128,26 @@ struct ProductDictPage {
       promptAction.showToast({ message: '商品名称不能为空', duration: 1500 });
       return;
     }
+    const finalBarcode: string = this.editBarcode.trim();
+    const finalCategory: string = this.editCategory.trim();
+    const finalName: string = this.editName.trim();
     const dict = new ProductDict();
-    dict.dictKey = this.editItem.dictKey;
-    dict.barcode = this.editItem.barcode;
-    dict.name = this.editName.trim();
-    dict.category = this.editCategory.trim();
+    dict.dictKey = finalBarcode.length > 0 ? finalBarcode : (finalCategory + '_' + finalName);
+    dict.barcode = finalBarcode;
+    dict.name = finalName;
+    dict.category = finalCategory;
     dict.spec = this.editSpec.trim();
     dict.calories = Number(this.editCalories) || 0;
+    if (this.editItem !== null) {
+      dict.rawEnergy = this.editItem.rawEnergy;
+      dict.energyUnit = this.editItem.energyUnit;
+      dict.basisType = this.editItem.basisType;
+      dict.servingSize = this.editItem.servingSize;
+      dict.servingUnit = this.editItem.servingUnit;
+      dict.isReliable = this.editItem.isReliable;
+    }
     dict.source = 'edited';
-    DatabaseHelper.getInstance().insertOrUpdateProductDict(dict).then(() => {
+    DatabaseHelper.getInstance().updateProductDict(this.editItem.id, dict).then(() => {
       promptAction.showToast({ message: '已更新', duration: 1500 });
       this.showEditDialog = false;
       this.loadData();
@@ -226,11 +245,11 @@ struct ProductDictPage {
           Text('编辑产品信息')
             .fontSize(16).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
 
-          if (this.editItem !== null && this.editItem.barcode.length > 0) {
-            Row() {
-              Text('条码: ').fontSize(13).fontColor($r('app.color.text_secondary'))
-              Text(this.editItem.barcode).fontSize(13).fontColor($r('app.color.text_hint'))
-            }.width('100%')
+          Column({ space: 4 }) {
+            Text('条码（可解绑/重绑）').fontSize(13).fontColor($r('app.color.text_secondary'))
+            TextInput({ text: this.editBarcode, placeholder: '留空表示解绑条码' })
+              .width('100%').height(40).fontSize(14).borderRadius(8).backgroundColor($r('app.color.input_background'))
+              .onChange((value: string) => { this.editBarcode = value; })
           }
 
           Column({ space: 4 }) {
@@ -252,7 +271,7 @@ struct ProductDictPage {
               .onChange((value: string) => { this.editSpec = value; })
           }
           Column({ space: 4 }) {
-            Text('热量 (kcal)').fontSize(13).fontColor($r('app.color.text_secondary'))
+            Text('标准化热量 (kcal/100单位)').fontSize(13).fontColor($r('app.color.text_secondary'))
             TextInput({ text: this.editCalories, placeholder: '0' })
               .width('100%').height(40).fontSize(14).borderRadius(8).backgroundColor($r('app.color.input_background'))
               .type(InputType.Number)
@@ -272,6 +291,20 @@ struct ProductDictPage {
       }
     }
     .width('100%').height('100%')
+  }
+
+  private getBasisLabel(basisType: string): string {
+    if (basisType === 'per100ml') return '每100ml';
+    if (basisType === 'perServing') return '每份';
+    return '每100g';
+  }
+
+  private getNormalizedLabel(item: ProductDict): string {
+    const basis: string = item.basisType === 'per100ml' ? '100ml' : '100g';
+    if (item.calories <= 0) {
+      return '未沉淀标准化热量';
+    }
+    return item.calories.toFixed(0) + ' kcal/' + basis;
   }
 
   @Builder
@@ -299,10 +332,33 @@ struct ProductDictPage {
         }
       }
 
+      Column({ space: 2 }) {
+        Row({ space: 8 }) {
+          if (item.rawEnergy > 0) {
+            Text('原始: ' + item.rawEnergy.toFixed(0) + ' ' + item.energyUnit + ' / ' + this.getBasisLabel(item.basisType))
+              .fontSize(12).fontColor($r('app.color.text_secondary')).layoutWeight(1)
+          } else {
+            Text('原始营养标注未记录')
+              .fontSize(12).fontColor('#CCCCCC').layoutWeight(1)
+          }
+
+          Text(item.isReliable ? '已标准化' : '待补全')
+            .fontSize(10)
+            .fontColor(item.isReliable ? '#34C759' : '#FF9500')
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .borderRadius(8)
+            .backgroundColor(item.isReliable ? '#E8F5E9' : '#FFF3E0')
+        }
+        .width('100%')
+
+        Text(this.getNormalizedLabel(item))
+          .fontSize(12)
+          .fontColor(item.calories > 0 ? '#FF6B00' : '#CCCCCC')
+      }
+      .width('100%')
+
       Row() {
-        Text(item.calories > 0 ? item.calories.toFixed(0) + ' kcal' : '未记录热量')
-          .fontSize(12).fontColor(item.calories > 0 ? '#FF6B00' : '#CCCCCC')
-          .layoutWeight(1)
+        Blank().layoutWeight(1)
         Button('编辑')
           .height(28).fontSize(11).fontColor('#007DFF').backgroundColor('#E8F0FE')
           .borderRadius(6).margin({ right: 8 })

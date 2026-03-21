@@ -199,8 +199,8 @@ struct FoodDetailPage {
         this.buildInfoRow('到期日期',
           this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : '未设置')
         this.buildInfoRow('保质期状态', this.getExpiryText())
-        this.buildInfoRow('热量',
-          this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal/100g' : '未记录')
+        this.buildInfoRow('本次热量',
+          this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal' : '未记录')
         this.buildInfoRow('入库时间',
           this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : '未知')
 

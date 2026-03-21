@@ -336,7 +336,7 @@ export struct InventoryView {
           Text(this.getExpiryText(item))
             .fontSize(13).fontColor(item.getStatusColor()).layoutWeight(1)
           if (item.calories > 0) {
-            Text(item.calories.toFixed(0) + ' kcal').fontSize(13).fontColor($r('app.color.text_hint'))
+            Text('本次 ' + item.calories.toFixed(0) + ' kcal').fontSize(13).fontColor($r('app.color.text_hint'))
           }
         }
         .width('100%')

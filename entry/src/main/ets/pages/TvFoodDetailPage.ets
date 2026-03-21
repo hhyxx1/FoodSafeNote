@@ -118,8 +118,8 @@ struct TvFoodDetailPage {
             this.buildRow('到期日期',
               this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : '未设置')
             this.buildRow('保质期状态', this.getExpiryText())
-            this.buildRow('热量',
-              this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal/100g' : '未记录')
+            this.buildRow('本次热量',
+              this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal' : '未记录')
             this.buildRow('入库时间',
               this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : '未知')
           }

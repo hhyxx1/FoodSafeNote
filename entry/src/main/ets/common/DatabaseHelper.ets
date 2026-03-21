@@ -1,7 +1,7 @@
 import { relationalStore } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { FoodItem, FamilyMember, ConsumptionRecord, DailyCalorie, FoodStats,
-  ProductDict, OcrRecord, WasteStat } from '../model/DataModels';
+  ProductDict, OcrRecord, WasteStat, BuiltinBarcode } from '../model/DataModels';
 
 const DB_NAME: string = 'FoodSafeNote.db';
 const FOOD_TABLE: string = 'food_items';
@@ -54,6 +54,12 @@ const SQL_CREATE_PRODUCT_DICT: string =
   'category TEXT DEFAULT "",' +
   'spec TEXT DEFAULT "",' +
   'calories REAL DEFAULT 0,' +
+  'raw_energy REAL DEFAULT 0,' +
+  'energy_unit TEXT DEFAULT "kJ",' +
+  'basis_type TEXT DEFAULT "per100g",' +
+  'serving_size REAL DEFAULT 0,' +
+  'serving_unit TEXT DEFAULT "g",' +
+  'is_reliable INTEGER DEFAULT 1,' +
   'source TEXT DEFAULT "manual",' +
   'update_time INTEGER DEFAULT 0)';
 
@@ -61,7 +67,8 @@ const SQL_CREATE_BUILTIN_BARCODE: string =
   'CREATE TABLE IF NOT EXISTS builtin_barcodes (' +
   'id INTEGER PRIMARY KEY AUTOINCREMENT,' +
   'barcode TEXT NOT NULL,' +
-  'name TEXT NOT NULL)';
+  'name TEXT NOT NULL,' +
+  'category TEXT DEFAULT "")';
 
 const SQL_CREATE_BUILTIN_INDEX: string =
   'CREATE INDEX IF NOT EXISTS idx_builtin_barcode ON builtin_barcodes(barcode)';
@@ -82,6 +89,7 @@ export class DatabaseHelper {
   private static instance: DatabaseHelper | null = null;
   private rdbStore: relationalStore.RdbStore | null = null;
   private initializing: boolean = false;
+  private distributedReady: boolean = false;
   private onRemoteChangeCallback: (() => void) | null = null;
 
   static getInstance(): DatabaseHelper {
@@ -137,8 +145,10 @@ export class DatabaseHelper {
           this.onRemoteChangeCallback();
         }
       });
+      this.distributedReady = true;
     } catch (e) {
       // 分布式表设置失败不影响本地功能（虚拟机/单设备环境）
+      this.distributedReady = false;
     }
   }
 
@@ -149,7 +159,7 @@ export class DatabaseHelper {
 
   // 推送同步指定表到其他设备
   private syncTable(tableName: string): void {
-    if (this.rdbStore === null) return;
+    if (this.rdbStore === null || !this.distributedReady) return;
     try {
       const predicates = new relationalStore.RdbPredicates(tableName);
       this.rdbStore.sync(relationalStore.SyncMode.SYNC_MODE_PUSH, predicates);
@@ -170,7 +180,14 @@ export class DatabaseHelper {
     if (this.rdbStore === null) return;
     // 逐个尝试添加新列，已存在的列会抛异常，捕获后跳过
     const migrations: string[] = [
-      'ALTER TABLE food_items ADD COLUMN is_opened INTEGER DEFAULT 0'
+      'ALTER TABLE food_items ADD COLUMN is_opened INTEGER DEFAULT 0',
+      'ALTER TABLE builtin_barcodes ADD COLUMN category TEXT DEFAULT ""',
+      'ALTER TABLE product_dict ADD COLUMN raw_energy REAL DEFAULT 0',
+      'ALTER TABLE product_dict ADD COLUMN energy_unit TEXT DEFAULT "kJ"',
+      'ALTER TABLE product_dict ADD COLUMN basis_type TEXT DEFAULT "per100g"',
+      'ALTER TABLE product_dict ADD COLUMN serving_size REAL DEFAULT 0',
+      'ALTER TABLE product_dict ADD COLUMN serving_unit TEXT DEFAULT "g"',
+      'ALTER TABLE product_dict ADD COLUMN is_reliable INTEGER DEFAULT 1'
     ];
     for (let i = 0; i < migrations.length; i++) {
       try {
@@ -566,6 +583,12 @@ export class DatabaseHelper {
       'category': dict.category,
       'spec': dict.spec,
       'calories': dict.calories,
+      'raw_energy': dict.rawEnergy,
+      'energy_unit': dict.energyUnit,
+      'basis_type': dict.basisType,
+      'serving_size': dict.servingSize,
+      'serving_unit': dict.servingUnit,
+      'is_reliable': dict.isReliable ? 1 : 0,
       'source': dict.source,
       'update_time': Date.now()
     };
@@ -649,6 +672,44 @@ export class DatabaseHelper {
     this.syncTable(PRODUCT_DICT_TABLE);
   }
 
+  async updateProductDict(id: number, dict: ProductDict): Promise<number> {
+    if (this.rdbStore === null) return -1;
+    const valueBucket: relationalStore.ValuesBucket = {
+      'dict_key': dict.dictKey,
+      'barcode': dict.barcode,
+      'name': dict.name,
+      'category': dict.category,
+      'spec': dict.spec,
+      'calories': dict.calories,
+      'raw_energy': dict.rawEnergy,
+      'energy_unit': dict.energyUnit,
+      'basis_type': dict.basisType,
+      'serving_size': dict.servingSize,
+      'serving_unit': dict.servingUnit,
+      'is_reliable': dict.isReliable ? 1 : 0,
+      'source': dict.source,
+      'update_time': Date.now()
+    };
+    const existing: ProductDict | null = await this.queryProductDictByKey(dict.dictKey);
+    if (existing !== null && existing.id !== id) {
+      const mergePredicates = new relationalStore.RdbPredicates(PRODUCT_DICT_TABLE);
+      mergePredicates.equalTo('id', existing.id);
+      await this.rdbStore.update(valueBucket, mergePredicates);
+
+      const deletePredicates = new relationalStore.RdbPredicates(PRODUCT_DICT_TABLE);
+      deletePredicates.equalTo('id', id);
+      await this.rdbStore.delete(deletePredicates);
+      this.syncTable(PRODUCT_DICT_TABLE);
+      return existing.id;
+    }
+
+    const predicates = new relationalStore.RdbPredicates(PRODUCT_DICT_TABLE);
+    predicates.equalTo('id', id);
+    await this.rdbStore.update(valueBucket, predicates);
+    this.syncTable(PRODUCT_DICT_TABLE);
+    return id;
+  }
+
   async getProductDictCount(): Promise<number> {
     if (this.rdbStore === null) return 0;
     const predicates = new relationalStore.RdbPredicates(PRODUCT_DICT_TABLE);
@@ -667,6 +728,12 @@ export class DatabaseHelper {
     dict.category = resultSet.getString(resultSet.getColumnIndex('category'));
     dict.spec = resultSet.getString(resultSet.getColumnIndex('spec'));
     dict.calories = resultSet.getDouble(resultSet.getColumnIndex('calories'));
+    dict.rawEnergy = resultSet.getDouble(resultSet.getColumnIndex('raw_energy'));
+    dict.energyUnit = resultSet.getString(resultSet.getColumnIndex('energy_unit'));
+    dict.basisType = resultSet.getString(resultSet.getColumnIndex('basis_type'));
+    dict.servingSize = resultSet.getDouble(resultSet.getColumnIndex('serving_size'));
+    dict.servingUnit = resultSet.getString(resultSet.getColumnIndex('serving_unit'));
+    dict.isReliable = resultSet.getLong(resultSet.getColumnIndex('is_reliable')) === 1;
     dict.source = resultSet.getString(resultSet.getColumnIndex('source'));
     dict.updateTime = resultSet.getLong(resultSet.getColumnIndex('update_time'));
     return dict;
@@ -683,34 +750,55 @@ export class DatabaseHelper {
     return count;
   }
 
-  async queryBuiltinBarcode(barcode: string): Promise<string> {
-    if (this.rdbStore === null || barcode.length === 0) return '';
+  async queryBuiltinBarcode(barcode: string): Promise<BuiltinBarcode | null> {
+    if (this.rdbStore === null || barcode.length === 0) return null;
     const predicates = new relationalStore.RdbPredicates(BUILTIN_BARCODE_TABLE);
     predicates.equalTo('barcode', barcode);
     const resultSet: relationalStore.ResultSet = await this.rdbStore.query(predicates);
-    let name: string = '';
+    let builtin: BuiltinBarcode | null = null;
     if (resultSet.goToNextRow()) {
-      name = resultSet.getString(resultSet.getColumnIndex('name'));
+      builtin = new BuiltinBarcode();
+      builtin.id = resultSet.getLong(resultSet.getColumnIndex('id'));
+      builtin.barcode = resultSet.getString(resultSet.getColumnIndex('barcode'));
+      builtin.name = resultSet.getString(resultSet.getColumnIndex('name'));
+      builtin.category = resultSet.getString(resultSet.getColumnIndex('category'));
     }
     resultSet.close();
-    return name;
+    return builtin;
   }
 
-  async batchInsertBuiltinBarcodes(barcodes: string[], names: string[]): Promise<void> {
+  async batchInsertBuiltinBarcodes(barcodes: string[], names: string[], categories: string[]): Promise<void> {
     if (this.rdbStore === null) return;
     const BATCH_SIZE: number = 500;
     const total: number = barcodes.length;
     for (let start = 0; start < total; start += BATCH_SIZE) {
       const end: number = Math.min(start + BATCH_SIZE, total);
-      let sql: string = 'INSERT INTO builtin_barcodes (barcode, name) VALUES ';
+      let sql: string = 'INSERT INTO builtin_barcodes (barcode, name, category) VALUES ';
       const parts: string[] = [];
       for (let i = start; i < end; i++) {
         const escapedName: string = names[i].replace(/'/g, "''");
-        parts.push("('" + barcodes[i] + "','" + escapedName + "')");
+        const escapedCategory: string = categories[i].replace(/'/g, "''");
+        parts.push("('" + barcodes[i] + "','" + escapedName + "','" + escapedCategory + "')");
       }
       sql = sql + parts.join(',');
       await this.rdbStore.executeSql(sql);
     }
+  }
+
+  async clearBuiltinBarcodes(): Promise<void> {
+    if (this.rdbStore === null) return;
+    const predicates = new relationalStore.RdbPredicates(BUILTIN_BARCODE_TABLE);
+    await this.rdbStore.delete(predicates);
+  }
+
+  async getBuiltinBarcodeMissingCategoryCount(): Promise<number> {
+    if (this.rdbStore === null) return 0;
+    const predicates = new relationalStore.RdbPredicates(BUILTIN_BARCODE_TABLE);
+    predicates.equalTo('category', '');
+    const resultSet: relationalStore.ResultSet = await this.rdbStore.query(predicates);
+    const count: number = resultSet.rowCount;
+    resultSet.close();
+    return count;
   }
 
   // ============ OCR记录 CRUD ============

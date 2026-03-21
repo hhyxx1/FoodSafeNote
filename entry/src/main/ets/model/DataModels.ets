@@ -99,7 +99,15 @@ export class ProductDict {
   name: string = '';
   category: string = '';
   spec: string = '';
+  // 标准化后的热量参考值：kcal/100g 或 kcal/100ml
   calories: number = 0;
+  // 原始营养标注值
+  rawEnergy: number = 0;
+  energyUnit: string = 'kJ'; // kJ | kcal
+  basisType: string = 'per100g'; // per100g | per100ml | perServing
+  servingSize: number = 0; // basis=perServing时每份质量/体积
+  servingUnit: string = 'g'; // g | ml
+  isReliable: boolean = true; // 严格模式下按份未补全时为false
   source: string = 'manual';
   updateTime: number = 0;
 }
@@ -109,6 +117,7 @@ export class BuiltinBarcode {
   id: number = 0;
   barcode: string = '';
   name: string = '';
+  category: string = '';
 }
 
 // 条码匹配结果

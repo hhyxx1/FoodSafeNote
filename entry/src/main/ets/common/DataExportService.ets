@@ -121,6 +121,12 @@ export class DataExportService {
           pd.category = dict.category;
           pd.spec = dict.spec;
           pd.calories = dict.calories;
+          pd.rawEnergy = dict.rawEnergy;
+          pd.energyUnit = dict.energyUnit;
+          pd.basisType = dict.basisType;
+          pd.servingSize = dict.servingSize;
+          pd.servingUnit = dict.servingUnit;
+          pd.isReliable = dict.isReliable;
           pd.source = dict.source;
           await db.insertOrUpdateProductDict(pd);
         }

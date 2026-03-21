@@ -1,8 +1,14 @@
 import { router, promptAction } from '@kit.ArkUI';
-import { pasteboard } from '@kit.BasicServicesKit';
-import { DatabaseHelper } from '../common/DatabaseHelper';
-import { FoodItem } from '../model/DataModels';
-import { StorageType, calculateExpiryTimestamp } from '../common/Constants';
+import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
+
+interface AddFoodParams {
+  barcode: string;
+  name: string;
+  category: string;
+  spec: string;
+  calories: number;
+  fromBarcodeScan: boolean;
+}
 
 // 解析出的食品条目
 interface ParsedFoodEntry {
@@ -17,31 +23,54 @@ struct ClipboardParsePage {
   @State clipboardText: string = '';
   @State parsedItems: ParsedFoodEntry[] = [];
   @State manualInput: string = '';
-  @State isSaving: boolean = false;
+  @State isGenerating: boolean = false;
+  @State pasteAuthorized: boolean = false;
 
   aboutToAppear(): void {
+    // 剪贴板读取改为用户点击安全控件触发
+  }
+
+  private handlePasteButtonResult(result: PasteButtonOnClickResult): void {
+    if (result !== PasteButtonOnClickResult.SUCCESS) {
+      promptAction.showToast({ message: '未完成授权，无法读取剪贴板', duration: 1500 });
+      return;
+    }
+    this.pasteAuthorized = true;
     this.readClipboard();
   }
 
   private readClipboard(): void {
     try {
       const sysBoard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      sysBoard.getData().then((data: pasteboard.PasteData) => {
-        if (data.getRecordCount() > 0) {
-          const record: pasteboard.PasteDataRecord = data.getRecord(0);
-          const text: string = record.plainText !== undefined ? record.plainText : '';
-          if (text.length > 0) {
-            this.clipboardText = text;
-            this.parseText(text);
-          }
+      sysBoard.getData((err: BusinessError, data: pasteboard.PasteData) => {
+        if (err) {
+          promptAction.showToast({ message: '读取剪贴板失败', duration: 1500 });
+          return;
         }
+        if (!data || typeof data.getPrimaryText !== 'function') {
+          promptAction.showToast({ message: '剪贴板为空或不可读', duration: 1500 });
+          return;
+        }
+        let text: string = '';
+        try {
+          const maybe = data.getPrimaryText();
+          text = (typeof maybe === 'string' ? maybe : (maybe ? String(maybe) : '')) || '';
+        } catch (e) {
+          text = '';
+        }
+        if (!text || text.length === 0) {
+          promptAction.showToast({ message: '剪贴板为空', duration: 1500 });
+          return;
+        }
+        this.clipboardText = text;
+        this.generateCards(text, true);
       });
     } catch (e) {
-      // 剪贴板读取失败
+      promptAction.showToast({ message: '读取剪贴板失败', duration: 1500 });
     }
   }
 
-  private parseText(text: string): void {
+  private parseEntries(text: string): ParsedFoodEntry[] {
     // 按换行、逗号、顿号分割
     const lines: string[] = text.split('\n');
     const items: ParsedFoodEntry[] = [];
@@ -74,39 +103,114 @@ struct ClipboardParsePage {
         }
       }
     }
+    return items;
+  }
+
+  private calculateParseConfidence(text: string, items: ParsedFoodEntry[]): number {
+    let score: number = 0.3;
+    if (text.indexOf('购买完成') >= 0 || text.indexOf('已买') >= 0 || text.indexOf('入库') >= 0 || text.indexOf('采购') >= 0) {
+      score = score + 0.35;
+    }
+    if (text.indexOf('清单') >= 0 || text.indexOf('买菜') >= 0 || text.indexOf('食材') >= 0) {
+      score = score + 0.15;
+    }
+    if (items.length >= 2) {
+      score = score + 0.15;
+    }
+    if (text.indexOf('、') >= 0 || text.indexOf('，') >= 0 || text.indexOf('\n') >= 0) {
+      score = score + 0.1;
+    }
+    if (score > 1) {
+      return 1;
+    }
+    return score;
+  }
+
+  private generateCards(text: string, skipConfidenceCheck: boolean = false): void {
+    if (this.isGenerating) return;
+    this.isGenerating = true;
+    const items: ParsedFoodEntry[] = this.parseEntries(text);
+    const confidence: number = this.calculateParseConfidence(text, items);
+    if (items.length === 0) {
+      this.isGenerating = false;
+      promptAction.showToast({ message: '未识别到可用的食品名称', duration: 1800 });
+      return;
+    }
+
+    if (!skipConfidenceCheck && confidence < 0.8) {
+      promptAction.showDialog({
+        title: '解析置信度较低',
+        message: '当前文本不太像购物清单，是否仍生成待入库卡片？',
+        buttons: [
+          { text: '取消', color: '#999999' },
+          { text: '继续生成', color: '#007DFF' }
+        ]
+      }).then((result: promptAction.ShowDialogSuccessResponse) => {
+        if (result.index === 1) {
+          this.parsedItems = items;
+        }
+        this.isGenerating = false;
+      }).catch(() => {
+        this.isGenerating = false;
+      });
+      return;
+    }
+
     this.parsedItems = items;
+    this.isGenerating = false;
   }
 
   private addManualItems(): void {
     const text: string = this.manualInput.trim();
     if (text.length === 0) return;
-    this.parseText(text);
+    this.generateCards(text, true);
     this.manualInput = '';
   }
 
-  private async batchSave(): Promise<void> {
-    if (this.isSaving) return;
-    this.isSaving = true;
-    let savedCount: number = 0;
-    const db: DatabaseHelper = DatabaseHelper.getInstance();
+  private continueEntry(): void {
+    let selectedIndex: number = -1;
     for (let i = 0; i < this.parsedItems.length; i++) {
       if (this.parsedItems[i].selected) {
-        const food = new FoodItem();
-        food.name = this.parsedItems[i].name;
-        food.storageType = StorageType.FRIDGE;
-        food.expiryDate = calculateExpiryTimestamp('其他', StorageType.FRIDGE);
-        food.status = 0;
-        await db.insertFoodItem(food);
-        savedCount++;
+        selectedIndex = i;
+        break;
       }
     }
-    this.isSaving = false;
-    if (savedCount > 0) {
-      promptAction.showToast({ message: '成功入库 ' + savedCount + ' 件食品', duration: 2000 });
-      router.back();
-    } else {
+    if (selectedIndex < 0) {
       promptAction.showToast({ message: '请至少选择一项', duration: 1500 });
+      return;
     }
+
+    this.startEntryForItem(selectedIndex);
+  }
+
+  private startEntryForItem(index: number): void {
+    if (index < 0 || index >= this.parsedItems.length) return;
+    const item: ParsedFoodEntry = this.parsedItems[index];
+    if (!item.selected) {
+      promptAction.showToast({ message: '该卡片未选中', duration: 1200 });
+      return;
+    }
+
+    const newList: ParsedFoodEntry[] = [];
+    for (let i = 0; i < this.parsedItems.length; i++) {
+      const current: ParsedFoodEntry = this.parsedItems[i];
+      if (i === index) {
+        newList.push({ name: current.name, selected: false, confidence: current.confidence });
+      } else {
+        newList.push(current);
+      }
+    }
+    this.parsedItems = newList;
+
+    const params: AddFoodParams = {
+      barcode: '',
+      name: item.name,
+      category: '',
+      spec: '',
+      calories: 0,
+      fromBarcodeScan: false
+    };
+    router.pushUrl({ url: 'pages/AddFoodPage', params: params });
   }
 
   private getSelectedCount(): number {
@@ -139,23 +243,42 @@ struct ClipboardParsePage {
           .height(36).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
-        Text('批量添加')
+        Text('剪贴板解析')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
           .layoutWeight(1).textAlign(TextAlign.Center)
-        Button('入库 (' + this.getSelectedCount() + ')')
+        Button('继续录入 (' + this.getSelectedCount() + ')')
           .height(36).fontSize(14).fontColor(Color.White)
           .backgroundColor('#007DFF').borderRadius(8)
-          .enabled(!this.isSaving && this.getSelectedCount() > 0)
-          .onClick(() => { this.batchSave(); })
+          .enabled(!this.isGenerating && this.getSelectedCount() > 0)
+          .onClick(() => { this.continueEntry(); })
       }
       .width('100%').padding({ left: 8, right: 8, top: 8, bottom: 8 })
       .backgroundColor($r('app.color.card_background'))
 
       Scroll() {
         Column({ space: 16 }) {
+          // 安全粘贴控件
+          Column({ space: 8 }) {
+            Text('从系统剪贴板读取（需点击授权）')
+              .fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
+            Row() {
+              PasteButton()
+                .padding({ top: 10, bottom: 10, left: 20, right: 20 })
+                .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
+                  this.handlePasteButtonResult(result);
+                })
+              if (this.pasteAuthorized) {
+                Text('已授权').fontSize(12).fontColor('#34C759').padding({ left: 8 })
+              }
+            }
+            .width('100%')
+          }
+          .width('100%').padding(16).margin({ left: 16, right: 16, top: 16 })
+          .backgroundColor($r('app.color.card_background')).borderRadius(16)
+
           // 手动输入区
           Column({ space: 8 }) {
-            Text('输入食品名称（用逗号、顿号分隔）')
+            Text('输入购物清单（用逗号、顿号或换行分隔）')
               .fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
             Row({ space: 8 }) {
               TextInput({ text: this.manualInput, placeholder: '如：牛奶、面包、苹果、鸡蛋' })
@@ -167,7 +290,7 @@ struct ClipboardParsePage {
                 .onClick(() => { this.addManualItems(); })
             }
           }
-          .width('100%').padding(16).margin({ left: 16, right: 16, top: 16 })
+          .width('100%').padding(16).margin({ left: 16, right: 16 })
           .backgroundColor($r('app.color.card_background')).borderRadius(16)
 
           // 剪贴板内容（如有）
@@ -185,33 +308,49 @@ struct ClipboardParsePage {
 
           // 解析结果列表
           Column({ space: 8 }) {
-            Text('待入库食品 (' + this.parsedItems.length + ')')
+            Text('待入库卡片 (' + this.parsedItems.length + ')')
               .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
 
             if (this.parsedItems.length === 0) {
               Column({ space: 8 }) {
                 Text('📋').fontSize(40)
-                Text('输入或粘贴食品列表后解析').fontSize(13).fontColor($r('app.color.text_hint'))
+                Text('手动触发后生成待入库卡片').fontSize(13).fontColor($r('app.color.text_hint'))
               }
               .width('100%').padding({ top: 24, bottom: 24 }).alignItems(HorizontalAlign.Center)
             } else {
               ForEach(this.parsedItems, (item: ParsedFoodEntry, index: number) => {
-                Row() {
-                  Checkbox()
-                    .select(item.selected)
-                    .selectedColor('#007DFF')
-                    .onChange((value: boolean) => {
-                      this.toggleItem(index);
-                    })
-                  Text(item.name)
-                    .fontSize(15).fontColor($r('app.color.text_primary'))
-                    .layoutWeight(1).padding({ left: 8 })
-                  if (item.confidence < 0.8) {
-                    Text('仅供参考')
-                      .fontSize(10).fontColor('#FF9500')
-                      .padding({ left: 4, right: 4, top: 1, bottom: 1 })
-                      .borderRadius(4).backgroundColor('#FFF3E0')
+                Column({ space: 8 }) {
+                  Row() {
+                    Checkbox()
+                      .select(item.selected)
+                      .selectedColor('#007DFF')
+                      .onChange((value: boolean) => {
+                        this.toggleItem(index);
+                      })
+                    Text(item.name)
+                      .fontSize(15).fontColor($r('app.color.text_primary'))
+                      .layoutWeight(1).padding({ left: 8 })
+                    if (item.confidence < 0.8) {
+                      Text('仅供参考')
+                        .fontSize(10).fontColor('#FF9500')
+                        .padding({ left: 4, right: 4, top: 1, bottom: 1 })
+                        .borderRadius(4).backgroundColor('#FFF3E0')
+                    }
                   }
+                  .width('100%')
+
+                  Row() {
+                    Text('需继续补充热量、保质期等信息')
+                      .fontSize(12).fontColor($r('app.color.text_hint')).layoutWeight(1)
+                    Button('加入入库')
+                      .height(30).fontSize(12).fontColor('#007DFF')
+                      .backgroundColor('#E8F0FE').borderRadius(6)
+                      .enabled(item.selected)
+                      .onClick(() => {
+                        this.startEntryForItem(index);
+                      })
+                  }
+                  .width('100%')
                 }
                 .width('100%').padding({ top: 8, bottom: 8 })
               }, (item: ParsedFoodEntry, index: number) => index.toString())

@@ -6,8 +6,7 @@ import {
   StorageType,
   isPackagedFood,
   calculateExpiryTimestamp,
-  padZero,
-  kjToKcal
+  padZero
 } from '../common/Constants';
 
 // 路由参数接口（来自扫码流程或编辑模式）
@@ -32,11 +31,14 @@ struct AddFoodPage {
   @State barcode: string = '';
   @State storageType: string = StorageType.FRIDGE;
   @State expiryDate: Date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  @State showDatePicker: boolean = false;
+  @State hasExactProductionInfo: boolean = false;
+  @State productionDate: Date = new Date();
+  @State showProductionDatePicker: boolean = false;
+  @State shelfLifeDaysText: string = '';
+  @State shelfLifeUnit: string = 'day'; // day | month | year
   @State nameError: boolean = false;
   @State isSaving: boolean = false;
   @State isOpened: boolean = false;
-  @State calorieUnit: string = 'kcal';
   @State isEditMode: boolean = false;
   @State editFoodId: number = 0;
   @State pageTitle: string = '添加食品';
@@ -72,7 +74,7 @@ struct AddFoodPage {
         this.pageTitle = '编辑食品';
         this.loadFoodForEdit(params.foodId);
       }
-      // 自动计算保质期
+      // 自动计算保质期（默认简洁模式）
       if (this.selectedCategory.length > 0) {
         this.updateExpiryDate();
       }
@@ -91,6 +93,11 @@ struct AddFoodPage {
         this.isOpened = item.isOpened;
         if (item.expiryDate > 0) {
           this.expiryDate = new Date(item.expiryDate);
+          // 编辑模式下提供一个可参考的推断值（不强制）
+          const diffDays: number = Math.ceil((item.expiryDate - Date.now()) / (24 * 60 * 60 * 1000));
+          if (diffDays > 0) {
+            this.shelfLifeDaysText = diffDays.toString();
+          }
         }
       }
     });
@@ -104,10 +111,59 @@ struct AddFoodPage {
   }
 
   private updateExpiryDate(): void {
+    if (this.hasExactProductionInfo) {
+      this.calculateExpiryFromProduction();
+      return;
+    }
     if (this.selectedCategory.length > 0 && !isPackagedFood(this.selectedCategory)) {
       const timestamp: number = calculateExpiryTimestamp(this.selectedCategory, this.storageType, this.isOpened);
       this.expiryDate = new Date(timestamp);
     }
+  }
+
+  private calculateExpiryFromProduction(): void {
+    const amount: number = Number(this.shelfLifeDaysText) || 0;
+    if (amount <= 0) {
+      return;
+    }
+    const base: Date = new Date(this.productionDate.getTime());
+    base.setHours(0, 0, 0, 0);
+    this.expiryDate = this.calculateByShelfLifeUnit(base, amount, this.shelfLifeUnit);
+  }
+
+  private getDaysInMonth(year: number, monthZeroBased: number): number {
+    return new Date(year, monthZeroBased + 1, 0).getDate();
+  }
+
+  private calculateByShelfLifeUnit(baseDate: Date, amount: number, unit: string): Date {
+    const y: number = baseDate.getFullYear();
+    const m: number = baseDate.getMonth();
+    const d: number = baseDate.getDate();
+
+    if (unit === 'month') {
+      const totalMonths: number = m + amount;
+      const targetYear: number = y + Math.floor(totalMonths / 12);
+      const targetMonth: number = totalMonths % 12;
+      const maxDay: number = this.getDaysInMonth(targetYear, targetMonth);
+      const targetDay: number = d > maxDay ? maxDay : d;
+      const result: Date = new Date(targetYear, targetMonth, targetDay);
+      result.setHours(23, 59, 59, 0);
+      return result;
+    }
+
+    if (unit === 'year') {
+      const targetYear: number = y + amount;
+      const maxDay: number = this.getDaysInMonth(targetYear, m);
+      const targetDay: number = d > maxDay ? maxDay : d;
+      const result: Date = new Date(targetYear, m, targetDay);
+      result.setHours(23, 59, 59, 0);
+      return result;
+    }
+
+    const result: Date = new Date(baseDate.getTime());
+    result.setDate(result.getDate() + amount);
+    result.setHours(23, 59, 59, 0);
+    return result;
   }
 
   private async saveFoodItem(): Promise<void> {
@@ -124,10 +180,18 @@ struct AddFoodPage {
     food.category = this.selectedCategory;
     food.spec = this.spec.trim();
     food.barcode = this.barcode;
-    const rawCalorie: number = Number(this.caloriesText) || 0;
-    food.calories = this.calorieUnit === 'kJ' ? kjToKcal(rawCalorie) : rawCalorie;
+    food.calories = Number(this.caloriesText) || 0;
     food.storageType = this.storageType;
     food.isOpened = this.isOpened;
+    if (this.hasExactProductionInfo) {
+      const shelfLifeAmount: number = Number(this.shelfLifeDaysText) || 0;
+      if (shelfLifeAmount <= 0) {
+        promptAction.showToast({ message: '请填写有效保质期', duration: 1500 });
+        this.isSaving = false;
+        return;
+      }
+      this.calculateExpiryFromProduction();
+    }
     food.expiryDate = this.expiryDate.getTime();
     food.status = 0;
 
@@ -316,18 +380,146 @@ struct AddFoodPage {
           .height(48)
           .padding({ left: 16, right: 16 })
 
-          // 到期日期
+          // 生产信息开关（展开/折叠）
+          Row() {
+            Column({ space: 2 }) {
+              Text('有确切生产日期和保质期')
+                .fontSize(14)
+                .fontColor($r('app.color.text_primary'))
+              Text('开启后填写生产日期 + 保质期（天/月/年），系统自动计算到期日期')
+                .fontSize(12)
+                .fontColor($r('app.color.text_hint'))
+            }
+            .layoutWeight(1)
+            Toggle({ type: ToggleType.Switch, isOn: this.hasExactProductionInfo })
+              .selectedColor('#007DFF')
+              .onChange((isOn: boolean) => {
+                this.hasExactProductionInfo = isOn;
+                if (!isOn) {
+                  this.showProductionDatePicker = false;
+                  this.updateExpiryDate();
+                } else {
+                  this.calculateExpiryFromProduction();
+                }
+              })
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16 })
+
+          // 日期与保质期信息
           Column({ space: 6 }) {
+            if (this.hasExactProductionInfo) {
+              Column({ space: 8 }) {
+                Row() {
+                  Text('生产日期')
+                    .fontSize(14)
+                    .fontColor($r('app.color.text_primary'))
+                  Blank()
+                  Text(this.showProductionDatePicker ? '收起' : '选择日期')
+                    .fontSize(13)
+                    .fontColor('#007DFF')
+                }
+                .width('100%')
+
+                Row() {
+                  Text(this.formatDate(this.productionDate))
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_primary'))
+                }
+                .width('100%')
+                .height(44)
+                .padding({ left: 12, right: 12 })
+                .backgroundColor($r('app.color.input_background'))
+                .borderRadius(8)
+                .onClick(() => {
+                  this.showProductionDatePicker = !this.showProductionDatePicker;
+                })
+
+                if (this.showProductionDatePicker) {
+                  DatePicker({
+                    start: new Date('2020-01-01'),
+                    end: new Date(),
+                    selected: this.productionDate
+                  })
+                    .width('100%')
+                    .onChange((value: DatePickerResult) => {
+                      const year: number = value.year !== undefined ? value.year : new Date().getFullYear();
+                      const month: number = value.month !== undefined ? value.month : new Date().getMonth();
+                      const day: number = value.day !== undefined ? value.day : new Date().getDate();
+                      const d = new Date();
+                      d.setFullYear(year);
+                      d.setMonth(month);
+                      d.setDate(day);
+                      d.setHours(0, 0, 0, 0);
+                      this.productionDate = d;
+                      this.calculateExpiryFromProduction();
+                    })
+                }
+
+                Column({ space: 4 }) {
+                  Text('保质期')
+                    .fontSize(14)
+                    .fontColor($r('app.color.text_primary'))
+                  Row({ space: 8 }) {
+                    TextInput({ text: this.shelfLifeDaysText, placeholder: '如：7 / 6 / 1' })
+                      .layoutWeight(1)
+                      .height(44)
+                      .fontSize(15)
+                      .borderRadius(8)
+                      .backgroundColor($r('app.color.input_background'))
+                      .type(InputType.Number)
+                      .onChange((value: string) => {
+                        this.shelfLifeDaysText = value;
+                        this.calculateExpiryFromProduction();
+                      })
+                    Row({ space: 0 }) {
+                      Text('天')
+                        .fontSize(13)
+                        .fontColor(this.shelfLifeUnit === 'day' ? Color.White : '#666666')
+                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .backgroundColor(this.shelfLifeUnit === 'day' ? '#007DFF' : '#F0F0F0')
+                        .borderRadius(8)
+                        .onClick(() => {
+                          this.shelfLifeUnit = 'day';
+                          this.calculateExpiryFromProduction();
+                        })
+                      Text('月')
+                        .fontSize(13)
+                        .fontColor(this.shelfLifeUnit === 'month' ? Color.White : '#666666')
+                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .backgroundColor(this.shelfLifeUnit === 'month' ? '#007DFF' : '#F0F0F0')
+                        .borderRadius(8)
+                        .onClick(() => {
+                          this.shelfLifeUnit = 'month';
+                          this.calculateExpiryFromProduction();
+                        })
+                      Text('年')
+                        .fontSize(13)
+                        .fontColor(this.shelfLifeUnit === 'year' ? Color.White : '#666666')
+                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .backgroundColor(this.shelfLifeUnit === 'year' ? '#007DFF' : '#F0F0F0')
+                        .borderRadius(8)
+                        .onClick(() => {
+                          this.shelfLifeUnit = 'year';
+                          this.calculateExpiryFromProduction();
+                        })
+                    }
+                    .borderRadius(8)
+                    .clip(true)
+                  }
+                }
+                .width('100%')
+              }
+            }
+
             Row() {
-              Text('到期日期')
+              Text('到期日期（自动计算）')
                 .fontSize(14)
                 .fontColor($r('app.color.text_primary'))
               Blank()
-              if (this.selectedCategory.length > 0 && !isPackagedFood(this.selectedCategory)) {
-                Text('已自动计算')
-                  .fontSize(12)
-                  .fontColor('#007DFF')
-              }
+              Text(this.hasExactProductionInfo ? '来自生产信息' : '来自品类与存储环境')
+                .fontSize(12)
+                .fontColor('#007DFF')
             }
             .width('100%')
 
@@ -335,39 +527,12 @@ struct AddFoodPage {
               Text(this.formatDate(this.expiryDate))
                 .fontSize(16)
                 .fontColor($r('app.color.text_primary'))
-              Blank()
-              Text(this.showDatePicker ? '收起' : '选择日期')
-                .fontSize(13)
-                .fontColor('#007DFF')
             }
             .width('100%')
             .height(44)
             .padding({ left: 12, right: 12 })
             .backgroundColor($r('app.color.input_background'))
             .borderRadius(8)
-            .onClick(() => {
-              this.showDatePicker = !this.showDatePicker;
-            })
-
-            if (this.showDatePicker) {
-              DatePicker({
-                start: new Date(),
-                end: new Date('2030-12-31'),
-                selected: this.expiryDate
-              })
-                .width('100%')
-                .onChange((value: DatePickerResult) => {
-                  const year: number = value.year !== undefined ? value.year : new Date().getFullYear();
-                  const month: number = value.month !== undefined ? value.month : new Date().getMonth();
-                  const day: number = value.day !== undefined ? value.day : new Date().getDate();
-                  const d = new Date();
-                  d.setFullYear(year);
-                  d.setMonth(month);
-                  d.setDate(day);
-                  d.setHours(23, 59, 59, 0);
-                  this.expiryDate = d;
-                })
-            }
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
@@ -376,43 +541,21 @@ struct AddFoodPage {
           this.buildSectionTitle('营养信息')
 
           Column({ space: 6 }) {
-            Text('能量/热量（每100g，选填）')
+            Text('本次总热量（kcal，选填）')
               .fontSize(14)
               .fontColor($r('app.color.text_primary'))
-            // kJ/kcal 单位切换
-            Row({ space: 0 }) {
-              Text('千焦 kJ')
-                .fontSize(13)
-                .fontColor(this.calorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
-                .textAlign(TextAlign.Center).layoutWeight(1).height(32)
-                .backgroundColor(this.calorieUnit === 'kJ' ? '#007DFF' : $r('app.color.chip_background'))
-                .borderRadius(8)
-                .onClick(() => { this.calorieUnit = 'kJ'; })
-              Text('千卡 kcal')
-                .fontSize(13)
-                .fontColor(this.calorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
-                .textAlign(TextAlign.Center).layoutWeight(1).height(32)
-                .backgroundColor(this.calorieUnit === 'kcal' ? '#007DFF' : $r('app.color.chip_background'))
-                .borderRadius(8)
-                .onClick(() => { this.calorieUnit = 'kcal'; })
-            }
-            .width('100%').borderRadius(8).clip(true)
 
             Row({ space: 8 }) {
-              TextInput({ text: this.caloriesText, placeholder: '如营养表上的数值' })
+              TextInput({ text: this.caloriesText, placeholder: '输入本次入库总热量（kcal）' })
                 .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
                 .backgroundColor($r('app.color.input_background'))
                 .type(InputType.Number)
                 .onChange((value: string) => { this.caloriesText = value; })
-              Text(this.calorieUnit)
+              Text('kcal')
                 .fontSize(14).fontColor($r('app.color.text_hint'))
             }
-            if (this.calorieUnit === 'kJ' && this.caloriesText.length > 0) {
-              Text('≈ ' + kjToKcal(Number(this.caloriesText) || 0) + ' kcal（自动换算）')
-                .fontSize(12).fontColor('#007DFF')
-            }
             if (this.caloriesText.length === 0) {
-              Text('💡 查看包装营养成分表，能量一栏通常为千焦(kJ)')
+              Text('💡 建议先在“热量获取”页录入营养标注与数量，再回到此页确认总热量')
                 .fontSize(12).fontColor('#FF9500')
             }
           }

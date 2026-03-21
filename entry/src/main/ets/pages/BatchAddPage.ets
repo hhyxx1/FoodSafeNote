@@ -37,7 +37,7 @@ struct BatchAddPage {
   private startScan(): void {
     const options: scanBarcode.ScanOptions = {
       scanTypes: [scanCore.ScanType.ALL],
-      enableMultiMode: false,
+      enableMultiMode: true,
       enableAlbum: true
     };
     try {

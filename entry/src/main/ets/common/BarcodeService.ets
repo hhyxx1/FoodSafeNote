@@ -1,7 +1,16 @@
 import { common } from '@kit.AbilityKit';
 import { DatabaseHelper } from './DatabaseHelper';
-import { ProductDict, BarcodeMatchResult } from '../model/DataModels';
+import { ProductDict, BarcodeMatchResult, BuiltinBarcode } from '../model/DataModels';
 import { util } from '@kit.ArkTS';
+
+export interface NutritionMeta {
+  rawEnergy: number;
+  energyUnit: string;
+  basisType: string;
+  servingSize: number;
+  servingUnit: string;
+  isReliable: boolean;
+}
 
 // 条码匹配服务：两层本地匹配 + CSV导入
 export class BarcodeService {
@@ -20,9 +29,13 @@ export class BarcodeService {
     if (this.initialized) return;
     const db: DatabaseHelper = DatabaseHelper.getInstance();
     const count: number = await db.getBuiltinBarcodeCount();
-    if (count > 0) {
+    const missingCategoryCount: number = await db.getBuiltinBarcodeMissingCategoryCount();
+    if (count > 0 && missingCategoryCount === 0) {
       this.initialized = true;
       return;
+    }
+    if (count > 0 && missingCategoryCount > 0) {
+      await db.clearBuiltinBarcodes();
     }
     // 从rawfile读取CSV并批量导入
     try {
@@ -32,6 +45,7 @@ export class BarcodeService {
       const lines: string[] = csvText.split('\n');
       const barcodes: string[] = [];
       const names: string[] = [];
+      const categories: string[] = [];
       // 跳过header行
       for (let i = 1; i < lines.length; i++) {
         const line: string = lines[i].trim();
@@ -43,16 +57,41 @@ export class BarcodeService {
         if (barcode.length > 0 && name.length > 0) {
           barcodes.push(barcode);
           names.push(name);
+          categories.push(this.inferBuiltinCategory(name));
         }
       }
       if (barcodes.length > 0) {
-        await db.batchInsertBuiltinBarcodes(barcodes, names);
+        await db.batchInsertBuiltinBarcodes(barcodes, names, categories);
       }
       this.initialized = true;
     } catch (e) {
       // CSV导入失败不影响应用使用
       this.initialized = true;
     }
+  }
+
+  private inferBuiltinCategory(name: string): string {
+    if (name.indexOf('牛奶') >= 0 || name.indexOf('酸奶') >= 0 || name.indexOf('奶') >= 0) {
+      return '乳制品';
+    }
+    if (name.indexOf('饼干') >= 0 || name.indexOf('薯片') >= 0 || name.indexOf('巧克力') >= 0 ||
+      name.indexOf('零食') >= 0 || name.indexOf('芝麻糊') >= 0) {
+      return '零食';
+    }
+    if (name.indexOf('酱油') >= 0 || name.indexOf('味精') >= 0 || name.indexOf('调味') >= 0 ||
+      name.indexOf('鸡精') >= 0 || name.indexOf('火锅底料') >= 0) {
+      return '调味品';
+    }
+    if (name.indexOf('罐头') >= 0) {
+      return '罐头';
+    }
+    if (name.indexOf('饮料') >= 0 || name.indexOf('果汁') >= 0 || name.indexOf('可乐') >= 0 || name.indexOf('茶') >= 0) {
+      return '饮料';
+    }
+    if (name.indexOf('面') >= 0 || name.indexOf('米') >= 0) {
+      return '主食';
+    }
+    return '其他';
   }
 
   // 两层条码匹配算法
@@ -74,10 +113,10 @@ export class BarcodeService {
     }
 
     // 第二层：匹配内置本地条码库
-    const builtinName: string = await db.queryBuiltinBarcode(barcode);
-    if (builtinName.length > 0) {
-      result.name = builtinName;
-      result.category = '';
+    const builtinInfo: BuiltinBarcode | null = await db.queryBuiltinBarcode(barcode);
+    if (builtinInfo !== null && builtinInfo.name.length > 0) {
+      result.name = builtinInfo.name;
+      result.category = builtinInfo.category;
       result.spec = '';
       result.calories = 0;
       result.source = 'builtin';
@@ -110,9 +149,25 @@ export class BarcodeService {
     return 0;
   }
 
+  // 获取完整营养预设（单位/基准等）
+  async fetchNutritionPreset(barcode: string, category: string, name: string): Promise<ProductDict | null> {
+    const db: DatabaseHelper = DatabaseHelper.getInstance();
+    if (barcode.length > 0) {
+      const byBarcode: ProductDict | null = await db.queryProductDictByBarcode(barcode);
+      if (byBarcode !== null) {
+        return byBarcode;
+      }
+    }
+    if (category.length > 0 && name.length > 0) {
+      const key: string = category + '_' + name;
+      return await db.queryProductDictByKey(key);
+    }
+    return null;
+  }
+
   // 确认后存入本地记忆库
   async saveToProductDict(barcode: string, name: string, category: string,
-    spec: string, calories: number, source: string): Promise<void> {
+    spec: string, calories: number, source: string, meta?: NutritionMeta): Promise<void> {
     const db: DatabaseHelper = DatabaseHelper.getInstance();
     const dict = new ProductDict();
     dict.dictKey = barcode.length > 0 ? barcode : (category + '_' + name);
@@ -121,6 +176,20 @@ export class BarcodeService {
     dict.category = category;
     dict.spec = spec;
     dict.calories = calories;
+    dict.rawEnergy = meta !== undefined ? meta.rawEnergy : calories;
+    dict.energyUnit = meta !== undefined ? meta.energyUnit : 'kcal';
+    dict.basisType = meta !== undefined ? meta.basisType : 'per100g';
+    dict.servingSize = meta !== undefined ? meta.servingSize : 0;
+    dict.servingUnit = meta !== undefined ? meta.servingUnit : 'g';
+    dict.isReliable = meta !== undefined ? meta.isReliable : true;
+
+    // 严格模式保护：按份但缺少每份重量时，不用0覆盖已有标准化值
+    if (meta !== undefined && !meta.isReliable && calories <= 0) {
+      const existing: ProductDict | null = await db.queryProductDictByKey(dict.dictKey);
+      if (existing !== null && existing.calories > 0) {
+        dict.calories = existing.calories;
+      }
+    }
     dict.source = source;
     await db.insertOrUpdateProductDict(dict);
   }

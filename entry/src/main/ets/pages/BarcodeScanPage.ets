@@ -18,6 +18,13 @@ interface CaloriePageParams {
   name: string;
   category: string;
   spec: string;
+  amount?: number;
+  amountUnit?: string;
+}
+
+interface ParsedAmountResult {
+  amount: number;
+  unit: string;
 }
 
 @Entry
@@ -25,6 +32,7 @@ interface CaloriePageParams {
 struct BarcodeScanPage {
   @State barcodeInput: string = '';
   @State isMatching: boolean = false;
+  @State batchScanMode: boolean = false;
   @State showVerifyDialog: boolean = false;
   @State matchedName: string = '';
   @State matchedCategory: string = '';
@@ -32,11 +40,39 @@ struct BarcodeScanPage {
   @State currentBarcode: string = '';
   @State matchSource: string = '';
 
+  private parseAmountFromSpec(spec: string): ParsedAmountResult {
+    const text: string = spec.trim();
+    if (text.length === 0) {
+      return { amount: 0, unit: 'g' };
+    }
+    const matchWithUnit: RegExpMatchArray | null = text.match(/(\d+(?:\.\d+)?)\s*(g|G|克|kg|KG|千克|ml|mL|ML|毫升|l|L|升)/);
+    if (matchWithUnit !== null && matchWithUnit.length >= 3) {
+      const value: number = Number(matchWithUnit[1]) || 0;
+      const unitToken: string = matchWithUnit[2];
+      if (unitToken === 'kg' || unitToken === 'KG' || unitToken === '千克') {
+        return { amount: Math.round(value * 1000), unit: 'g' };
+      }
+      if (unitToken === 'l' || unitToken === 'L' || unitToken === '升') {
+        return { amount: Math.round(value * 1000), unit: 'ml' };
+      }
+      const unit: string = (unitToken.indexOf('ml') >= 0 || unitToken.indexOf('mL') >= 0 || unitToken.indexOf('毫升') >= 0)
+        ? 'ml' : 'g';
+      return { amount: value, unit: unit };
+    }
+
+    // 兜底：若规格仅数字，默认按g处理
+    const pureNumber: RegExpMatchArray | null = text.match(/(\d+(?:\.\d+)?)/);
+    if (pureNumber !== null && pureNumber.length > 1) {
+      return { amount: Number(pureNumber[1]) || 0, unit: 'g' };
+    }
+    return { amount: 0, unit: 'g' };
+  }
+
   // 调用系统扫码
   private startScan(): void {
     const options: scanBarcode.ScanOptions = {
       scanTypes: [scanCore.ScanType.ALL],
-      enableMultiMode: false,
+      enableMultiMode: this.batchScanMode,
       enableAlbum: true
     };
     try {
@@ -84,18 +120,26 @@ struct BarcodeScanPage {
       return;
     }
     // 存入ProductDict
-    const source: string = this.matchSource === 'product_dict' ? 'edited' : 'manual';
+    let source: string = 'manual';
+    if (this.matchSource === 'product_dict') {
+      source = 'edited';
+    } else if (this.matchSource === 'builtin') {
+      source = 'builtin';
+    }
     BarcodeService.getInstance().saveToProductDict(
       this.currentBarcode, this.matchedName.trim(),
       this.matchedCategory, this.matchedSpec, 0, source
     );
     this.showVerifyDialog = false;
+    const parsedAmount: ParsedAmountResult = this.parseAmountFromSpec(this.matchedSpec);
     // 跳转到热量获取页
     const params: CaloriePageParams = {
       barcode: this.currentBarcode,
       name: this.matchedName.trim(),
       category: this.matchedCategory,
-      spec: this.matchedSpec
+      spec: this.matchedSpec,
+      amount: parsedAmount.amount,
+      amountUnit: parsedAmount.unit
     };
     router.pushUrl({ url: 'pages/CalorieInputPage', params: params });
   }
@@ -158,6 +202,37 @@ struct BarcodeScanPage {
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
+
+          Row() {
+            Column({ space: 2 }) {
+              Text('批量扫码模式')
+                .fontSize(14)
+                .fontColor($r('app.color.text_primary'))
+              Text('开启后将优先启用多码识别，复杂场景可改用“批量添加”页')
+                .fontSize(12)
+                .fontColor($r('app.color.text_hint'))
+            }
+            .layoutWeight(1)
+            Toggle({ type: ToggleType.Switch, isOn: this.batchScanMode })
+              .selectedColor('#007DFF')
+              .onChange((isOn: boolean) => {
+                this.batchScanMode = isOn;
+              })
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16 })
+
+          Button('前往批量添加页')
+            .width('100%')
+            .height(40)
+            .margin({ left: 16, right: 16 })
+            .fontSize(14)
+            .fontColor('#007DFF')
+            .backgroundColor('#E8F0FE')
+            .borderRadius(8)
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/BatchAddPage' });
+            })
 
           // 手动输入
           Row({ space: 8 }) {
@@ -291,6 +366,11 @@ struct BarcodeScanPage {
                 this.matchedSpec = value;
               })
           }
+
+          Text('💡 商品规格会作为入库量来源并自动带入下一步')
+            .fontSize(12)
+            .fontColor($r('app.color.text_hint'))
+            .width('100%')
 
           // 按钮
           Row({ space: 12 }) {

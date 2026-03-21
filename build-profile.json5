@@ -6,7 +6,7 @@
         "type": "HarmonyOS",
         "material": {
           "certpath": "***REMOVED***",
-          "keyAlias": "aaa",
+          "keyAlias": "debugKey",
           "keyPassword": "***REMOVED***",
           "profile": "***REMOVED***",
           "signAlg": "SHA256withECDSA",
@@ -19,8 +19,8 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "5.1.1(19)",
-        "targetSdkVersion": "5.1.1(19)",
+        "compatibleSdkVersion": "6.0.0(20)",
+        "targetSdkVersion": "6.0.0(20)",
         "runtimeOS": "HarmonyOS"
       }
     ],

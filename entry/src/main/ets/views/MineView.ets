@@ -1,5 +1,4 @@
 import { router, promptAction } from '@kit.ArkUI';
-import { preferences } from '@kit.ArkData';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { FamilyMember, FoodStats } from '../model/DataModels';
@@ -12,7 +11,6 @@ export struct MineView {
   @State stats: FoodStats = new FoodStats();
   @State builtinCount: number = 0;
   @State dictCount: number = 0;
-  @State clipboardAutoEnabled: boolean = false;
 
   aboutToAppear(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
@@ -37,26 +35,6 @@ export struct MineView {
     DatabaseHelper.getInstance().getProductDictCount().then((count: number) => {
       this.dictCount = count;
     });
-    // 读取剪贴板开关设置
-    try {
-      const store: preferences.Preferences =
-        preferences.getPreferencesSync(getContext(this), { name: 'settings' });
-      this.clipboardAutoEnabled = store.getSync('clipboard_auto', false) as boolean;
-    } catch (e) {
-      this.clipboardAutoEnabled = false;
-    }
-  }
-
-  private toggleClipboard(value: boolean): void {
-    this.clipboardAutoEnabled = value;
-    try {
-      const store: preferences.Preferences =
-        preferences.getPreferencesSync(getContext(this), { name: 'settings' });
-      store.putSync('clipboard_auto', value);
-      store.flush();
-    } catch (e) {
-      // 存储失败不影响使用
-    }
   }
 
   private addMember(): void {
@@ -208,29 +186,10 @@ export struct MineView {
             }
             .width('100%').padding({ top: 12, bottom: 12 })
             .onClick(() => { router.pushUrl({ url: 'pages/OcrRecordPage' }); })
-          }
-          .width('100%').padding(16).margin({ left: 16, right: 16 })
-          .backgroundColor($r('app.color.card_background')).borderRadius(16)
 
-          // 设置
-          Column({ space: 0 }) {
-            Text('设置')
-              .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-              .width('100%').padding({ bottom: 8 })
+            Divider().color($r('app.color.divider'))
 
-            Row() {
-              Column({ space: 2 }) {
-                Text('📋 剪贴板自动解析').fontSize(15).fontColor($r('app.color.text_primary'))
-                Text('开启后进入应用时自动读取剪贴板内容').fontSize(12).fontColor($r('app.color.text_hint'))
-              }
-              .layoutWeight(1).alignItems(HorizontalAlign.Start)
-              Toggle({ type: ToggleType.Switch, isOn: this.clipboardAutoEnabled })
-                .selectedColor('#007DFF')
-                .onChange((isOn: boolean) => {
-                  this.toggleClipboard(isOn);
-                })
-            }
-            .width('100%').padding({ top: 12, bottom: 12 })
+            // 剪贴板解析入口已移至入库选择页（首页“+”），此处不再展示
           }
           .width('100%').padding(16).margin({ left: 16, right: 16 })
           .backgroundColor($r('app.color.card_background')).borderRadius(16)

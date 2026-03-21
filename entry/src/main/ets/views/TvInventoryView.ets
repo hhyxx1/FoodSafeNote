@@ -129,7 +129,7 @@ export struct TvInventoryView {
                   .fontColor(item.getStatusColor())
 
                 if (item.calories > 0) {
-                  Text(item.calories.toFixed(0) + ' kcal')
+                  Text('本次 ' + item.calories.toFixed(0) + ' kcal')
                     .fontSize(18)
                     .fontColor('#FF6B00')
                 }
