@@ -302,7 +302,7 @@ struct ProductDictPage {
   private getNormalizedLabel(item: ProductDict): string {
     const basis: string = item.basisType === 'per100ml' ? '100ml' : '100g';
     if (item.calories <= 0) {
-      return '未沉淀标准化热量';
+      return '暂未换算为每100单位热量';
     }
     return item.calories.toFixed(0) + ' kcal/' + basis;
   }

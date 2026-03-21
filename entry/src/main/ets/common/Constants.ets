@@ -19,7 +19,8 @@ export const FOOD_CATEGORIES: string[] = [
 ];
 
 // 浪费原因列表
-export const WASTE_REASONS: string[] = ['过期', '变质', '吃不完', '其他'];
+export const EXPIRED_WASTE_REASON: string = '过期/变质';
+export const WASTE_REASONS: string[] = [EXPIRED_WASTE_REASON, '吃不完', '其他'];
 
 // 获取存储类型中文名
 export function getStorageTypeName(type: string): string {

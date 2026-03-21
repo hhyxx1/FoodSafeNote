@@ -1,7 +1,7 @@
 import { router, promptAction } from '@kit.ArkUI';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem, FamilyMember } from '../model/DataModels';
-import { formatTimestamp, getStorageTypeName, WASTE_REASONS } from '../common/Constants';
+import { EXPIRED_WASTE_REASON, formatTimestamp, getStorageTypeName, WASTE_REASONS } from '../common/Constants';
 
 interface FoodDetailParams {
   foodId: number;
@@ -69,6 +69,16 @@ struct FoodDetailPage {
       promptAction.showToast({ message: '已记录丢弃', duration: 1500 });
       router.back();
     });
+  }
+
+  private isWasteReasonDisabled(reason: string): boolean {
+    if (this.foodItem === null) {
+      return false;
+    }
+    if (!this.foodItem.isExpired()) {
+      return false;
+    }
+    return reason !== EXPIRED_WASTE_REASON;
   }
 
   private handleDelete(): void {
@@ -299,10 +309,19 @@ struct FoodDetailPage {
       Text('选择丢弃原因').fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
       Flex({ wrap: FlexWrap.Wrap }) {
         ForEach(WASTE_REASONS, (reason: string) => {
-          Text(reason).fontSize(14).fontColor('#FF6B00')
+          Text(reason)
+            .fontSize(14)
+            .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : '#FF6B00')
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-            .margin({ right: 8, bottom: 8 }).borderRadius(8).backgroundColor('#FFF3E0')
-            .onClick(() => { this.handleWaste(reason); })
+            .margin({ right: 8, bottom: 8 })
+            .borderRadius(8)
+            .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : '#FFF3E0')
+            .opacity(this.isWasteReasonDisabled(reason) ? 0.65 : 1)
+            .onClick(() => {
+              if (!this.isWasteReasonDisabled(reason)) {
+                this.handleWaste(reason);
+              }
+            })
         }, (reason: string) => reason)
       }
       .width('100%')

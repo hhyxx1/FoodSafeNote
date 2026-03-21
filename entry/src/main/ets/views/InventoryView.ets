@@ -1,7 +1,7 @@
 import { router, promptAction } from '@kit.ArkUI';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem, FamilyMember } from '../model/DataModels';
-import { getStorageTypeName, WASTE_REASONS } from '../common/Constants';
+import { EXPIRED_WASTE_REASON, getStorageTypeName, WASTE_REASONS } from '../common/Constants';
 
 interface FoodRouterParams {
   foodId: number;
@@ -125,6 +125,16 @@ export struct InventoryView {
       this.showActionPanel = false;
       this.loadFoodItems();
     });
+  }
+
+  private isWasteReasonDisabled(reason: string): boolean {
+    if (this.selectedItem === null) {
+      return false;
+    }
+    if (!this.selectedItem.isExpired()) {
+      return false;
+    }
+    return reason !== EXPIRED_WASTE_REASON;
   }
 
   build() {
@@ -269,10 +279,13 @@ export struct InventoryView {
             Row({ space: 8 }) {
               ForEach(WASTE_REASONS, (reason: string) => {
                 Button(reason)
-                  .height(36).fontSize(13).fontColor('#FF6B00')
-                  .backgroundColor('#FFF3E0').borderRadius(18)
+                  .height(36).fontSize(13)
+                  .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : '#FF6B00')
+                  .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : '#FFF3E0')
+                  .borderRadius(18)
+                  .enabled(!this.isWasteReasonDisabled(reason))
                   .onClick(() => {
-                    if (this.selectedItem !== null) {
+                    if (!this.isWasteReasonDisabled(reason) && this.selectedItem !== null) {
                       this.handleWaste(this.selectedItem, reason);
                     }
                   })

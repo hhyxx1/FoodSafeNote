@@ -11,7 +11,7 @@ struct EntrySelectionPage {
           .height(36).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
-        Text('添加食品')
+        Text('选择入库方式')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
           .layoutWeight(1).textAlign(TextAlign.Center)
         Text('').width(56)
@@ -20,15 +20,9 @@ struct EntrySelectionPage {
       .backgroundColor($r('app.color.card_background'))
 
       Scroll() {
-        Column({ space: 16 }) {
-          // 标题
-          Column({ space: 8 }) {
-            Text('选择入库方式')
-              .fontSize(20).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-            Text('扫码入库可自动匹配17万+商品信息')
-              .fontSize(14).fontColor($r('app.color.text_hint'))
-          }
-          .width('100%').alignItems(HorizontalAlign.Center).padding({ top: 24 })
+        Column({ space: 12 }) {
+          Blank()
+            .height(6)
 
           // 扫码入库
           this.buildEntryCard('📷', '扫码入库', '扫描商品条码，自动匹配商品信息', () => {
@@ -72,15 +66,15 @@ struct EntrySelectionPage {
 
   @Builder
   buildEntryCard(icon: string, title: string, subtitle: string, action: () => void) {
-    Column({ space: 8 }) {
-      Text(icon).fontSize(36)
-      Text(title).fontSize(16).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-      Text(subtitle).fontSize(13).fontColor($r('app.color.text_hint')).textAlign(TextAlign.Center)
+    Column({ space: 6 }) {
+      Text(icon).fontSize(30)
+      Text(title).fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+      Text(subtitle).fontSize(12).fontColor($r('app.color.text_hint')).textAlign(TextAlign.Center)
     }
-    .width('100%').padding(20).margin({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.card_background')).borderRadius(16)
+    .width('100%').padding({ left: 14, right: 14, top: 14, bottom: 14 }).margin({ left: 16, right: 16 })
+    .backgroundColor($r('app.color.card_background')).borderRadius(12)
     .alignItems(HorizontalAlign.Center)
-    .shadow({ radius: 4, color: '#0D000000', offsetX: 0, offsetY: 2 })
+    .shadow({ radius: 3, color: '#0D000000', offsetX: 0, offsetY: 1 })
     .onClick(action)
   }
 }
