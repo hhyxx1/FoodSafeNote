@@ -44,7 +44,7 @@ export struct WatchHealthView {
     Column({ space: 3 }) {
       // 切换按钮
       Row({ space: 0 }) {
-        Text('今日')
+        Text($r('app.string.watch_today'))
           .fontSize(10)
           .fontColor(this.viewMode === 'today' ? Color.White : $r('app.color.text_secondary'))
           .textAlign(TextAlign.Center)
@@ -52,7 +52,7 @@ export struct WatchHealthView {
           .backgroundColor(this.viewMode === 'today' ? '#007DFF' : $r('app.color.chip_background'))
           .borderRadius(10)
           .onClick(() => { this.viewMode = 'today'; this.loadData(); })
-        Text('本周')
+        Text($r('app.string.watch_week'))
           .fontSize(10)
           .fontColor(this.viewMode === 'week' ? Color.White : $r('app.color.text_secondary'))
           .textAlign(TextAlign.Center)
@@ -87,7 +87,7 @@ export struct WatchHealthView {
       }, (item: DailyCalorie) => item.memberName)
 
       if (this.dailyCalories.length === 0) {
-        Text('暂无摄入记录')
+        Text($r('app.string.watch_no_intake_records'))
           .fontSize(10)
           .fontColor($r('app.color.text_hint'))
       }

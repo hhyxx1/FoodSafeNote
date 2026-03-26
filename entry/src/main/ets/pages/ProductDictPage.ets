@@ -89,34 +89,16 @@ struct ProductDictPage {
       const dir: string = ctx.filesDir;
       const filePath: string = dir + '/import_dict.json';
       const jsonStr: string = await DataExportService.readFromFile(filePath);
-      const parsed: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
-      const dictArray: ProductDict[] = parsed['productDict'] as ProductDict[];
-      if (dictArray === undefined || dictArray === null) {
-        promptAction.showToast({ message: '文件格式错误：缺少productDict字段', duration: 2000 });
-        this.isDictImporting = false;
-        return;
+      const result = await DataExportService.importProductDictJson(jsonStr);
+      if (result.success) {
+        promptAction.showToast({
+          message: '字典导入成功（' + (result.imported || 0) + ' 条，跳过 ' + (result.skipped || 0) + ' 条）',
+          duration: 2200
+        });
+        this.loadData();
+      } else {
+        promptAction.showToast({ message: result.message, duration: 2000 });
       }
-      const db: DatabaseHelper = DatabaseHelper.getInstance();
-      for (let i = 0; i < dictArray.length; i++) {
-        const dict: ProductDict = dictArray[i];
-        const pd = new ProductDict();
-        pd.dictKey = dict.dictKey;
-        pd.barcode = dict.barcode;
-        pd.name = dict.name;
-        pd.category = dict.category;
-        pd.spec = dict.spec;
-        pd.calories = dict.calories;
-        pd.rawEnergy = dict.rawEnergy;
-        pd.energyUnit = dict.energyUnit;
-        pd.basisType = dict.basisType;
-        pd.servingSize = dict.servingSize;
-        pd.servingUnit = dict.servingUnit;
-        pd.isReliable = dict.isReliable;
-        pd.source = dict.source;
-        await db.insertOrUpdateProductDict(pd);
-      }
-      promptAction.showToast({ message: '字典导入成功', duration: 2000 });
-      this.loadData();
     } catch (e) {
       promptAction.showToast({ message: '导入失败：文件不存在或格式错误', duration: 2000 });
     }

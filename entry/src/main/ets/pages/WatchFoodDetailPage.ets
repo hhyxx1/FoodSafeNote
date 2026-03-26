@@ -1,4 +1,5 @@
 import { router } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
 
@@ -26,18 +27,50 @@ struct WatchFoodDetailPage {
     });
   }
 
+  private getString(resId: number, fallback: string): string {
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      return ctx.resourceManager.getStringSync(resId);
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  private getStatusText(): string {
+    if (this.foodItem === null) {
+      return '';
+    }
+    if (this.foodItem.status === 1) {
+      return this.getString($r('app.string.status_consumed').id, 'Consumed');
+    }
+    if (this.foodItem.status === 2) {
+      return this.getString($r('app.string.status_wasted').id, 'Discarded');
+    }
+    if (this.foodItem.isExpired()) {
+      return this.getString($r('app.string.status_expired').id, 'Expired');
+    }
+    if (this.foodItem.isNearExpiry()) {
+      return this.getString($r('app.string.status_near_expiry').id, 'Near expiry');
+    }
+    return this.getString($r('app.string.status_normal').id, 'Normal');
+  }
+
   private getExpiryText(): string {
     if (this.foodItem === null) return '';
-    if (this.foodItem.expiryDate <= 0) return '未设置';
+    if (this.foodItem.expiryDate <= 0) return this.getString($r('app.string.watch_not_set').id, 'Not set');
     const days: number = this.foodItem.getRemainingDays();
-    if (days < 0) return '过期' + Math.abs(days) + '天';
-    if (days === 0) return '今天到期';
-    return '剩余' + days + '天';
+    if (days < 0) {
+      return this.getString($r('app.string.watch_expired_prefix').id, 'Expired ') + Math.abs(days).toString() +
+        this.getString($r('app.string.watch_days_suffix').id, ' days');
+    }
+    if (days === 0) return this.getString($r('app.string.watch_expire_today').id, 'Expires today');
+    return this.getString($r('app.string.watch_remaining_prefix').id, 'Remaining ') + days.toString() +
+      this.getString($r('app.string.watch_days_suffix').id, ' days');
   }
 
   build() {
     Column({ space: 4 }) {
-      Text('< 返回')
+      Text($r('app.string.watch_back'))
         .fontSize(10)
         .fontColor('#007DFF')
         .onClick(() => { router.back(); })
@@ -56,7 +89,7 @@ struct WatchFoodDetailPage {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .textAlign(TextAlign.Center)
 
-        Text(this.foodItem.getStatusText())
+        Text(this.getStatusText())
           .fontSize(13)
           .fontColor(this.foodItem.getStatusColor())
 
@@ -71,7 +104,7 @@ struct WatchFoodDetailPage {
             .fontColor('#FF6B00')
         }
       } else {
-        Text('加载中...')
+        Text($r('app.string.watch_loading'))
           .fontSize(11)
           .fontColor($r('app.color.text_hint'))
       }

@@ -1,4 +1,5 @@
 import { router } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
 
@@ -14,6 +15,8 @@ export struct WatchInventoryView {
   @State normalCount: number = 0;
   @State nearExpiryCount: number = 0;
   @State expiredCount: number = 0;
+  @State touchStartX: number = 0;
+  @State touchStartY: number = 0;
 
   aboutToAppear(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
@@ -42,11 +45,45 @@ export struct WatchInventoryView {
     });
   }
 
+  private getString(resId: number, fallback: string): string {
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      return ctx.resourceManager.getStringSync(resId);
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  private getWatchStatusText(item: FoodItem): string {
+    if (item.status === 1) {
+      return this.getString($r('app.string.status_consumed').id, 'Consumed');
+    }
+    if (item.status === 2) {
+      return this.getString($r('app.string.status_wasted').id, 'Discarded');
+    }
+    if (item.isExpired()) {
+      return this.getString($r('app.string.status_expired').id, 'Expired');
+    }
+    if (item.isNearExpiry()) {
+      return this.getString($r('app.string.status_near_expiry').id, 'Near expiry');
+    }
+    return this.getString($r('app.string.status_normal').id, 'Normal');
+  }
+
+  private exitWatchApp(): void {
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      ctx.terminateSelf();
+    } catch (e) {
+      // ignore
+    }
+  }
+
   build() {
     if (!this.listOpen) {
       // 总览页 - 可滑动翻页
       Column({ space: 4 }) {
-        Text('库存')
+        Text($r('app.string.watch_inventory_title'))
           .fontSize(11)
           .fontColor($r('app.color.text_hint'))
 
@@ -62,7 +99,7 @@ export struct WatchInventoryView {
               Text(this.normalCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
-            Text('正常').fontSize(8).fontColor($r('app.color.text_secondary'))
+            Text($r('app.string.watch_normal')).fontSize(8).fontColor($r('app.color.text_secondary'))
           }.alignItems(HorizontalAlign.Center)
 
           Column({ space: 1 }) {
@@ -71,7 +108,7 @@ export struct WatchInventoryView {
               Text(this.nearExpiryCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
-            Text('临期').fontSize(8).fontColor($r('app.color.text_secondary'))
+            Text($r('app.string.watch_near_expiry')).fontSize(8).fontColor($r('app.color.text_secondary'))
           }.alignItems(HorizontalAlign.Center)
 
           Column({ space: 1 }) {
@@ -80,11 +117,11 @@ export struct WatchInventoryView {
               Text(this.expiredCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
-            Text('过期').fontSize(8).fontColor($r('app.color.text_secondary'))
+            Text($r('app.string.watch_expired')).fontSize(8).fontColor($r('app.color.text_secondary'))
           }.alignItems(HorizontalAlign.Center)
         }
 
-        Text('点击查看列表 >')
+        Text($r('app.string.watch_tap_to_list'))
           .fontSize(10)
           .fontColor('#007DFF')
           .margin({ top: 2 })
@@ -101,7 +138,7 @@ export struct WatchInventoryView {
       // 列表页 - 禁用Swiper滑动，指示点隐藏
       Column() {
         // 返回按钮 - 留出顶部安全区，不与指示点重叠
-        Text('< 返回总览')
+        Text($r('app.string.watch_back_overview'))
           .fontSize(11)
           .fontColor('#007DFF')
           .width('100%')
@@ -112,10 +149,10 @@ export struct WatchInventoryView {
         if (this.foodItems.length === 0) {
           // 空状态
           Column({ space: 4 }) {
-            Text('暂无库存')
+            Text($r('app.string.watch_empty_inventory'))
               .fontSize(13)
               .fontColor($r('app.color.text_hint'))
-            Text('在手机端添加食品')
+            Text($r('app.string.watch_add_on_phone'))
               .fontSize(10)
               .fontColor($r('app.color.text_disabled'))
           }
@@ -136,7 +173,7 @@ export struct WatchInventoryView {
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .padding({ left: 4 })
-                  Text(item.getStatusText())
+                  Text(this.getWatchStatusText(item))
                     .fontSize(9)
                     .fontColor(item.getStatusColor())
                 }
@@ -155,6 +192,21 @@ export struct WatchInventoryView {
       .width('100%')
       .height('100%')
       .padding({ bottom: 12 })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.touchStartX = event.touches[0].x;
+          this.touchStartY = event.touches[0].y;
+          return;
+        }
+        if (event.type === TouchType.Up) {
+          const dx: number = event.changedTouches[0].x - this.touchStartX;
+          const dy: number = event.changedTouches[0].y - this.touchStartY;
+          // 列表页右滑直接退出应用
+          if (dx > 70 && Math.abs(dx) > Math.abs(dy)) {
+            this.exitWatchApp();
+          }
+        }
+      })
     }
   }
 }

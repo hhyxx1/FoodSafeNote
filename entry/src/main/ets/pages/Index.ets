@@ -10,6 +10,7 @@ import { TvMineView } from '../views/TvMineView';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
+import { common } from '@kit.AbilityKit';
 import { router } from '@kit.ArkUI';
 
 @Entry
@@ -18,6 +19,8 @@ struct Index {
   @State currentIndex: number = 0;
   @State refreshKey: number = 0;
   @State watchListOpen: boolean = false;
+  @State watchTouchStartX: number = 0;
+  @State watchTouchStartY: number = 0;
   private tabsController: TabsController = new TabsController();
   private currentDeviceType: string = deviceInfo.deviceType;
 
@@ -45,6 +48,15 @@ struct Index {
   onPageShow(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.refreshKey = this.refreshKey + 1;
+    }
+  }
+
+  private exitWatchApp(): void {
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      ctx.terminateSelf();
+    } catch (e) {
+      // ignore
     }
   }
 
@@ -119,6 +131,21 @@ struct Index {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.watchTouchStartX = event.touches[0].x;
+        this.watchTouchStartY = event.touches[0].y;
+        return;
+      }
+      if (event.type === TouchType.Up) {
+        const dx: number = event.changedTouches[0].x - this.watchTouchStartX;
+        const dy: number = event.changedTouches[0].y - this.watchTouchStartY;
+        // 手表首页右滑退出应用（仅在库存总览页生效）
+        if (dx > 70 && Math.abs(dx) > Math.abs(dy) && this.currentIndex === 0 && !this.watchListOpen) {
+          this.exitWatchApp();
+        }
+      }
+    })
   }
 
   // 智慧屏布局 - 大Tab

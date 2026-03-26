@@ -31,7 +31,7 @@ struct EntrySelectionPage {
 
           // 拍照入库
           this.buildEntryCard('📸', '拍照入库', '拍摄食品照片，适合生鲜果蔬', () => {
-            router.pushUrl({ url: 'pages/AddFoodPage' });
+            router.pushUrl({ url: 'pages/PhotoEntryPage' });
           })
 
           // 手动入库

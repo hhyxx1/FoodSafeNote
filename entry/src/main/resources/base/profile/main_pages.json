@@ -5,6 +5,7 @@
     "pages/FoodDetailPage",
     "pages/EntrySelectionPage",
     "pages/BarcodeScanPage",
+    "pages/PhotoEntryPage",
     "pages/CalorieInputPage",
     "pages/ProductDictPage",
     "pages/HealthReportPage",

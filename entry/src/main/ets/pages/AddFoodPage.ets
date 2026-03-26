@@ -6,6 +6,7 @@ import {
   StorageType,
   isPackagedFood,
   calculateExpiryTimestamp,
+  getBaseDays,
   padZero
 } from '../common/Constants';
 
@@ -17,6 +18,10 @@ interface AddFoodParams {
   spec: string;
   calories: number;
   fromBarcodeScan: boolean;
+  fromPhotoCapture?: boolean;
+  photoUri?: string;
+  storageType?: string;
+  freshnessLevel?: string;
   editMode: boolean;
   foodId: number;
 }
@@ -43,6 +48,9 @@ struct AddFoodPage {
   @State editFoodId: number = 0;
   @State pageTitle: string = '添加食品';
   @State fromBarcodeScan: boolean = false;
+  @State fromPhotoCapture: boolean = false;
+  @State photoUri: string = '';
+  @State freshnessLevel: string = 'fresh';
 
   aboutToAppear(): void {
     const params: AddFoodParams = router.getParams() as AddFoodParams;
@@ -66,6 +74,19 @@ struct AddFoodPage {
       if (params.fromBarcodeScan !== undefined) {
         this.fromBarcodeScan = params.fromBarcodeScan;
         this.pageTitle = '确认入库';
+      }
+      if (params.fromPhotoCapture !== undefined && params.fromPhotoCapture) {
+        this.fromPhotoCapture = true;
+        this.pageTitle = '拍照入库确认';
+      }
+      if (params.photoUri !== undefined && params.photoUri.length > 0) {
+        this.photoUri = params.photoUri;
+      }
+      if (params.storageType !== undefined && params.storageType.length > 0) {
+        this.storageType = params.storageType;
+      }
+      if (params.freshnessLevel !== undefined && params.freshnessLevel.length > 0) {
+        this.freshnessLevel = params.freshnessLevel;
       }
       // 编辑模式
       if (params.editMode !== undefined && params.editMode) {
@@ -116,6 +137,27 @@ struct AddFoodPage {
       return;
     }
     if (this.selectedCategory.length > 0 && !isPackagedFood(this.selectedCategory)) {
+      if (this.fromPhotoCapture) {
+        const baseDays: number = getBaseDays(this.selectedCategory);
+        let factor: number = 1;
+        if (this.storageType === StorageType.FREEZER) {
+          factor = 10;
+        } else if (this.storageType === StorageType.ROOM) {
+          factor = 0.5;
+        }
+        if (this.isOpened) {
+          factor = factor / 3;
+        }
+        let freshnessFactor: number = 1;
+        if (this.freshnessLevel === 'normal') {
+          freshnessFactor = 0.7;
+        } else if (this.freshnessLevel === 'stale') {
+          freshnessFactor = 0.4;
+        }
+        const expiryDays: number = Math.max(1, Math.round(baseDays * factor * freshnessFactor));
+        this.expiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000);
+        return;
+      }
       const timestamp: number = calculateExpiryTimestamp(this.selectedCategory, this.storageType, this.isOpened);
       this.expiryDate = new Date(timestamp);
     }
@@ -249,6 +291,16 @@ struct AddFoodPage {
           // 基本信息
           this.buildSectionTitle('基本信息')
 
+          if (this.fromPhotoCapture) {
+            Row() {
+              Text(this.photoUri.length > 0 ? '已完成食品拍照，可继续补充信息并入库' : '拍照入库模式：可先填写信息，稍后补拍')
+                .fontSize(12)
+                .fontColor(this.photoUri.length > 0 ? '#34C759' : '#FF9500')
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16 })
+          }
+
           // 食品名称
           Column({ space: 6 }) {
             Row() {
@@ -363,6 +415,22 @@ struct AddFoodPage {
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
+
+          if (this.fromPhotoCapture) {
+            Column({ space: 6 }) {
+              Text('新鲜程度（拍照建议，可调整）')
+                .fontSize(14)
+                .fontColor($r('app.color.text_primary'))
+              Row({ space: 8 }) {
+                this.buildFreshnessButton('新鲜', 'fresh')
+                this.buildFreshnessButton('一般', 'normal')
+                this.buildFreshnessButton('偏差', 'stale')
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16 })
+          }
 
           // 已开封
           Row() {
@@ -606,6 +674,22 @@ struct AddFoodPage {
       .backgroundColor(this.storageType === type ? '#007DFF' : '#F0F0F0')
       .onClick(() => {
         this.storageType = type;
+        this.updateExpiryDate();
+      })
+  }
+
+  @Builder
+  buildFreshnessButton(label: string, value: string) {
+    Text(label)
+      .fontSize(13)
+      .fontColor(this.freshnessLevel === value ? Color.White : '#666666')
+      .textAlign(TextAlign.Center)
+      .layoutWeight(1)
+      .height(36)
+      .borderRadius(8)
+      .backgroundColor(this.freshnessLevel === value ? '#007DFF' : '#F0F0F0')
+      .onClick(() => {
+        this.freshnessLevel = value;
         this.updateExpiryDate();
       })
   }

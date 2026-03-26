@@ -1,6 +1,13 @@
 import { router, promptAction } from '@kit.ArkUI';
-import { scanBarcode, scanCore } from '@kit.ScanKit';
+import { scanBarcode, scanCore, detectBarcode } from '@kit.ScanKit';
+import {
+  createCollaborationServiceMenuItems,
+  CollaborationServiceStateDialog,
+  CollaborationServiceFilter
+} from '@kit.ServiceCollaborationKit';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { BarcodeService } from '../common/BarcodeService';
 import { BarcodeMatchResult } from '../model/DataModels';
 
@@ -39,6 +46,111 @@ struct BarcodeScanPage {
   @State matchedSpec: string = '';
   @State currentBarcode: string = '';
   @State matchSource: string = '';
+  @State forceAlbumMode: boolean = false;
+
+  aboutToAppear(): void {
+    // 2in1 机型普遍无本地摄像头，默认使用相册/协同路径
+    this.forceAlbumMode = deviceInfo.deviceType === '2in1' || !canIUse('SystemCapability.Multimedia.Camera.Core');
+  }
+
+  @Builder
+  collaborationMenu() {
+    Menu() {
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+    }
+  }
+
+  private decodeBufferToText(buffer: ArrayBuffer): string {
+    const bytes: Uint8Array = new Uint8Array(buffer);
+    let text: string = '';
+    for (let i = 0; i < bytes.length; i++) {
+      text = text + String.fromCharCode(bytes[i]);
+    }
+    return text;
+  }
+
+  private extractBarcodeFromPayload(payload: string): string {
+    const txt: string = payload.trim();
+    if (txt.length === 0) {
+      return '';
+    }
+
+    // 优先尝试JSON载荷
+    if (txt.startsWith('{') && txt.endsWith('}')) {
+      try {
+        const obj: Record<string, string> = JSON.parse(txt) as Record<string, string>;
+        const direct: string = obj['barcode'] || obj['code'] || obj['originalValue'] || '';
+        if (direct.length > 0) {
+          return direct;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 兜底提取常见条码格式（8-18位数字）
+    const m: RegExpMatchArray | null = txt.match(/\b\d{8,18}\b/);
+    return m !== null && m.length > 0 ? m[0] : '';
+  }
+
+  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
+    if (stateCode !== 0) {
+      return;
+    }
+    const payload: string = this.decodeBufferToText(buffer);
+    const code: string = this.extractBarcodeFromPayload(payload);
+    if (code.length > 0) {
+      this.barcodeInput = code;
+      this.handleBarcodeMatch(code);
+      promptAction.showToast({ message: '已接收协同扫码结果', duration: 1500 });
+      return;
+    }
+    if (bufferType.length > 0) {
+      promptAction.showToast({ message: '协同返回内容中未识别到条码', duration: 1800 });
+    }
+  }
+
+  private handleScanResult(result: scanBarcode.ScanResult | null | undefined): void {
+    if (result === null || result === undefined) {
+      promptAction.showToast({ message: '未获取到扫码结果', duration: 1500 });
+      return;
+    }
+    const code: string = (typeof result.originalValue === 'string') ? result.originalValue : '';
+    if (code.length > 0) {
+      this.barcodeInput = code;
+      this.handleBarcodeMatch(code);
+      return;
+    }
+    promptAction.showToast({ message: '未识别到条码，请重试', duration: 1500 });
+  }
+
+  private async startScanFromAlbum(): Promise<void> {
+    try {
+      const photoOption = new photoAccessHelper.PhotoSelectOptions();
+      photoOption.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      photoOption.maxSelectNumber = 1;
+      photoOption.isEditSupported = false;
+      const picker = new photoAccessHelper.PhotoViewPicker();
+      const photoResult = await picker.select(photoOption);
+      if (!photoResult || photoResult.photoUris.length === 0) {
+        return;
+      }
+      const inputImage: detectBarcode.InputImage = { uri: photoResult.photoUris[0] };
+      const options: scanBarcode.ScanOptions = {
+        scanTypes: [scanCore.ScanType.ALL],
+        enableMultiMode: false,
+        enableAlbum: true
+      };
+      const results: Array<scanBarcode.ScanResult> = await detectBarcode.decode(inputImage, options);
+      if (results.length > 0) {
+        this.handleScanResult(results[0]);
+      } else {
+        promptAction.showToast({ message: '图片中未识别到条码', duration: 1700 });
+      }
+    } catch (error) {
+      promptAction.showToast({ message: '相册识别失败，请手动输入条码', duration: 2000 });
+    }
+  }
 
   private parseAmountFromSpec(spec: string): ParsedAmountResult {
     const text: string = spec.trim();
@@ -70,6 +182,12 @@ struct BarcodeScanPage {
 
   // 调用系统扫码
   private startScan(): void {
+    // 2in1 等无摄像头设备：直接走相册识别兜底，避免调用相机扫码导致崩溃
+    if (this.forceAlbumMode) {
+      this.startScanFromAlbum();
+      return;
+    }
+
     const options: scanBarcode.ScanOptions = {
       scanTypes: [scanCore.ScanType.ALL],
       enableMultiMode: this.batchScanMode,
@@ -78,17 +196,18 @@ struct BarcodeScanPage {
     try {
       scanBarcode.startScanForResult(getContext(this), options)
         .then((result: scanBarcode.ScanResult) => {
-          const code: string = result.originalValue;
-          if (code.length > 0) {
-            this.barcodeInput = code;
-            this.handleBarcodeMatch(code);
-          }
+          this.handleScanResult(result);
         })
         .catch((error: BusinessError) => {
-          promptAction.showToast({ message: '扫码取消或失败', duration: 1500 });
+          if (error.code === scanCore.ScanErrorCode.SCAN_SERVICE_CANCELED) {
+            return;
+          }
+          // 扫码服务异常时自动回退到相册解码
+          this.startScanFromAlbum();
         });
     } catch (error) {
-      promptAction.showToast({ message: '扫码功能不可用，请手动输入条码', duration: 2000 });
+      // 某些设备会在启动扫码服务时直接抛错（如无摄像头），这里也回退到相册
+      this.startScanFromAlbum();
     }
   }
 
@@ -147,6 +266,12 @@ struct BarcodeScanPage {
   build() {
     Stack() {
       Column() {
+        CollaborationServiceStateDialog({
+          onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+            this.onCollaborationState(stateCode, bufferType, buffer);
+          }
+        })
+
         // 导航栏
         Row() {
           Button('返回')
@@ -187,6 +312,33 @@ struct BarcodeScanPage {
             Text('对准商品条码即可识别')
               .fontSize(13)
               .fontColor($r('app.color.text_hint'))
+
+            if (this.forceAlbumMode) {
+              Text('当前设备未检测到可用摄像头，已自动切换为相册/协同识别')
+                .fontSize(12)
+                .fontColor('#FF9500')
+                .textAlign(TextAlign.Center)
+            }
+
+            Button('从相册识别条码')
+              .width(200)
+              .height(40)
+              .fontSize(14)
+              .fontColor('#007DFF')
+              .backgroundColor('#E8F0FE')
+              .borderRadius(20)
+              .onClick(() => {
+                this.startScanFromAlbum();
+              })
+
+            Button('手机协同扫码')
+              .width(200)
+              .height(40)
+              .fontSize(14)
+              .fontColor('#007DFF')
+              .backgroundColor('#E8F0FE')
+              .borderRadius(20)
+              .bindMenu(this.collaborationMenu)
           }
           .width('100%')
           .padding({ top: 40, bottom: 24 })
