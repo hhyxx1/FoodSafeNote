@@ -43,6 +43,16 @@ struct EntrySelectionPage {
     return '#EDF3FB';
   }
 
+  private getEntryCardTitleColor(iconRaw: string): string {
+    const bgColor: string = this.getEntryCardBg(iconRaw);
+    return AdaptiveColorHelper.pickTextColor(bgColor, '#182431', 3.0);
+  }
+
+  private getEntryCardSubtitleColor(iconRaw: string): string {
+    const bgColor: string = this.getEntryCardBg(iconRaw);
+    return AdaptiveColorHelper.pickTextColor(bgColor, '#4A5568', 4.5);
+  }
+
   build() {
     Column() {
       // 导航栏
@@ -89,8 +99,8 @@ struct EntrySelectionPage {
   buildEntryCard(iconRaw: string, title: string, subtitle: string, action: () => void) {
     Column({ space: 6 }) {
       Image($rawfile(iconRaw)).width(30).height(30)
-      Text(title).fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-      Text(subtitle).fontSize(12).fontColor($r('app.color.text_hint')).textAlign(TextAlign.Center)
+      Text(title).fontSize(15).fontWeight(FontWeight.Medium).fontColor(this.getEntryCardTitleColor(iconRaw))
+      Text(subtitle).fontSize(12).fontColor(this.getEntryCardSubtitleColor(iconRaw)).textAlign(TextAlign.Center)
     }
     .width('100%').padding({ left: 14, right: 14, top: 14, bottom: 14 }).margin({ left: 16, right: 16 })
     .backgroundColor(this.getEntryCardBg(iconRaw)).borderRadius(12)

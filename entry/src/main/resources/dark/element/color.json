@@ -18,15 +18,15 @@
     },
     {
       "name": "text_secondary",
-      "value": "#A0A0A0"
+      "value": "#D1D5DB"
     },
     {
       "name": "text_hint",
-      "value": "#6C6C6C"
+      "value": "#C0C6CF"
     },
     {
       "name": "text_disabled",
-      "value": "#4A4A4A"
+      "value": "#9CA3AF"
     },
     {
       "name": "divider",
@@ -46,7 +46,7 @@
     },
     {
       "name": "tab_inactive",
-      "value": "#6C6C6C"
+      "value": "#C0C6CF"
     },
     {
       "name": "overlay_background",

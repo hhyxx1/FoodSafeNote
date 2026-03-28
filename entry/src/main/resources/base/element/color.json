@@ -14,19 +14,19 @@
     },
     {
       "name": "text_primary",
-      "value": "#333333"
+      "value": "#1F2937"
     },
     {
       "name": "text_secondary",
-      "value": "#666666"
+      "value": "#334155"
     },
     {
       "name": "text_hint",
-      "value": "#999999"
+      "value": "#475569"
     },
     {
       "name": "text_disabled",
-      "value": "#CCCCCC"
+      "value": "#64748B"
     },
     {
       "name": "divider",
@@ -46,7 +46,7 @@
     },
     {
       "name": "tab_inactive",
-      "value": "#999999"
+      "value": "#475569"
     },
     {
       "name": "overlay_background",

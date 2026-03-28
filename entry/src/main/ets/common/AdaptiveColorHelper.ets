@@ -111,6 +111,73 @@ export class AdaptiveColorHelper {
       AdaptiveColorHelper.toHex2(color.blue);
   }
 
+  private static hexToRgb(hex: string): RgbColor {
+    let normalized: string = hex.trim();
+    if (normalized.startsWith('#')) {
+      normalized = normalized.substring(1);
+    }
+    if (normalized.length === 3) {
+      const r: string = normalized.substring(0, 1);
+      const g: string = normalized.substring(1, 2);
+      const b: string = normalized.substring(2, 3);
+      normalized = r + r + g + g + b + b;
+    }
+    if (normalized.length !== 6) {
+      return { red: 0, green: 0, blue: 0 };
+    }
+    const red: number = parseInt(normalized.substring(0, 2), 16);
+    const green: number = parseInt(normalized.substring(2, 4), 16);
+    const blue: number = parseInt(normalized.substring(4, 6), 16);
+    return {
+      red: Number.isNaN(red) ? 0 : red,
+      green: Number.isNaN(green) ? 0 : green,
+      blue: Number.isNaN(blue) ? 0 : blue
+    };
+  }
+
+  private static srgbToLinear(channel: number): number {
+    const c: number = AdaptiveColorHelper.clamp(channel / 255, 0, 1);
+    if (c <= 0.03928) {
+      return c / 12.92;
+    }
+    return Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+
+  private static relativeLuminance(color: RgbColor): number {
+    const r: number = AdaptiveColorHelper.srgbToLinear(color.red);
+    const g: number = AdaptiveColorHelper.srgbToLinear(color.green);
+    const b: number = AdaptiveColorHelper.srgbToLinear(color.blue);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  public static contrastRatio(foregroundHex: string, backgroundHex: string): number {
+    const fg: RgbColor = AdaptiveColorHelper.hexToRgb(foregroundHex);
+    const bg: RgbColor = AdaptiveColorHelper.hexToRgb(backgroundHex);
+    const l1: number = AdaptiveColorHelper.relativeLuminance(fg);
+    const l2: number = AdaptiveColorHelper.relativeLuminance(bg);
+    const lighter: number = Math.max(l1, l2);
+    const darker: number = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  public static pickTextColor(backgroundHex: string, preferredHex: string, minRatio: number): string {
+    const preferredRatio: number = AdaptiveColorHelper.contrastRatio(preferredHex, backgroundHex);
+    if (preferredRatio >= minRatio) {
+      return preferredHex;
+    }
+    const dark: string = '#1A1A1A';
+    const light: string = '#FFFFFF';
+    const darkRatio: number = AdaptiveColorHelper.contrastRatio(dark, backgroundHex);
+    const lightRatio: number = AdaptiveColorHelper.contrastRatio(light, backgroundHex);
+    if (darkRatio >= minRatio && darkRatio >= lightRatio) {
+      return dark;
+    }
+    if (lightRatio >= minRatio) {
+      return light;
+    }
+    return darkRatio >= lightRatio ? dark : light;
+  }
+
   private static async extractDominantColor(ctx: Context, iconRawfileName: string): Promise<RgbColor> {
     const rawDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
     const imgSource: image.ImageSource = image.createImageSource(rawDescriptor);
