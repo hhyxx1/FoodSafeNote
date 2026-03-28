@@ -7,6 +7,12 @@ import { cameraPicker, camera } from '@kit.CameraKit';
 import { image } from '@kit.ImageKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { kjToKcal } from '../common/Constants';
+import {
+  createCollaborationServiceMenuItems,
+  CollaborationServiceStateDialog,
+  CollaborationServiceFilter
+} from '@kit.ServiceCollaborationKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 // 路由参数接口
 interface CaloriePageParams {
@@ -62,8 +68,17 @@ struct CalorieInputPage {
   @State ocrDialogPer100Unit: string = 'g';
   @State ocrDialogServingSize: string = '';
   @State ocrDialogServingUnit: string = 'g';
+  @State showCollaborationButton: boolean = true;
+
+  @Builder
+  collaborationMenu() {
+    Menu() {
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+    }
+  }
 
   aboutToAppear(): void {
+    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
     const params: CaloriePageParams = router.getParams() as CaloriePageParams;
     if (params !== null && params !== undefined) {
       this.barcode = params.barcode;
@@ -161,27 +176,72 @@ struct CalorieInputPage {
       } finally {
         pixelMap.release();
       }
-
-      if (recognizedText.trim().length === 0) {
-        promptAction.showToast({ message: '未识别到文本，请重试', duration: 2000 });
-        return;
-      }
-
-      // 尝试从识别文本中提取营养信息（值 + 单位 + 基准）
-      const parsed: NutritionParseResult | null = this.parseNutritionFromText(recognizedText);
-      if (parsed !== null && parsed.value > 0) {
-        this.ocrDialogValue = parsed.value.toString();
-        this.ocrDialogUnit = parsed.unit;
-        this.ocrDialogBasis = parsed.basisType;
-        this.ocrDialogPer100Unit = parsed.per100Unit;
-        this.ocrDialogServingSize = parsed.servingSize > 0 ? parsed.servingSize.toString() : '';
-        this.ocrDialogServingUnit = parsed.servingUnit;
-        this.showOcrCheckDialog = true;
-      } else {
-        promptAction.showToast({ message: '未能识别到完整能量信息，请手动补录单位和基准', duration: 2200 });
-      }
+      this.applyOcrResultFromText(recognizedText, 'OCR识别');
     } catch (e) {
       promptAction.showToast({ message: 'OCR识别失败，请重试', duration: 2000 });
+    }
+  }
+
+  private applyOcrResultFromText(recognizedText: string, sourceLabel: string): void {
+    if (recognizedText.trim().length === 0) {
+      promptAction.showToast({ message: '未识别到文本，请重试', duration: 2000 });
+      return;
+    }
+    const parsed: NutritionParseResult | null = this.parseNutritionFromText(recognizedText);
+    if (parsed !== null && parsed.value > 0) {
+      this.ocrDialogValue = parsed.value.toString();
+      this.ocrDialogUnit = parsed.unit;
+      this.ocrDialogBasis = parsed.basisType;
+      this.ocrDialogPer100Unit = parsed.per100Unit;
+      this.ocrDialogServingSize = parsed.servingSize > 0 ? parsed.servingSize.toString() : '';
+      this.ocrDialogServingUnit = parsed.servingUnit;
+      this.showOcrCheckDialog = true;
+      promptAction.showToast({ message: '已接收' + sourceLabel + '结果，请校验', duration: 1800 });
+      return;
+    }
+    promptAction.showToast({ message: '未能识别到完整能量信息，请手动补录单位和基准', duration: 2200 });
+  }
+
+  private decodeBufferToText(buffer: ArrayBuffer): string {
+    const bytes: Uint8Array = new Uint8Array(buffer);
+    let text: string = '';
+    for (let i = 0; i < bytes.length; i++) {
+      text = text + String.fromCharCode(bytes[i]);
+    }
+    return text;
+  }
+
+  private handleCollaborationImage(buffer: ArrayBuffer): void {
+    image.createImageSource(buffer).createPixelMap().then(async (pixelMap: image.PixelMap) => {
+      let recognizedText: string = '';
+      try {
+        const visionInfo: textRecognition.VisionInfo = { pixelMap: pixelMap };
+        const textConfig: textRecognition.TextRecognitionConfiguration = { isDirectionDetectionSupported: true };
+        const textResult: textRecognition.TextRecognitionResult =
+          await textRecognition.recognizeText(visionInfo, textConfig);
+        recognizedText = (textResult && typeof textResult.value === 'string') ? textResult.value : '';
+      } catch (e) {
+        recognizedText = '';
+      } finally {
+        pixelMap.release();
+      }
+      this.applyOcrResultFromText(recognizedText, '协同图片');
+    }).catch(() => {
+      promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
+    });
+  }
+
+  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
+    if (stateCode !== 0) {
+      return;
+    }
+    if (bufferType === 'general.image') {
+      this.handleCollaborationImage(buffer);
+      return;
+    }
+    const payload: string = this.decodeBufferToText(buffer);
+    if (payload.trim().length > 0) {
+      this.applyOcrResultFromText(payload, '协同文本');
     }
   }
 
@@ -570,6 +630,12 @@ struct CalorieInputPage {
 
   build() {
     Column() {
+      CollaborationServiceStateDialog({
+        onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+          this.onCollaborationState(stateCode, bufferType, buffer);
+        }
+      })
+
       // 导航栏
       Row() {
         Button('返回')
@@ -764,6 +830,13 @@ struct CalorieInputPage {
               .width('100%').height(40).fontSize(14)
               .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
               .onClick(() => { this.startOcrRecognition(); })
+
+            if (this.showCollaborationButton) {
+              Button('手机协同传图识别')
+                .width('100%').height(40).fontSize(14)
+                .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+                .bindMenu(this.collaborationMenu)
+            }
 
             if (this.caloriesText.length === 0 || this.caloriesText === '0') {
               Row({ space: 6 }) {

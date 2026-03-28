@@ -4,6 +4,12 @@ import { textRecognition } from '@kit.CoreVisionKit';
 import { image } from '@kit.ImageKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { FOOD_CATEGORIES, StorageType, getBaseDays, padZero } from '../common/Constants';
+import {
+  createCollaborationServiceMenuItems,
+  CollaborationServiceStateDialog,
+  CollaborationServiceFilter
+} from '@kit.ServiceCollaborationKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 interface AddFoodParams {
   barcode: string;
@@ -18,6 +24,12 @@ interface AddFoodParams {
   freshnessLevel?: string;
 }
 
+interface FoodKeywordItem {
+  keyword: string;
+  name: string;
+  category: string;
+}
+
 @Entry
 @Component
 struct PhotoEntryPage {
@@ -28,6 +40,18 @@ struct PhotoEntryPage {
   @State storageType: string = StorageType.FRIDGE;
   @State recognitionHint: string = '等待拍照识别';
   @State estimatedExpiryText: string = '';
+  @State showCollaborationButton: boolean = true;
+
+  aboutToAppear(): void {
+    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
+  }
+
+  @Builder
+  collaborationMenu() {
+    Menu() {
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+    }
+  }
 
   private async takeFoodPhoto(): Promise<void> {
     if (!canIUse('SystemCapability.Multimedia.Camera.Core')) {
@@ -74,19 +98,68 @@ struct PhotoEntryPage {
 
     let recognizedText: string = '';
     try {
-      const visionInfo: textRecognition.VisionInfo = {
-        pixelMap: pixelMap
-      };
-      const result: textRecognition.TextRecognitionResult = await textRecognition.recognizeText(visionInfo);
-      recognizedText = result.value !== undefined ? result.value : '';
-    } catch (error) {
-      recognizedText = '';
+      recognizedText = await this.recognizeTextFromPixelMap(pixelMap);
     } finally {
       pixelMap.release();
     }
 
     this.applySuggestionsFromText(recognizedText);
     this.updateEstimatedExpiry();
+  }
+
+  private async recognizeTextFromPixelMap(pixelMap: image.PixelMap): Promise<string> {
+    try {
+      const visionInfo: textRecognition.VisionInfo = {
+        pixelMap: pixelMap
+      };
+      const result: textRecognition.TextRecognitionResult = await textRecognition.recognizeText(visionInfo);
+      return result.value !== undefined ? result.value : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  private decodeBufferToText(buffer: ArrayBuffer): string {
+    const bytes: Uint8Array = new Uint8Array(buffer);
+    let text: string = '';
+    for (let i = 0; i < bytes.length; i++) {
+      text = text + String.fromCharCode(bytes[i]);
+    }
+    return text;
+  }
+
+  private handleCollaborationImage(buffer: ArrayBuffer): void {
+    this.recognitionHint = '正在处理协同图片...';
+    image.createImageSource(buffer).createPixelMap().then(async (pixelMap: image.PixelMap) => {
+      let recognizedText: string = '';
+      try {
+        recognizedText = await this.recognizeTextFromPixelMap(pixelMap);
+      } finally {
+        pixelMap.release();
+      }
+      this.applySuggestionsFromText(recognizedText);
+      this.updateEstimatedExpiry();
+      promptAction.showToast({ message: '已接收协同图片并生成建议', duration: 1800 });
+    }).catch(() => {
+      this.recognitionHint = '协同图片解析失败，请重试';
+      promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
+    });
+  }
+
+  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
+    if (stateCode !== 0) {
+      return;
+    }
+    if (bufferType === 'general.image') {
+      this.handleCollaborationImage(buffer);
+      return;
+    }
+    const payload: string = this.decodeBufferToText(buffer);
+    if (payload.trim().length > 0) {
+      this.applySuggestionsFromText(payload);
+      this.updateEstimatedExpiry();
+      promptAction.showToast({ message: '已接收协同文本建议', duration: 1600 });
+    }
   }
 
   private applySuggestionsFromText(text: string): void {
@@ -100,7 +173,7 @@ struct PhotoEntryPage {
     }
 
     const lower: string = raw.toLowerCase();
-    const foodKeywords: Array<{ keyword: string; name: string; category: string }> = [
+    const foodKeywords: FoodKeywordItem[] = [
       { keyword: '苹果', name: '苹果', category: '水果' },
       { keyword: '香蕉', name: '香蕉', category: '水果' },
       { keyword: '橙', name: '橙子', category: '水果' },
@@ -238,23 +311,27 @@ struct PhotoEntryPage {
   private goToAddFood(): void {
     const params: AddFoodParams = {
       barcode: '',
-      name: '',
-      category: '',
+      name: this.recognizedName,
+      category: this.recognizedCategory,
       spec: '',
       calories: 0,
       fromBarcodeScan: false,
       fromPhotoCapture: true,
       photoUri: this.photoUri,
       storageType: this.storageType,
-      freshnessLevel: this.freshnessLevel,
-      name: this.recognizedName,
-      category: this.recognizedCategory
+      freshnessLevel: this.freshnessLevel
     };
     router.pushUrl({ url: 'pages/AddFoodPage', params: params });
   }
 
   build() {
     Column() {
+      CollaborationServiceStateDialog({
+        onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+          this.onCollaborationState(stateCode, bufferType, buffer);
+        }
+      })
+
       Row() {
         Button('返回')
           .height(36)
@@ -293,6 +370,17 @@ struct PhotoEntryPage {
             .onClick(() => {
               this.takeFoodPhoto();
             })
+
+          if (this.showCollaborationButton) {
+            Button('手机协同传图识别')
+              .width('100%')
+              .height(40)
+              .fontSize(14)
+              .fontColor('#007DFF')
+              .backgroundColor('#E8F0FE')
+              .borderRadius(12)
+              .bindMenu(this.collaborationMenu)
+          }
 
           Column({ space: 8 }) {
             Text('识别结果')
