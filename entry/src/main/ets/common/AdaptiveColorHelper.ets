@@ -1,0 +1,198 @@
+import { image } from '@kit.ImageKit';
+
+interface RgbColor {
+  red: number;
+  green: number;
+  blue: number;
+}
+
+interface HsvColor {
+  hue: number;
+  saturation: number;
+  value: number;
+}
+
+export class AdaptiveColorHelper {
+  private static cardCache: Map<string, string> = new Map<string, string>();
+  private static accentCache: Map<string, string> = new Map<string, string>();
+
+  private static clamp(value: number, min: number, max: number): number {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  private static toHex2(value: number): string {
+    const normalized: number = AdaptiveColorHelper.clamp(Math.round(value), 0, 255);
+    const hex: string = normalized.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }
+
+  private static hsvToRgb(hue: number, saturation: number, value: number): RgbColor {
+    const h: number = ((hue % 360) + 360) % 360;
+    const s: number = AdaptiveColorHelper.clamp(saturation, 0, 1);
+    const v: number = AdaptiveColorHelper.clamp(value, 0, 1);
+
+    const c: number = v * s;
+    const x: number = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m: number = v - c;
+
+    let r1: number = 0;
+    let g1: number = 0;
+    let b1: number = 0;
+
+    if (h < 60) {
+      r1 = c;
+      g1 = x;
+      b1 = 0;
+    } else if (h < 120) {
+      r1 = x;
+      g1 = c;
+      b1 = 0;
+    } else if (h < 180) {
+      r1 = 0;
+      g1 = c;
+      b1 = x;
+    } else if (h < 240) {
+      r1 = 0;
+      g1 = x;
+      b1 = c;
+    } else if (h < 300) {
+      r1 = x;
+      g1 = 0;
+      b1 = c;
+    } else {
+      r1 = c;
+      g1 = 0;
+      b1 = x;
+    }
+
+    return {
+      red: (r1 + m) * 255,
+      green: (g1 + m) * 255,
+      blue: (b1 + m) * 255
+    };
+  }
+
+  private static rgbToHsv(color: RgbColor): HsvColor {
+    const r: number = color.red / 255;
+    const g: number = color.green / 255;
+    const b: number = color.blue / 255;
+    const max: number = Math.max(r, g, b);
+    const min: number = Math.min(r, g, b);
+    const delta: number = max - min;
+
+    let hue: number = 0;
+    if (delta > 0) {
+      if (max === r) {
+        hue = 60 * (((g - b) / delta) % 6);
+      } else if (max === g) {
+        hue = 60 * (((b - r) / delta) + 2);
+      } else {
+        hue = 60 * (((r - g) / delta) + 4);
+      }
+      if (hue < 0) {
+        hue += 360;
+      }
+    }
+
+    const saturation: number = max <= 0 ? 0 : delta / max;
+    return { hue: hue, saturation: saturation, value: max };
+  }
+
+  private static rgbToHex(color: RgbColor): string {
+    return '#' +
+      AdaptiveColorHelper.toHex2(color.red) +
+      AdaptiveColorHelper.toHex2(color.green) +
+      AdaptiveColorHelper.toHex2(color.blue);
+  }
+
+  private static async extractDominantColor(ctx: Context, iconRawfileName: string): Promise<RgbColor> {
+    const rawDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
+    const imgSource: image.ImageSource = image.createImageSource(rawDescriptor);
+    try {
+      const pixelMap: image.PixelMap = await imgSource.createPixelMap({
+        editable: false,
+        desiredPixelFormat: image.PixelMapFormat.BGRA_8888,
+        desiredSize: { width: 40, height: 40 }
+      });
+      try {
+        const buffer: ArrayBuffer = new ArrayBuffer(40 * 40 * 4);
+        await pixelMap.readPixelsToBuffer(buffer);
+        const bytes: Uint8Array = new Uint8Array(buffer);
+        const colorCounter: Map<number, number> = new Map<number, number>();
+
+        for (let i = 0; i < bytes.length; i += 4) {
+          const blue: number = bytes[i];
+          const green: number = bytes[i + 1];
+          const red: number = bytes[i + 2];
+          const alpha: number = bytes[i + 3];
+          if (alpha < 32) {
+            continue;
+          }
+          const key: number = (red << 16) | (green << 8) | blue;
+          if (colorCounter.has(key)) {
+            colorCounter.set(key, (colorCounter.get(key) as number) + 1);
+          } else {
+            colorCounter.set(key, 1);
+          }
+        }
+
+        let bestColor: number = 0x7DA8D6;
+        let bestCount: number = -1;
+        colorCounter.forEach((count: number, color: number) => {
+          if (count > bestCount) {
+            bestCount = count;
+            bestColor = color;
+          }
+        });
+
+        return {
+          red: (bestColor >> 16) & 0xFF,
+          green: (bestColor >> 8) & 0xFF,
+          blue: bestColor & 0xFF
+        };
+      } finally {
+        pixelMap.release();
+      }
+    } finally {
+      imgSource.release();
+    }
+  }
+
+  public static async cardBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
+    if (AdaptiveColorHelper.cardCache.has(iconRawfileName)) {
+      return AdaptiveColorHelper.cardCache.get(iconRawfileName) as string;
+    }
+    try {
+      const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
+      const softened: RgbColor = AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.16, 0.98);
+      const hex: string = AdaptiveColorHelper.rgbToHex(softened);
+      AdaptiveColorHelper.cardCache.set(iconRawfileName, hex);
+      return hex;
+    } catch (e) {
+      return '#EDF3FB';
+    }
+  }
+
+  public static async accentBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
+    if (AdaptiveColorHelper.accentCache.has(iconRawfileName)) {
+      return AdaptiveColorHelper.accentCache.get(iconRawfileName) as string;
+    }
+    try {
+      const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
+      const accent: RgbColor = AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.28, 0.95);
+      const hex: string = AdaptiveColorHelper.rgbToHex(accent);
+      AdaptiveColorHelper.accentCache.set(iconRawfileName, hex);
+      return hex;
+    } catch (e) {
+      return '#E8F0FE';
+    }
+  }
+}

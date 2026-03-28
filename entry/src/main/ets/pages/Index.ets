@@ -12,6 +12,7 @@ import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { common } from '@kit.AbilityKit';
 import { router } from '@kit.ArkUI';
+import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 
 @Entry
 @Component
@@ -23,9 +24,30 @@ struct Index {
   @State watchTouchStartY: number = 0;
   private tabsController: TabsController = new TabsController();
   private currentDeviceType: string = deviceInfo.deviceType;
+  @State inventoryTabBg: string = '#E8F0FE';
+  @State healthTabBg: string = '#FDECEC';
+  @State dictTabBg: string = '#EEF2F5';
+
+  private getTabIconBg(iconRaw: string): string {
+    if (iconRaw === 'icon_inventory.svg') return this.inventoryTabBg;
+    if (iconRaw === 'icon_health.svg') return this.healthTabBg;
+    if (iconRaw === 'icon_dict.svg') return this.dictTabBg;
+    return '#E8F0FE';
+  }
 
   aboutToAppear(): void {
     const ctx = getContext(this);
+
+    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_inventory.svg').then((color: string) => {
+      this.inventoryTabBg = color;
+    });
+    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_health.svg').then((color: string) => {
+      this.healthTabBg = color;
+    });
+    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_dict.svg').then((color: string) => {
+      this.dictTabBg = color;
+    });
+
     DatabaseHelper.getInstance().initDB(ctx).then(() => {
       this.onDBReady(ctx);
     }).catch(() => {
@@ -78,17 +100,17 @@ struct Index {
       TabContent() {
         InventoryView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.phoneTabBuilder('库存', 0, '📦'))
+      .tabBar(this.phoneTabBuilder('库存', 0, 'icon_inventory.svg'))
 
       TabContent() {
         HealthView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.phoneTabBuilder('健康', 1, '❤️'))
+      .tabBar(this.phoneTabBuilder('健康', 1, 'icon_health.svg'))
 
       TabContent() {
         MineView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.phoneTabBuilder('我的', 2, '👤'))
+      .tabBar(this.phoneTabBuilder('我的', 2, 'icon_dict.svg'))
     }
     .scrollable(false)
     .barHeight(60)
@@ -155,17 +177,17 @@ struct Index {
       TabContent() {
         TvInventoryView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('库存', 0, '📦'))
+      .tabBar(this.tvTabBuilder('库存', 0, 'icon_inventory.svg'))
 
       TabContent() {
         TvHealthView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('健康', 1, '❤️'))
+      .tabBar(this.tvTabBuilder('健康', 1, 'icon_health.svg'))
 
       TabContent() {
         TvMineView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('字典', 2, '📖'))
+      .tabBar(this.tvTabBuilder('字典', 2, 'icon_dict.svg'))
     }
     .scrollable(false)
     .barHeight(80)
@@ -176,9 +198,16 @@ struct Index {
   }
 
   @Builder
-  phoneTabBuilder(title: string, targetIndex: number, icon: string) {
+  phoneTabBuilder(title: string, targetIndex: number, iconRaw: string) {
     Column({ space: 4 }) {
-      Text(icon).fontSize(22)
+      Image($rawfile(iconRaw))
+        .width(20)
+        .height(20)
+        .padding(7)
+        .width(34)
+        .height(34)
+        .backgroundColor(this.currentIndex === targetIndex ? this.getTabIconBg(iconRaw) : Color.Transparent)
+        .borderRadius(17)
       Text(title)
         .fontSize(11)
         .fontWeight(this.currentIndex === targetIndex ? FontWeight.Medium : FontWeight.Normal)
@@ -207,9 +236,16 @@ struct Index {
   }
 
   @Builder
-  tvTabBuilder(title: string, targetIndex: number, icon: string) {
+  tvTabBuilder(title: string, targetIndex: number, iconRaw: string) {
     Column({ space: 6 }) {
-      Text(icon).fontSize(30)
+      Image($rawfile(iconRaw))
+        .width(30)
+        .height(30)
+        .padding(8)
+        .width(46)
+        .height(46)
+        .backgroundColor(this.currentIndex === targetIndex ? this.getTabIconBg(iconRaw) : Color.Transparent)
+        .borderRadius(23)
       Text(title)
         .fontSize(18)
         .fontWeight(this.currentIndex === targetIndex ? FontWeight.Bold : FontWeight.Normal)
