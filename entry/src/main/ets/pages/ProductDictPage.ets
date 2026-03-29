@@ -142,7 +142,7 @@ struct ProductDictPage {
         // 导航栏
         Row() {
           Button('返回')
-            .height(36).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor('#007DFF')
             .backgroundColor(Color.Transparent)
             .onClick(() => { router.back(); })
           Text('产品字典')
@@ -203,11 +203,13 @@ struct ProductDictPage {
             .layoutWeight(1).height(40).fontSize(13)
             .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
             .enabled(!this.isDictExporting)
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { this.exportDict(); })
           Button('导入字典')
             .layoutWeight(1).height(40).fontSize(13)
             .fontColor(Color.White).backgroundColor('#34C759').borderRadius(8)
             .enabled(!this.isDictImporting)
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { this.importDict(); })
         }
         .width('100%').padding({ left: 16, right: 16, top: 8, bottom: 12 })
@@ -268,11 +270,12 @@ struct ProductDictPage {
               .onClick(() => { this.saveEdit(); })
           }.width('100%')
         }
-        .width('85%').padding(20).backgroundColor($r('app.color.card_background')).borderRadius(16)
+        .width('85%').constraintSize({ minWidth: 320, maxWidth: 560 }).padding(20).backgroundColor($r('app.color.card_background')).borderRadius(16)
         .position({ x: '7.5%', y: '15%' })
       }
     }
     .width('100%').height('100%')
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   private getBasisLabel(basisType: string): string {
@@ -342,11 +345,11 @@ struct ProductDictPage {
       Row() {
         Blank().layoutWeight(1)
         Button('编辑')
-          .height(28).fontSize(11).fontColor('#007DFF').backgroundColor('#E8F0FE')
+          .height(40).fontSize(11).fontColor('#007DFF').backgroundColor('#E8F0FE')
           .borderRadius(6).margin({ right: 8 })
           .onClick(() => { this.openEditDialog(item); })
         Button('删除')
-          .height(28).fontSize(11).fontColor('#FF3B30').backgroundColor('#FFEDE9')
+          .height(40).fontSize(11).fontColor('#FF3B30').backgroundColor('#FFEDE9')
           .borderRadius(6)
           .onClick(() => { this.deleteItem(item); })
       }.width('100%')

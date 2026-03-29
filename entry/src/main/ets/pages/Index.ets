@@ -115,6 +115,7 @@ struct Index {
     .scrollable(false)
     .barHeight(60)
     .barBackgroundColor($r('app.color.tab_bar_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
     .onChange((index: number) => {
       this.currentIndex = index;
     })
@@ -192,6 +193,7 @@ struct Index {
     .scrollable(false)
     .barHeight(80)
     .barBackgroundColor($r('app.color.tab_bar_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
     .onChange((index: number) => {
       this.currentIndex = index;
     })
@@ -215,6 +217,7 @@ struct Index {
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)
+    .hoverEffect(HoverEffect.Highlight)
     .onClick(() => {
       this.currentIndex = targetIndex;
       this.tabsController.changeIndex(targetIndex);
@@ -253,6 +256,7 @@ struct Index {
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)
+    .hoverEffect(HoverEffect.Highlight)
     .onClick(() => {
       this.currentIndex = targetIndex;
       this.tabsController.changeIndex(targetIndex);

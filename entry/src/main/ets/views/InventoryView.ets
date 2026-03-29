@@ -166,6 +166,7 @@ export struct InventoryView {
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'all' ? $r('app.color.card_background') : $r('app.color.chip_background'))
+          .hoverEffect(HoverEffect.Highlight)
           .onClick(() => { this.filterType = 'all'; this.applyFilter(); })
 
           // 正常
@@ -178,6 +179,7 @@ export struct InventoryView {
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'normal' ? $r('app.color.card_background') : $r('app.color.chip_background'))
+          .hoverEffect(HoverEffect.Highlight)
           .onClick(() => { this.filterType = 'normal'; this.applyFilter(); })
 
           // 临期
@@ -190,6 +192,7 @@ export struct InventoryView {
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'nearExpiry' ? $r('app.color.card_background') : $r('app.color.chip_background'))
+          .hoverEffect(HoverEffect.Highlight)
           .onClick(() => { this.filterType = 'nearExpiry'; this.applyFilter(); })
 
           // 过期
@@ -202,6 +205,7 @@ export struct InventoryView {
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'expired' ? $r('app.color.card_background') : $r('app.color.chip_background'))
+          .hoverEffect(HoverEffect.Highlight)
           .onClick(() => { this.filterType = 'expired'; this.applyFilter(); })
         }
         .width('100%')
@@ -237,6 +241,7 @@ export struct InventoryView {
         .borderRadius(28)
         .shadow({ radius: 8, color: '#40007DFF', offsetX: 0, offsetY: 4 })
         .margin({ right: 20, bottom: 20 })
+        .hoverEffect(HoverEffect.Highlight)
         .onClick(() => {
           router.pushUrl({ url: 'pages/EntrySelectionPage' });
         })
@@ -257,7 +262,7 @@ export struct InventoryView {
               Flex({ wrap: FlexWrap.Wrap }) {
                 ForEach(this.members, (member: FamilyMember) => {
                   Button(member.name)
-                    .height(36).fontSize(13).fontColor(Color.White)
+                    .height(40).fontSize(13).fontColor(Color.White)
                     .backgroundColor('#34C759').borderRadius(18)
                     .margin({ right: 8, bottom: 8 })
                     .onClick(() => {
@@ -279,7 +284,7 @@ export struct InventoryView {
             Row({ space: 8 }) {
               ForEach(WASTE_REASONS, (reason: string) => {
                 Button(reason)
-                  .height(36).fontSize(13)
+                  .height(40).fontSize(13)
                   .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : '#FF6B00')
                   .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : '#FFF3E0')
                   .borderRadius(18)
@@ -315,6 +320,7 @@ export struct InventoryView {
     }
     .width('100%')
     .height('100%')
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder
@@ -361,6 +367,7 @@ export struct InventoryView {
     .borderRadius(12)
     .shadow({ radius: 4, color: '#0D000000', offsetX: 0, offsetY: 2 })
     .opacity(item.isExpired() ? 0.7 : 1.0)
+    .hoverEffect(HoverEffect.Highlight)
     .onClick(() => {
       const params: FoodRouterParams = { foodId: item.id };
       router.pushUrl({ url: 'pages/FoodDetailPage', params: params });

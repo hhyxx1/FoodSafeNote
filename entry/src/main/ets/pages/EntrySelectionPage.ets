@@ -58,7 +58,7 @@ struct EntrySelectionPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('选择入库方式')

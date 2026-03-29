@@ -40,13 +40,13 @@ export struct TvMineView {
           .fontColor($r('app.color.text_hint'))
       }
       .width('100%')
-      .padding({ left: 40, right: 40, top: 24, bottom: 16 })
+      .padding({ left: 56, right: 56, top: 22, bottom: 22 })
 
       Text('数据仅本地存储，离线可用')
         .fontSize(18)
         .fontColor($r('app.color.text_hint'))
         .width('100%')
-        .padding({ left: 40, right: 40, bottom: 16 })
+        .padding({ left: 56, right: 56, bottom: 22 })
 
       // 只读列表（可聚焦行）
       if (this.dictList.length === 0) {
@@ -115,11 +115,12 @@ export struct TvMineView {
           }, (item: ProductDict) => item.id.toString())
         }
         .layoutWeight(1)
-        .padding({ left: 40, right: 40, bottom: 30 })
+        .padding({ left: 56, right: 56, bottom: 22 })
       }
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 }

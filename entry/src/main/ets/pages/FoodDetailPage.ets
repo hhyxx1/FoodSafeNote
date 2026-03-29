@@ -109,7 +109,7 @@ struct FoodDetailPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('食品详情')
@@ -117,7 +117,7 @@ struct FoodDetailPage {
           .layoutWeight(1).textAlign(TextAlign.Center)
         if (this.foodItem !== null && this.foodItem.status === 0) {
           Button('编辑')
-            .height(36).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor('#007DFF')
             .backgroundColor(Color.Transparent)
             .onClick(() => { this.handleEdit(); })
         } else {

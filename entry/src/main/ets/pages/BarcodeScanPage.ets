@@ -275,7 +275,7 @@ struct BarcodeScanPage {
         // 导航栏
         Row() {
           Button('返回')
-            .height(36)
+            .height(40)
             .fontSize(14)
             .fontColor('#007DFF')
             .backgroundColor(Color.Transparent)
@@ -306,6 +306,7 @@ struct BarcodeScanPage {
               .fontColor(Color.White)
               .backgroundColor('#007DFF')
               .borderRadius(24)
+              .hoverEffect(HoverEffect.Highlight)
               .onClick(() => {
                 this.startScan();
               })
@@ -327,6 +328,7 @@ struct BarcodeScanPage {
               .fontColor('#007DFF')
               .backgroundColor('#E8F0FE')
               .borderRadius(20)
+              .hoverEffect(HoverEffect.Highlight)
               .onClick(() => {
                 this.startScanFromAlbum();
               })
@@ -382,6 +384,7 @@ struct BarcodeScanPage {
             .fontColor('#007DFF')
             .backgroundColor('#E8F0FE')
             .borderRadius(8)
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => {
               router.pushUrl({ url: 'pages/BatchAddPage' });
             })
@@ -550,6 +553,7 @@ struct BarcodeScanPage {
           .width('100%')
         }
         .width('85%')
+        .constraintSize({ minWidth: 320, maxWidth: 560 })
         .padding(20)
         .backgroundColor($r('app.color.card_background'))
         .borderRadius(16)
@@ -558,5 +562,6 @@ struct BarcodeScanPage {
     }
     .width('100%')
     .height('100%')
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 }

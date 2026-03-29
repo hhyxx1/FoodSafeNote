@@ -66,7 +66,7 @@ struct TvFoodDetailPage {
         Text('').width(80)
       }
       .width('100%')
-      .padding({ left: 30, right: 30, top: 20, bottom: 16 })
+      .padding({ left: 56, right: 56, top: 22, bottom: 22 })
       .backgroundColor($r('app.color.card_background'))
 
       if (this.foodItem !== null) {
@@ -145,6 +145,7 @@ struct TvFoodDetailPage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder

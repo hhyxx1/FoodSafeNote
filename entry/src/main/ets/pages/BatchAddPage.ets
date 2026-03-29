@@ -212,7 +212,7 @@ struct BatchAddPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             if (this.currentStep === 'edit') {
@@ -226,7 +226,7 @@ struct BatchAddPage {
           .layoutWeight(1).textAlign(TextAlign.Center)
         if (this.currentStep === 'collect' && this.items.length > 0) {
           Button('全部入库')
-            .height(36).fontSize(14).fontColor(Color.White)
+            .height(40).fontSize(14).fontColor(Color.White)
             .backgroundColor('#007DFF').borderRadius(8)
             .enabled(!this.isSaving)
             .onClick(() => { this.batchSave(); })
@@ -305,12 +305,12 @@ struct BatchAddPage {
                 .layoutWeight(1).alignItems(HorizontalAlign.Start)
 
                 Button('编辑')
-                  .height(28).fontSize(11).fontColor('#007DFF')
+                  .height(40).fontSize(11).fontColor('#007DFF')
                   .backgroundColor('#E8F0FE').borderRadius(6)
                   .margin({ right: 6 })
                   .onClick(() => { this.openEdit(index); })
                 Button('删除')
-                  .height(28).fontSize(11).fontColor('#FF3B30')
+                  .height(40).fontSize(11).fontColor('#FF3B30')
                   .backgroundColor('#FFEDE9').borderRadius(6)
                   .onClick(() => { this.removeItem(index); })
               }
@@ -377,14 +377,14 @@ struct BatchAddPage {
             Text('千焦 kJ')
               .fontSize(13)
               .fontColor(this.editCalorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center).layoutWeight(1).height(32)
+              .textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .backgroundColor(this.editCalorieUnit === 'kJ' ? '#007DFF' : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.editCalorieUnit = 'kJ'; })
             Text('千卡 kcal')
               .fontSize(13)
               .fontColor(this.editCalorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center).layoutWeight(1).height(32)
+              .textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .backgroundColor(this.editCalorieUnit === 'kcal' ? '#007DFF' : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.editCalorieUnit = 'kcal'; })

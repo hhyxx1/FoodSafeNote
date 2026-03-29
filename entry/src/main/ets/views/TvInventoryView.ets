@@ -78,7 +78,7 @@ export struct TvInventoryView {
           .fontColor($r('app.color.text_hint'))
       }
       .width('100%')
-      .padding({ left: 40, right: 40, top: 24, bottom: 16 })
+      .padding({ left: 56, right: 56, top: 22, bottom: 22 })
 
       // 筛选栏 - 可聚焦按钮，遥控器左右切换
       Row({ space: 20 }) {
@@ -88,7 +88,7 @@ export struct TvInventoryView {
         this.buildTvFilter('过期', 'expired', 3)
       }
       .width('100%')
-      .padding({ left: 40, right: 40, bottom: 20 })
+      .padding({ left: 56, right: 56, bottom: 22 })
 
       // 3列网格 - 可聚焦卡片
       if (this.filteredItems.length === 0) {
@@ -171,12 +171,13 @@ export struct TvInventoryView {
         .columnsGap(20)
         .rowsGap(20)
         .layoutWeight(1)
-        .padding({ left: 40, right: 40, bottom: 30 })
+        .padding({ left: 56, right: 56, bottom: 22 })
       }
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder

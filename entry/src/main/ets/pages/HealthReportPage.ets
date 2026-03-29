@@ -115,7 +115,7 @@ struct HealthReportPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('健康报表')
@@ -161,8 +161,9 @@ struct HealthReportPage {
               .backgroundColor(!this.pickingStart ? '#E8F0FE' : '#F0F0F0')
               .onClick(() => { this.pickingStart = false; })
             Button('查询')
-              .height(28).fontSize(12).fontColor(Color.White)
+              .height(40).fontSize(12).fontColor(Color.White)
               .backgroundColor('#007DFF').borderRadius(6)
+              .hoverEffect(HoverEffect.Highlight)
               .onClick(() => { this.loadData(); })
           }
           .width('100%').justifyContent(FlexAlign.Center)
@@ -308,6 +309,7 @@ struct HealthReportPage {
       .layoutWeight(1).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder
@@ -316,9 +318,10 @@ struct HealthReportPage {
       .fontSize(13)
       .fontColor(this.timeRange === type ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
-      .layoutWeight(1).height(32)
+      .layoutWeight(1).height(40)
       .backgroundColor(this.timeRange === type ? '#007DFF' : '#F0F0F0')
       .borderRadius(8)
+      .hoverEffect(HoverEffect.Highlight)
       .onClick(() => {
         this.timeRange = type;
         if (type !== 'custom') {

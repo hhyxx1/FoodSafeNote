@@ -115,8 +115,9 @@ export struct HealthView {
           .fontSize(22).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
         Blank()
         Button('详细报表')
-          .height(32).fontSize(12).fontColor('#007DFF')
+          .height(40).fontSize(12).fontColor('#007DFF')
           .backgroundColor('#E8F0FE').borderRadius(16)
+            .hoverEffect(HoverEffect.Highlight)
           .onClick(() => {
             router.pushUrl({ url: 'pages/HealthReportPage' });
           })
@@ -149,7 +150,7 @@ export struct HealthView {
               .backgroundColor(!this.pickingStart ? '#E8F0FE' : '#F0F0F0')
               .onClick(() => { this.pickingStart = false; })
             Button('查询')
-              .height(28).fontSize(12).fontColor(Color.White)
+              .height(40).fontSize(12).fontColor(Color.White)
               .backgroundColor('#007DFF').borderRadius(6)
               .onClick(() => {
                 this.showDatePicker = false;
@@ -297,6 +298,7 @@ export struct HealthView {
       .layoutWeight(1).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+      .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder
@@ -305,9 +307,10 @@ export struct HealthView {
       .fontSize(13)
       .fontColor(this.viewMode === mode ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
-      .layoutWeight(1).height(32)
+      .layoutWeight(1).height(40)
       .backgroundColor(this.viewMode === mode ? '#007DFF' : '#F0F0F0')
       .borderRadius(8)
+      .hoverEffect(HoverEffect.Highlight)
       .onClick(() => {
         this.viewMode = mode;
         if (mode !== 'custom') {

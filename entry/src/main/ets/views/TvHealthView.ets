@@ -54,7 +54,7 @@ export struct TvHealthView {
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_primary'))
         .width('100%')
-        .padding({ left: 40, right: 40, top: 24, bottom: 20 })
+        .padding({ left: 56, right: 56, top: 22, bottom: 22 })
 
       // 分栏布局
       Row({ space: 30 }) {
@@ -177,10 +177,11 @@ export struct TvHealthView {
         .layoutWeight(1)
       }
       .layoutWeight(1)
-      .padding({ left: 40, right: 40, bottom: 30 })
+      .padding({ left: 56, right: 56, bottom: 22 })
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 }

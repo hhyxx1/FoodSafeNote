@@ -334,7 +334,7 @@ struct PhotoEntryPage {
 
       Row() {
         Button('返回')
-          .height(36)
+          .height(40)
           .fontSize(14)
           .fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
@@ -455,8 +455,9 @@ struct PhotoEntryPage {
             .height(48)
             .fontSize(16)
             .fontColor('#007DFF')
-            .backgroundColor('#E8F0FE')
+            .backgroundColor(this.recognizedName.trim().length > 0 ? '#E8F0FE' : '#EEF2F6')
             .borderRadius(12)
+            .enabled(this.recognizedName.trim().length > 0)
             .onClick(() => {
               this.goToAddFood();
             })
@@ -488,6 +489,8 @@ struct PhotoEntryPage {
       .fontColor(this.freshnessLevel === value ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .height(40)
+      .constraintSize({ minWidth: 56 })
       .borderRadius(16)
       .backgroundColor(this.freshnessLevel === value ? '#007DFF' : '#F0F0F0')
       .onClick(() => {
@@ -503,6 +506,8 @@ struct PhotoEntryPage {
       .fontColor(this.storageType === value ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .height(40)
+      .constraintSize({ minWidth: 56 })
       .borderRadius(16)
       .backgroundColor(this.storageType === value ? '#007DFF' : '#F0F0F0')
       .onClick(() => {

@@ -99,6 +99,7 @@ export struct MineView {
               Button('添加')
                 .height(40).fontSize(14).fontColor(Color.White)
                 .backgroundColor('#007DFF').borderRadius(8)
+                .hoverEffect(HoverEffect.Highlight)
                 .onClick(() => { this.addMember(); })
             }.width('100%')
 
@@ -116,8 +117,9 @@ export struct MineView {
                   Text(member.name)
                     .fontSize(15).fontColor($r('app.color.text_primary')).layoutWeight(1).padding({ left: 12 })
                   Button('删除')
-                    .height(32).fontSize(12).fontColor('#FF3B30')
+                    .height(40).fontSize(12).fontColor('#FF3B30')
                     .backgroundColor('#FFEDE9').borderRadius(6)
+                    .hoverEffect(HoverEffect.Highlight)
                     .onClick(() => { this.deleteMember(member); })
                 }
                 .width('100%').padding({ top: 8, bottom: 8 })
@@ -143,6 +145,7 @@ export struct MineView {
               Text('>').fontSize(16).fontColor($r('app.color.text_disabled'))
             }
             .width('100%').padding({ top: 12, bottom: 12 })
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { router.pushUrl({ url: 'pages/ProductDictPage' }); })
 
             Divider().color($r('app.color.divider'))
@@ -157,6 +160,7 @@ export struct MineView {
               Text('>').fontSize(16).fontColor($r('app.color.text_disabled'))
             }
             .width('100%').padding({ top: 12, bottom: 12 })
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { router.pushUrl({ url: 'pages/HealthReportPage' }); })
 
             Divider().color($r('app.color.divider'))
@@ -171,6 +175,7 @@ export struct MineView {
               Text('>').fontSize(16).fontColor($r('app.color.text_disabled'))
             }
             .width('100%').padding({ top: 12, bottom: 12 })
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { router.pushUrl({ url: 'pages/DataBackupPage' }); })
 
             Divider().color($r('app.color.divider'))
@@ -185,6 +190,7 @@ export struct MineView {
               Text('>').fontSize(16).fontColor($r('app.color.text_disabled'))
             }
             .width('100%').padding({ top: 12, bottom: 12 })
+            .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { router.pushUrl({ url: 'pages/OcrRecordPage' }); })
 
             Divider().color($r('app.color.divider'))
@@ -252,6 +258,7 @@ export struct MineView {
       .layoutWeight(1).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder

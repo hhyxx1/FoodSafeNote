@@ -240,14 +240,14 @@ struct ClipboardParsePage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('剪贴板解析')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
           .layoutWeight(1).textAlign(TextAlign.Center)
         Button('继续录入 (' + this.getSelectedCount() + ')')
-          .height(36).fontSize(14).fontColor(Color.White)
+          .height(40).fontSize(14).fontColor(Color.White)
           .backgroundColor('#007DFF').borderRadius(8)
           .enabled(!this.isGenerating && this.getSelectedCount() > 0)
           .onClick(() => { this.continueEntry(); })
@@ -343,7 +343,7 @@ struct ClipboardParsePage {
                     Text('需继续补充热量、保质期等信息')
                       .fontSize(12).fontColor($r('app.color.text_hint')).layoutWeight(1)
                     Button('加入入库')
-                      .height(30).fontSize(12).fontColor('#007DFF')
+                      .height(40).fontSize(12).fontColor('#007DFF')
                       .backgroundColor('#E8F0FE').borderRadius(6)
                       .enabled(item.selected)
                       .onClick(() => {

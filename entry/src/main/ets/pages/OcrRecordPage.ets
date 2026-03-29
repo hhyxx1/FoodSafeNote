@@ -47,7 +47,7 @@ struct OcrRecordPage {
         // 导航栏
         Row() {
           Button('返回')
-            .height(36).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor('#007DFF')
             .backgroundColor(Color.Transparent)
             .onClick(() => { router.back(); })
           Text('OCR记录')
@@ -142,11 +142,12 @@ struct OcrRecordPage {
               .onClick(() => { this.saveEdit(); })
           }.width('100%')
         }
-        .width('85%').padding(20).backgroundColor($r('app.color.card_background')).borderRadius(16)
+        .width('85%').constraintSize({ minWidth: 320, maxWidth: 560 }).padding(20).backgroundColor($r('app.color.card_background')).borderRadius(16)
         .position({ x: '7.5%', y: '30%' })
       }
     }
     .width('100%').height('100%')
+    .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder
@@ -155,7 +156,7 @@ struct OcrRecordPage {
       .fontSize(14)
       .fontColor(this.filterDays === days ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
-      .layoutWeight(1).height(36)
+      .layoutWeight(1).height(40)
       .backgroundColor(this.filterDays === days ? '#007DFF' : '#F0F0F0')
       .borderRadius(8)
       .onClick(() => {
@@ -195,7 +196,7 @@ struct OcrRecordPage {
         .layoutWeight(1)
 
         Button('修改')
-          .height(28).fontSize(11).fontColor('#007DFF')
+          .height(40).fontSize(11).fontColor('#007DFF')
           .backgroundColor('#E8F0FE').borderRadius(6)
           .onClick(() => { this.openEditDialog(record); })
       }.width('100%')

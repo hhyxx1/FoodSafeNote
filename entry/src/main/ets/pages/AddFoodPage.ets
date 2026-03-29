@@ -258,7 +258,7 @@ struct AddFoodPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(36)
+          .height(40)
           .fontSize(14)
           .fontColor('#007DFF')
           .backgroundColor(Color.Transparent)
@@ -272,7 +272,7 @@ struct AddFoodPage {
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
         Button('保存')
-          .height(36)
+          .height(40)
           .fontSize(14)
           .fontColor(Color.White)
           .backgroundColor('#007DFF')
@@ -544,7 +544,7 @@ struct AddFoodPage {
                       Text('天')
                         .fontSize(13)
                         .fontColor(this.shelfLifeUnit === 'day' ? Color.White : '#666666')
-                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .textAlign(TextAlign.Center).width(44).height(40)
                         .backgroundColor(this.shelfLifeUnit === 'day' ? '#007DFF' : '#F0F0F0')
                         .borderRadius(8)
                         .onClick(() => {
@@ -554,7 +554,7 @@ struct AddFoodPage {
                       Text('月')
                         .fontSize(13)
                         .fontColor(this.shelfLifeUnit === 'month' ? Color.White : '#666666')
-                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .textAlign(TextAlign.Center).width(44).height(40)
                         .backgroundColor(this.shelfLifeUnit === 'month' ? '#007DFF' : '#F0F0F0')
                         .borderRadius(8)
                         .onClick(() => {
@@ -564,7 +564,7 @@ struct AddFoodPage {
                       Text('年')
                         .fontSize(13)
                         .fontColor(this.shelfLifeUnit === 'year' ? Color.White : '#666666')
-                        .textAlign(TextAlign.Center).width(44).height(32)
+                        .textAlign(TextAlign.Center).width(44).height(40)
                         .backgroundColor(this.shelfLifeUnit === 'year' ? '#007DFF' : '#F0F0F0')
                         .borderRadius(8)
                         .onClick(() => {
@@ -685,7 +685,7 @@ struct AddFoodPage {
       .fontColor(this.freshnessLevel === value ? Color.White : '#666666')
       .textAlign(TextAlign.Center)
       .layoutWeight(1)
-      .height(36)
+      .height(40)
       .borderRadius(8)
       .backgroundColor(this.freshnessLevel === value ? '#007DFF' : '#F0F0F0')
       .onClick(() => {
