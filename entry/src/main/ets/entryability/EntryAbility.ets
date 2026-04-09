@@ -1,4 +1,4 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { DatabaseHelper } from '../common/DatabaseHelper';
@@ -12,7 +12,16 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    if (this.context && this.context.config) {
+      AppStorage.setOrCreate<number>('appColorMode', this.context.config.colorMode);
+    }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+  }
+
+  onConfigurationUpdate(newConfig: Configuration): void {
+    if (newConfig && AppStorage.get('appColorMode') !== newConfig.colorMode) {
+      AppStorage.setOrCreate<number>('appColorMode', newConfig.colorMode);
+    }
   }
 
   onDestroy(): void {

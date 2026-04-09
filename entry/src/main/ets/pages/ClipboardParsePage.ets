@@ -240,15 +240,15 @@ struct ClipboardParsePage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(40).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('剪贴板解析')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
           .layoutWeight(1).textAlign(TextAlign.Center)
         Button('继续录入 (' + this.getSelectedCount() + ')')
-          .height(40).fontSize(14).fontColor(Color.White)
-          .backgroundColor('#007DFF').borderRadius(8)
+          .height(40).fontSize(14).fontColor($r('app.color.button_primary_text'))
+          .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
           .enabled(!this.isGenerating && this.getSelectedCount() > 0)
           .onClick(() => { this.continueEntry(); })
       }
@@ -268,7 +268,7 @@ struct ClipboardParsePage {
                   this.handlePasteButtonResult(result);
                 })
               if (this.pasteAuthorized) {
-                Text('已授权').fontSize(12).fontColor('#34C759').padding({ left: 8 })
+                Text('已授权').fontSize(12).fontColor($r('app.color.status_success')).padding({ left: 8 })
               }
             }
             .width('100%')
@@ -285,8 +285,8 @@ struct ClipboardParsePage {
                 .layoutWeight(1).height(40).fontSize(14).borderRadius(8)
                 .onChange((value: string) => { this.manualInput = value; })
               Button('解析')
-                .height(40).fontSize(14).fontColor(Color.White)
-                .backgroundColor('#007DFF').borderRadius(8)
+                .height(40).fontSize(14).fontColor($r('app.color.button_primary_text'))
+                .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
                 .onClick(() => { this.addManualItems(); })
             }
           }
@@ -323,7 +323,7 @@ struct ClipboardParsePage {
                   Row() {
                     Checkbox()
                       .select(item.selected)
-                      .selectedColor('#007DFF')
+                      .selectedColor($r('app.color.button_primary_bg'))
                       .onChange((value: boolean) => {
                         this.toggleItem(index);
                       })
@@ -332,9 +332,9 @@ struct ClipboardParsePage {
                       .layoutWeight(1).padding({ left: 8 })
                     if (item.confidence < 0.8) {
                       Text('仅供参考')
-                        .fontSize(10).fontColor('#FF9500')
+                        .fontSize(10).fontColor($r('app.color.chip_warning_text'))
                         .padding({ left: 4, right: 4, top: 1, bottom: 1 })
-                        .borderRadius(4).backgroundColor('#FFF3E0')
+                        .borderRadius(4).backgroundColor($r('app.color.chip_warning_bg'))
                     }
                   }
                   .width('100%')
@@ -343,8 +343,8 @@ struct ClipboardParsePage {
                     Text('需继续补充热量、保质期等信息')
                       .fontSize(12).fontColor($r('app.color.text_hint')).layoutWeight(1)
                     Button('加入入库')
-                      .height(40).fontSize(12).fontColor('#007DFF')
-                      .backgroundColor('#E8F0FE').borderRadius(6)
+                      .height(40).fontSize(12).fontColor($r('app.color.button_secondary_text'))
+                      .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(6)
                       .enabled(item.selected)
                       .onClick(() => {
                         this.startEntryForItem(index);

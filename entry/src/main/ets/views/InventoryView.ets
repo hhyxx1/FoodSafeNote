@@ -236,8 +236,8 @@ export struct InventoryView {
         .width(56)
         .height(56)
         .fontSize(28)
-        .fontColor(Color.White)
-        .backgroundColor('#007DFF')
+        .fontColor($r('app.color.button_primary_text'))
+        .backgroundColor($r('app.color.button_primary_bg'))
         .borderRadius(28)
         .shadow({ radius: 8, color: '#40007DFF', offsetX: 0, offsetY: 4 })
         .margin({ right: 20, bottom: 20 })
@@ -285,8 +285,8 @@ export struct InventoryView {
               ForEach(WASTE_REASONS, (reason: string) => {
                 Button(reason)
                   .height(40).fontSize(13)
-                  .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : '#FF6B00')
-                  .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : '#FFF3E0')
+                  .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : $r('app.color.chip_warning_text'))
+                  .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : $r('app.color.chip_warning_bg'))
                   .borderRadius(18)
                   .enabled(!this.isWasteReasonDisabled(reason))
                   .onClick(() => {
@@ -301,7 +301,7 @@ export struct InventoryView {
 
             Button('编辑')
               .width('100%').height(40).fontSize(14)
-              .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
               .onClick(() => {
                 this.showActionPanel = false;
                 if (this.selectedItem !== null) {

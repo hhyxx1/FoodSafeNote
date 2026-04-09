@@ -277,7 +277,7 @@ struct BarcodeScanPage {
           Button('返回')
             .height(40)
             .fontSize(14)
-            .fontColor('#007DFF')
+            .fontColor($r('app.color.accent_link'))
             .backgroundColor(Color.Transparent)
             .onClick(() => {
               router.back();
@@ -303,8 +303,8 @@ struct BarcodeScanPage {
               .width(200)
               .height(48)
               .fontSize(16)
-              .fontColor(Color.White)
-              .backgroundColor('#007DFF')
+              .fontColor($r('app.color.button_primary_text'))
+              .backgroundColor($r('app.color.button_primary_bg'))
               .borderRadius(24)
               .hoverEffect(HoverEffect.Highlight)
               .onClick(() => {
@@ -317,7 +317,7 @@ struct BarcodeScanPage {
             if (this.forceAlbumMode) {
               Text('当前设备未检测到可用摄像头，已自动切换为相册/协同识别')
                 .fontSize(12)
-                .fontColor('#FF9500')
+                .fontColor($r('app.color.status_warning'))
                 .textAlign(TextAlign.Center)
             }
 
@@ -325,8 +325,8 @@ struct BarcodeScanPage {
               .width(200)
               .height(40)
               .fontSize(14)
-              .fontColor('#007DFF')
-              .backgroundColor('#E8F0FE')
+              .fontColor($r('app.color.button_secondary_text'))
+              .backgroundColor($r('app.color.button_secondary_bg'))
               .borderRadius(20)
               .hoverEffect(HoverEffect.Highlight)
               .onClick(() => {
@@ -337,8 +337,8 @@ struct BarcodeScanPage {
               .width(200)
               .height(40)
               .fontSize(14)
-              .fontColor('#007DFF')
-              .backgroundColor('#E8F0FE')
+              .fontColor($r('app.color.button_secondary_text'))
+              .backgroundColor($r('app.color.button_secondary_bg'))
               .borderRadius(20)
               .bindMenu(this.collaborationMenu)
           }
@@ -348,11 +348,11 @@ struct BarcodeScanPage {
 
           // 分隔线
           Row() {
-            Divider().layoutWeight(1).color('#E0E0E0')
+            Divider().layoutWeight(1).color($r('app.color.divider'))
             Text('  或手动输入条码  ')
               .fontSize(13)
               .fontColor($r('app.color.text_hint'))
-            Divider().layoutWeight(1).color('#E0E0E0')
+            Divider().layoutWeight(1).color($r('app.color.divider'))
           }
           .width('100%')
           .padding({ left: 16, right: 16 })
@@ -368,7 +368,7 @@ struct BarcodeScanPage {
             }
             .layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.batchScanMode })
-              .selectedColor('#007DFF')
+              .selectedColor($r('app.color.button_primary_bg'))
               .onChange((isOn: boolean) => {
                 this.batchScanMode = isOn;
               })
@@ -381,8 +381,8 @@ struct BarcodeScanPage {
             .height(40)
             .margin({ left: 16, right: 16 })
             .fontSize(14)
-            .fontColor('#007DFF')
-            .backgroundColor('#E8F0FE')
+            .fontColor($r('app.color.button_secondary_text'))
+            .backgroundColor($r('app.color.button_secondary_bg'))
             .borderRadius(8)
             .hoverEffect(HoverEffect.Highlight)
             .onClick(() => {
@@ -404,8 +404,8 @@ struct BarcodeScanPage {
             Button('匹配')
               .height(44)
               .fontSize(14)
-              .fontColor(Color.White)
-              .backgroundColor('#007DFF')
+              .fontColor($r('app.color.button_primary_text'))
+              .backgroundColor($r('app.color.button_primary_bg'))
               .borderRadius(8)
               .enabled(!this.isMatching && this.barcodeInput.trim().length > 0)
               .onClick(() => {
@@ -437,7 +437,7 @@ struct BarcodeScanPage {
           Column()
             .width('100%')
             .height('100%')
-            .backgroundColor('#80000000')
+            .backgroundColor($r('app.color.overlay_background'))
             .onClick(() => {
               this.showVerifyDialog = false;
             })
@@ -477,7 +477,7 @@ struct BarcodeScanPage {
                 .fontColor($r('app.color.text_secondary'))
               Text(' *')
                 .fontSize(13)
-                .fontColor('#FF3B30')
+                .fontColor($r('app.color.status_danger'))
             }
             TextInput({ text: this.matchedName, placeholder: '如：纯牛奶、原味薯片' })
               .width('100%')
@@ -543,8 +543,8 @@ struct BarcodeScanPage {
               .layoutWeight(1)
               .height(44)
               .fontSize(15)
-              .fontColor(Color.White)
-              .backgroundColor('#007DFF')
+              .fontColor($r('app.color.button_primary_text'))
+              .backgroundColor($r('app.color.button_primary_bg'))
               .borderRadius(8)
               .onClick(() => {
                 this.confirmAndProceed();

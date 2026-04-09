@@ -98,7 +98,7 @@ export struct MineView {
                 .onChange((value: string) => { this.newMemberName = value; })
               Button('添加')
                 .height(40).fontSize(14).fontColor(Color.White)
-                .backgroundColor('#007DFF').borderRadius(8)
+                .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
                 .hoverEffect(HoverEffect.Highlight)
                 .onClick(() => { this.addMember(); })
             }.width('100%')
@@ -113,12 +113,12 @@ export struct MineView {
                   Text(member.name.substring(0, 1))
                     .fontSize(14).fontWeight(FontWeight.Bold).fontColor(Color.White)
                     .textAlign(TextAlign.Center).width(36).height(36).borderRadius(18)
-                    .backgroundColor('#007DFF')
+                    .backgroundColor($r('app.color.button_primary_bg'))
                   Text(member.name)
                     .fontSize(15).fontColor($r('app.color.text_primary')).layoutWeight(1).padding({ left: 12 })
                   Button('删除')
-                    .height(40).fontSize(12).fontColor('#FF3B30')
-                    .backgroundColor('#FFEDE9').borderRadius(6)
+                    .height(40).fontSize(12).fontColor($r('app.color.button_danger_text'))
+                    .backgroundColor($r('app.color.button_danger_bg')).borderRadius(6)
                     .hoverEffect(HoverEffect.Highlight)
                     .onClick(() => { this.deleteMember(member); })
                 }
@@ -207,22 +207,22 @@ export struct MineView {
             Row() {
               Column({ space: 4 }) {
                 Text(this.stats.total.toString())
-                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#007DFF')
+                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_info'))
                 Text('总入库').fontSize(12).fontColor($r('app.color.text_secondary'))
               }.alignItems(HorizontalAlign.Center).layoutWeight(1)
               Column({ space: 4 }) {
                 Text(this.stats.active.toString())
-                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#34C759')
+                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_success'))
                 Text('在库').fontSize(12).fontColor($r('app.color.text_secondary'))
               }.alignItems(HorizontalAlign.Center).layoutWeight(1)
               Column({ space: 4 }) {
                 Text(this.stats.consumed.toString())
-                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#FF9500')
+                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_warning'))
                 Text('已食用').fontSize(12).fontColor($r('app.color.text_secondary'))
               }.alignItems(HorizontalAlign.Center).layoutWeight(1)
               Column({ space: 4 }) {
                 Text(this.stats.wasted.toString())
-                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#FF3B30')
+                  .fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_danger'))
                 Text('已丢弃').fontSize(12).fontColor($r('app.color.text_secondary'))
               }.alignItems(HorizontalAlign.Center).layoutWeight(1)
             }
@@ -235,7 +235,7 @@ export struct MineView {
                 .fontSize(13).fontColor($r('app.color.text_secondary'))
               Blank()
               Text(this.builtinCount > 0 ? this.builtinCount + ' 条已加载' : '加载中...')
-                .fontSize(13).fontColor(this.builtinCount > 0 ? '#34C759' : $r('app.color.text_hint'))
+                .fontSize(13).fontColor(this.builtinCount > 0 ? $r('app.color.status_success') : $r('app.color.text_hint'))
             }
             .width('100%')
           }

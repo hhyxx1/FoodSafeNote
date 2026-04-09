@@ -25,8 +25,18 @@ struct EntrySelectionPage {
     { iconRaw: 'icon_clipboard.svg', title: '剪贴板解析', subtitle: '手动读取剪贴板中的购物清单并生成待入库卡片', routeUrl: 'pages/ClipboardParsePage' }
   ];
 
+  private getDefaultCardBg(): string {
+    return AdaptiveColorHelper.isDarkModeEnabled() ? '#2A3340' : '#EDF3FB';
+  }
+
   aboutToAppear(): void {
     const ctx: Context = getContext(this) as Context;
+    const defaultBg: string = this.getDefaultCardBg();
+    this.scanCardBg = defaultBg;
+    this.photoCardBg = defaultBg;
+    this.manualCardBg = defaultBg;
+    this.batchCardBg = defaultBg;
+    this.clipCardBg = defaultBg;
     AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_scan.svg').then((color: string) => { this.scanCardBg = color; });
     AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_photo.svg').then((color: string) => { this.photoCardBg = color; });
     AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_edit.svg').then((color: string) => { this.manualCardBg = color; });
@@ -40,7 +50,7 @@ struct EntrySelectionPage {
     if (iconRaw === 'icon_edit.svg') return this.manualCardBg;
     if (iconRaw === 'icon_batch.svg') return this.batchCardBg;
     if (iconRaw === 'icon_clipboard.svg') return this.clipCardBg;
-    return '#EDF3FB';
+    return this.getDefaultCardBg();
   }
 
   private getEntryCardTitleColor(iconRaw: string): string {
@@ -58,7 +68,7 @@ struct EntrySelectionPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(40).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('选择入库方式')
@@ -83,8 +93,8 @@ struct EntrySelectionPage {
           // 底部快捷入口
           Row({ space: 16 }) {
             Button('产品字典')
-              .height(40).fontSize(14).fontColor('#007DFF')
-              .backgroundColor('#E8F0FE').borderRadius(8).layoutWeight(1)
+              .height(40).fontSize(14).fontColor($r('app.color.button_secondary_text'))
+              .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8).layoutWeight(1)
               .onClick(() => { router.pushUrl({ url: 'pages/ProductDictPage' }); })
           }
           .width('100%').padding({ left: 16, right: 16, bottom: 16 })

@@ -260,7 +260,7 @@ struct AddFoodPage {
         Button('返回')
           .height(40)
           .fontSize(14)
-          .fontColor('#007DFF')
+          .fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             router.back();
@@ -274,8 +274,8 @@ struct AddFoodPage {
         Button('保存')
           .height(40)
           .fontSize(14)
-          .fontColor(Color.White)
-          .backgroundColor('#007DFF')
+          .fontColor($r('app.color.button_primary_text'))
+          .backgroundColor($r('app.color.button_primary_bg'))
           .borderRadius(8)
           .onClick(() => {
             this.saveFoodItem();
@@ -295,7 +295,7 @@ struct AddFoodPage {
             Row() {
               Text(this.photoUri.length > 0 ? '已完成食品拍照，可继续补充信息并入库' : '拍照入库模式：可先填写信息，稍后补拍')
                 .fontSize(12)
-                .fontColor(this.photoUri.length > 0 ? '#34C759' : '#FF9500')
+                .fontColor(this.photoUri.length > 0 ? $r('app.color.status_success') : $r('app.color.status_warning'))
             }
             .width('100%')
             .padding({ left: 16, right: 16 })
@@ -309,7 +309,7 @@ struct AddFoodPage {
                 .fontColor($r('app.color.text_primary'))
               Text(' *')
                 .fontSize(14)
-                .fontColor('#FF3B30')
+                .fontColor($r('app.color.status_danger'))
             }
             TextInput({ text: this.foodName, placeholder: '如：纯牛奶、生菜、苹果' })
               .width('100%')
@@ -324,7 +324,7 @@ struct AddFoodPage {
             if (this.nameError) {
               Text('食品名称不能为空')
                 .fontSize(12)
-                .fontColor('#FF3B30')
+                .fontColor($r('app.color.status_danger'))
             }
           }
           .width('100%')
@@ -341,7 +341,7 @@ struct AddFoodPage {
                 .height(44)
                 .fontSize(15)
                 .borderRadius(8)
-                .backgroundColor(this.fromBarcodeScan ? '#F0F0F0' : '#F5F5F5')
+                .backgroundColor(this.fromBarcodeScan ? $r('app.color.chip_background') : $r('app.color.input_background'))
                 .enabled(!this.fromBarcodeScan)
                 .onChange((value: string) => {
                   this.barcode = value;
@@ -361,11 +361,11 @@ struct AddFoodPage {
               ForEach(FOOD_CATEGORIES, (category: string) => {
                 Text(category)
                   .fontSize(13)
-                  .fontColor(this.selectedCategory === category ? Color.White : '#666666')
+                  .fontColor(this.selectedCategory === category ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .margin({ right: 8, bottom: 8 })
                   .borderRadius(16)
-                  .backgroundColor(this.selectedCategory === category ? '#007DFF' : '#F0F0F0')
+                  .backgroundColor(this.selectedCategory === category ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
                   .onClick(() => {
                     this.selectedCategory = category;
                     this.updateExpiryDate();
@@ -460,7 +460,7 @@ struct AddFoodPage {
             }
             .layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.hasExactProductionInfo })
-              .selectedColor('#007DFF')
+              .selectedColor($r('app.color.button_primary_bg'))
               .onChange((isOn: boolean) => {
                 this.hasExactProductionInfo = isOn;
                 if (!isOn) {
@@ -485,7 +485,7 @@ struct AddFoodPage {
                   Blank()
                   Text(this.showProductionDatePicker ? '收起' : '选择日期')
                     .fontSize(13)
-                    .fontColor('#007DFF')
+                    .fontColor($r('app.color.accent_link'))
                 }
                 .width('100%')
 
@@ -543,9 +543,9 @@ struct AddFoodPage {
                     Row({ space: 0 }) {
                       Text('天')
                         .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'day' ? Color.White : '#666666')
+                        .fontColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                         .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'day' ? '#007DFF' : '#F0F0F0')
+                        .backgroundColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
                         .borderRadius(8)
                         .onClick(() => {
                           this.shelfLifeUnit = 'day';
@@ -553,9 +553,9 @@ struct AddFoodPage {
                         })
                       Text('月')
                         .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'month' ? Color.White : '#666666')
+                        .fontColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                         .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'month' ? '#007DFF' : '#F0F0F0')
+                        .backgroundColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
                         .borderRadius(8)
                         .onClick(() => {
                           this.shelfLifeUnit = 'month';
@@ -563,9 +563,9 @@ struct AddFoodPage {
                         })
                       Text('年')
                         .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'year' ? Color.White : '#666666')
+                        .fontColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                         .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'year' ? '#007DFF' : '#F0F0F0')
+                        .backgroundColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
                         .borderRadius(8)
                         .onClick(() => {
                           this.shelfLifeUnit = 'year';
@@ -587,7 +587,7 @@ struct AddFoodPage {
               Blank()
               Text(this.hasExactProductionInfo ? '来自生产信息' : '来自品类与存储环境')
                 .fontSize(12)
-                .fontColor('#007DFF')
+                .fontColor($r('app.color.accent_link'))
             }
             .width('100%')
 
@@ -624,7 +624,7 @@ struct AddFoodPage {
             }
             if (this.caloriesText.length === 0) {
               Text('💡 建议先在“热量获取”页录入营养标注与数量，再回到此页确认总热量')
-                .fontSize(12).fontColor('#FF9500')
+                .fontSize(12).fontColor($r('app.color.status_warning'))
             }
           }
           .width('100%')
@@ -635,8 +635,8 @@ struct AddFoodPage {
             .width('100%')
             .height(48)
             .fontSize(16)
-            .fontColor(Color.White)
-            .backgroundColor('#007DFF')
+            .fontColor($r('app.color.button_primary_text'))
+            .backgroundColor($r('app.color.button_primary_bg'))
             .borderRadius(12)
             .margin({ left: 16, right: 16, top: 8, bottom: 32 })
             .onClick(() => {
@@ -667,11 +667,11 @@ struct AddFoodPage {
   buildStorageButton(label: string, type: string) {
     Text(label)
       .fontSize(14)
-      .fontColor(this.storageType === type ? Color.White : '#666666')
+      .fontColor(this.storageType === type ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .layoutWeight(1)
       .height(40)
-      .backgroundColor(this.storageType === type ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.storageType === type ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .onClick(() => {
         this.storageType = type;
         this.updateExpiryDate();
@@ -682,12 +682,12 @@ struct AddFoodPage {
   buildFreshnessButton(label: string, value: string) {
     Text(label)
       .fontSize(13)
-      .fontColor(this.freshnessLevel === value ? Color.White : '#666666')
+      .fontColor(this.freshnessLevel === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .layoutWeight(1)
       .height(40)
       .borderRadius(8)
-      .backgroundColor(this.freshnessLevel === value ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.freshnessLevel === value ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .onClick(() => {
         this.freshnessLevel = value;
         this.updateExpiryDate();

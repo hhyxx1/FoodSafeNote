@@ -115,8 +115,8 @@ export struct HealthView {
           .fontSize(22).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
         Blank()
         Button('详细报表')
-          .height(40).fontSize(12).fontColor('#007DFF')
-          .backgroundColor('#E8F0FE').borderRadius(16)
+          .height(40).fontSize(12).fontColor($r('app.color.button_secondary_text'))
+          .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(16)
             .hoverEffect(HoverEffect.Highlight)
           .onClick(() => {
             router.pushUrl({ url: 'pages/HealthReportPage' });
@@ -138,20 +138,20 @@ export struct HealthView {
         Column({ space: 6 }) {
           Row({ space: 8 }) {
             Text('开始: ' + this.formatDate(this.customStart))
-              .fontSize(13).fontColor(this.pickingStart ? '#007DFF' : '#666666')
+              .fontSize(13).fontColor(this.pickingStart ? $r('app.color.button_secondary_text') : $r('app.color.button_neutral_text'))
               .padding({ left: 10, right: 10, top: 4, bottom: 4 })
               .borderRadius(6)
-              .backgroundColor(this.pickingStart ? '#E8F0FE' : '#F0F0F0')
+              .backgroundColor(this.pickingStart ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
               .onClick(() => { this.pickingStart = true; })
             Text('结束: ' + this.formatDate(this.customEnd))
-              .fontSize(13).fontColor(!this.pickingStart ? '#007DFF' : '#666666')
+              .fontSize(13).fontColor(!this.pickingStart ? $r('app.color.button_secondary_text') : $r('app.color.button_neutral_text'))
               .padding({ left: 10, right: 10, top: 4, bottom: 4 })
               .borderRadius(6)
-              .backgroundColor(!this.pickingStart ? '#E8F0FE' : '#F0F0F0')
+              .backgroundColor(!this.pickingStart ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
               .onClick(() => { this.pickingStart = false; })
             Button('查询')
               .height(40).fontSize(12).fontColor(Color.White)
-              .backgroundColor('#007DFF').borderRadius(6)
+              .backgroundColor($r('app.color.button_primary_bg')).borderRadius(6)
               .onClick(() => {
                 this.showDatePicker = false;
                 this.loadData();
@@ -195,14 +195,14 @@ export struct HealthView {
           Row({ space: 12 }) {
             Column({ space: 4 }) {
               Text(this.getTotalCalories().toFixed(0))
-                .fontSize(28).fontWeight(FontWeight.Bold).fontColor('#007DFF')
+                .fontSize(28).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_info'))
               Text('摄入 (kcal)').fontSize(12).fontColor($r('app.color.text_secondary'))
             }
             .layoutWeight(1).padding(16).backgroundColor($r('app.color.card_background')).borderRadius(12)
             .alignItems(HorizontalAlign.Center)
             Column({ space: 4 }) {
               Text(this.getTotalWasteCount().toString())
-                .fontSize(28).fontWeight(FontWeight.Bold).fontColor('#FF6B00')
+                .fontSize(28).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_warning'))
               Text('浪费 (件)').fontSize(12).fontColor($r('app.color.text_secondary'))
             }
             .layoutWeight(1).padding(16).backgroundColor($r('app.color.card_background')).borderRadius(12)
@@ -220,14 +220,14 @@ export struct HealthView {
                   Text(item.memberName.substring(0, 1))
                     .fontSize(16).fontWeight(FontWeight.Bold).fontColor(Color.White)
                     .textAlign(TextAlign.Center).width(40).height(40).borderRadius(20)
-                    .backgroundColor('#007DFF')
+                    .backgroundColor($r('app.color.button_primary_bg'))
                   Column({ space: 4 }) {
                     Text(item.memberName).fontSize(15).fontColor($r('app.color.text_primary'))
                     Text(item.recordCount + ' 次进食').fontSize(12).fontColor($r('app.color.text_hint'))
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start).padding({ left: 12 })
                   Text(item.totalCalories.toFixed(0) + ' kcal')
-                    .fontSize(16).fontWeight(FontWeight.Medium).fontColor('#FF6B00')
+                    .fontSize(16).fontWeight(FontWeight.Medium).fontColor($r('app.color.status_warning'))
                 }
                 .width('100%').padding({ top: 8, bottom: 8 })
               }, (item: DailyCalorie) => item.memberName)
@@ -244,7 +244,7 @@ export struct HealthView {
                 Row() {
                   Text('🗑️').fontSize(14).width(24)
                   Text(stat.category).fontSize(13).fontColor($r('app.color.text_primary')).layoutWeight(1)
-                  Text(stat.count + ' 件').fontSize(13).fontColor('#FF6B00')
+                  Text(stat.count + ' 件').fontSize(13).fontColor($r('app.color.status_warning'))
                 }
                 .width('100%').padding({ top: 4, bottom: 4 })
               }, (stat: WasteStat) => stat.category)
@@ -273,14 +273,14 @@ export struct HealthView {
                     if (record.type === 0) {
                       Text(record.memberName + ' 食用').fontSize(12).fontColor($r('app.color.text_secondary'))
                     } else {
-                      Text('丢弃: ' + record.wasteReason).fontSize(12).fontColor('#FF3B30')
+                      Text('丢弃: ' + record.wasteReason).fontSize(12).fontColor($r('app.color.status_danger'))
                     }
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Column({ space: 2 }) {
                     if (record.calories > 0) {
                       Text(record.calories.toFixed(0) + ' kcal')
-                        .fontSize(13).fontColor(record.type === 0 ? '#FF6B00' : '#999999')
+                        .fontSize(13).fontColor(record.type === 0 ? $r('app.color.status_warning') : $r('app.color.text_disabled'))
                     }
                     Text(this.formatRecordTime(record.createTime))
                       .fontSize(11).fontColor($r('app.color.text_disabled'))
@@ -305,10 +305,10 @@ export struct HealthView {
   buildTimeBtn(label: string, mode: string) {
     Text(label)
       .fontSize(13)
-      .fontColor(this.viewMode === mode ? Color.White : '#666666')
+      .fontColor(this.viewMode === mode ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .layoutWeight(1).height(40)
-      .backgroundColor(this.viewMode === mode ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.viewMode === mode ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .borderRadius(8)
       .hoverEffect(HoverEffect.Highlight)
       .onClick(() => {

@@ -336,7 +336,7 @@ struct PhotoEntryPage {
         Button('返回')
           .height(40)
           .fontSize(14)
-          .fontColor('#007DFF')
+          .fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             router.back();
@@ -364,8 +364,8 @@ struct PhotoEntryPage {
             .width('100%')
             .height(48)
             .fontSize(16)
-            .fontColor(Color.White)
-            .backgroundColor('#007DFF')
+            .fontColor($r('app.color.button_primary_text'))
+            .backgroundColor($r('app.color.button_primary_bg'))
             .borderRadius(12)
             .onClick(() => {
               this.takeFoodPhoto();
@@ -376,8 +376,8 @@ struct PhotoEntryPage {
               .width('100%')
               .height(40)
               .fontSize(14)
-              .fontColor('#007DFF')
-              .backgroundColor('#E8F0FE')
+              .fontColor($r('app.color.button_secondary_text'))
+              .backgroundColor($r('app.color.button_secondary_bg'))
               .borderRadius(12)
               .bindMenu(this.collaborationMenu)
           }
@@ -404,11 +404,11 @@ struct PhotoEntryPage {
               ForEach(FOOD_CATEGORIES, (category: string) => {
                 Text(category)
                   .fontSize(12)
-                  .fontColor(this.recognizedCategory === category ? Color.White : '#666666')
+                  .fontColor(this.recognizedCategory === category ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                   .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                   .margin({ right: 8, bottom: 8 })
                   .borderRadius(14)
-                  .backgroundColor(this.recognizedCategory === category ? '#007DFF' : '#F0F0F0')
+                  .backgroundColor(this.recognizedCategory === category ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
                   .onClick(() => {
                     this.recognizedCategory = category;
                     this.updateEstimatedExpiry();
@@ -443,7 +443,7 @@ struct PhotoEntryPage {
 
             Text('预计到期：' + (this.estimatedExpiryText.length > 0 ? this.estimatedExpiryText : '待识别后生成'))
               .fontSize(13)
-              .fontColor('#007DFF')
+              .fontColor($r('app.color.accent_link'))
           }
           .width('100%')
           .padding(12)
@@ -454,8 +454,8 @@ struct PhotoEntryPage {
             .width('100%')
             .height(48)
             .fontSize(16)
-            .fontColor('#007DFF')
-            .backgroundColor(this.recognizedName.trim().length > 0 ? '#E8F0FE' : '#EEF2F6')
+            .fontColor(this.recognizedName.trim().length > 0 ? $r('app.color.button_secondary_text') : $r('app.color.text_disabled'))
+            .backgroundColor(this.recognizedName.trim().length > 0 ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
             .borderRadius(12)
             .enabled(this.recognizedName.trim().length > 0)
             .onClick(() => {
@@ -486,13 +486,13 @@ struct PhotoEntryPage {
   buildTag(label: string, value: string) {
     Text(label)
       .fontSize(12)
-      .fontColor(this.freshnessLevel === value ? Color.White : '#666666')
+      .fontColor(this.freshnessLevel === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
       .height(40)
       .constraintSize({ minWidth: 56 })
       .borderRadius(16)
-      .backgroundColor(this.freshnessLevel === value ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.freshnessLevel === value ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .onClick(() => {
         this.freshnessLevel = value;
         this.updateEstimatedExpiry();
@@ -503,13 +503,13 @@ struct PhotoEntryPage {
   buildStorageTag(label: string, value: string) {
     Text(label)
       .fontSize(12)
-      .fontColor(this.storageType === value ? Color.White : '#666666')
+      .fontColor(this.storageType === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
       .height(40)
       .constraintSize({ minWidth: 56 })
       .borderRadius(16)
-      .backgroundColor(this.storageType === value ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.storageType === value ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .onClick(() => {
         this.storageType = value;
         this.updateEstimatedExpiry();

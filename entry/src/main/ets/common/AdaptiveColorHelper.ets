@@ -1,4 +1,5 @@
 import { image } from '@kit.ImageKit';
+import { ConfigurationConstant } from '@kit.AbilityKit';
 
 interface RgbColor {
   red: number;
@@ -15,6 +16,18 @@ interface HsvColor {
 export class AdaptiveColorHelper {
   private static cardCache: Map<string, string> = new Map<string, string>();
   private static accentCache: Map<string, string> = new Map<string, string>();
+
+  private static getCurrentColorMode(): number {
+    const mode = AppStorage.get('appColorMode');
+    if (typeof mode === 'number') {
+      return mode;
+    }
+    return ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+  }
+
+  public static isDarkModeEnabled(): boolean {
+    return AdaptiveColorHelper.getCurrentColorMode() === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+  }
 
   private static clamp(value: number, min: number, max: number): number {
     if (value < min) {
@@ -232,34 +245,42 @@ export class AdaptiveColorHelper {
   }
 
   public static async cardBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
-    if (AdaptiveColorHelper.cardCache.has(iconRawfileName)) {
-      return AdaptiveColorHelper.cardCache.get(iconRawfileName) as string;
+    const darkMode: boolean = AdaptiveColorHelper.isDarkModeEnabled();
+    const cacheKey: string = iconRawfileName + (darkMode ? ':dark' : ':light');
+    if (AdaptiveColorHelper.cardCache.has(cacheKey)) {
+      return AdaptiveColorHelper.cardCache.get(cacheKey) as string;
     }
     try {
       const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
       const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
-      const softened: RgbColor = AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.16, 0.98);
+      const softened: RgbColor = darkMode
+        ? AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.30, 0.34)
+        : AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.16, 0.98);
       const hex: string = AdaptiveColorHelper.rgbToHex(softened);
-      AdaptiveColorHelper.cardCache.set(iconRawfileName, hex);
+      AdaptiveColorHelper.cardCache.set(cacheKey, hex);
       return hex;
     } catch (e) {
-      return '#EDF3FB';
+      return darkMode ? '#2A3340' : '#EDF3FB';
     }
   }
 
   public static async accentBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
-    if (AdaptiveColorHelper.accentCache.has(iconRawfileName)) {
-      return AdaptiveColorHelper.accentCache.get(iconRawfileName) as string;
+    const darkMode: boolean = AdaptiveColorHelper.isDarkModeEnabled();
+    const cacheKey: string = iconRawfileName + (darkMode ? ':dark' : ':light');
+    if (AdaptiveColorHelper.accentCache.has(cacheKey)) {
+      return AdaptiveColorHelper.accentCache.get(cacheKey) as string;
     }
     try {
       const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
       const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
-      const accent: RgbColor = AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.28, 0.95);
+      const accent: RgbColor = darkMode
+        ? AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.34, 0.46)
+        : AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.28, 0.95);
       const hex: string = AdaptiveColorHelper.rgbToHex(accent);
-      AdaptiveColorHelper.accentCache.set(iconRawfileName, hex);
+      AdaptiveColorHelper.accentCache.set(cacheKey, hex);
       return hex;
     } catch (e) {
-      return '#E8F0FE';
+      return darkMode ? '#2F4560' : '#E8F0FE';
     }
   }
 }

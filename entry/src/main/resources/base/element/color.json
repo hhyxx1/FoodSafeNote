@@ -49,6 +49,90 @@
       "value": "#475569"
     },
     {
+      "name": "accent_link",
+      "value": "#0B57D0"
+    },
+    {
+      "name": "button_primary_bg",
+      "value": "#005FCC"
+    },
+    {
+      "name": "button_primary_text",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "button_secondary_bg",
+      "value": "#E6F0FF"
+    },
+    {
+      "name": "button_secondary_text",
+      "value": "#0B57D0"
+    },
+    {
+      "name": "button_neutral_bg",
+      "value": "#F0F2F5"
+    },
+    {
+      "name": "button_neutral_text",
+      "value": "#334155"
+    },
+    {
+      "name": "button_danger_bg",
+      "value": "#FFE8E6"
+    },
+    {
+      "name": "button_danger_text",
+      "value": "#B42318"
+    },
+    {
+      "name": "button_success_bg",
+      "value": "#1E8E3E"
+    },
+    {
+      "name": "button_success_text",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "button_warning_bg",
+      "value": "#B06000"
+    },
+    {
+      "name": "button_warning_text",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "chip_success_bg",
+      "value": "#E8F5E9"
+    },
+    {
+      "name": "chip_success_text",
+      "value": "#1E8E3E"
+    },
+    {
+      "name": "chip_warning_bg",
+      "value": "#FFF3E0"
+    },
+    {
+      "name": "chip_warning_text",
+      "value": "#B06000"
+    },
+    {
+      "name": "status_info",
+      "value": "#0B57D0"
+    },
+    {
+      "name": "status_success",
+      "value": "#1E8E3E"
+    },
+    {
+      "name": "status_warning",
+      "value": "#B06000"
+    },
+    {
+      "name": "status_danger",
+      "value": "#B42318"
+    },
+    {
       "name": "overlay_background",
       "value": "#80000000"
     }

@@ -212,7 +212,7 @@ struct BatchAddPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(40).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             if (this.currentStep === 'edit') {
@@ -226,8 +226,8 @@ struct BatchAddPage {
           .layoutWeight(1).textAlign(TextAlign.Center)
         if (this.currentStep === 'collect' && this.items.length > 0) {
           Button('全部入库')
-            .height(40).fontSize(14).fontColor(Color.White)
-            .backgroundColor('#007DFF').borderRadius(8)
+            .height(40).fontSize(14).fontColor($r('app.color.button_primary_text'))
+            .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
             .enabled(!this.isSaving)
             .onClick(() => { this.batchSave(); })
         } else {
@@ -254,11 +254,11 @@ struct BatchAddPage {
       Row({ space: 12 }) {
         Button('扫码添加')
           .layoutWeight(1).height(44).fontSize(14)
-          .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
+          .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
           .onClick(() => { this.startScan(); })
         Button('手动添加')
           .layoutWeight(1).height(44).fontSize(14)
-          .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+          .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
           .onClick(() => { this.addManualItem(); })
       }
       .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 8 })
@@ -282,13 +282,13 @@ struct BatchAddPage {
               Row() {
                 // 状态指示
                 Circle().width(10).height(10)
-                  .fill(item.confirmed ? '#34C759' : '#FF9500')
+                  .fill(item.confirmed ? $r('app.color.status_success') : $r('app.color.status_warning'))
                   .margin({ right: 8 })
 
                 Column({ space: 2 }) {
                   Text(item.name.length > 0 ? item.name : '(未命名，点击编辑)')
                     .fontSize(15)
-                    .fontColor(item.name.length > 0 ? $r('app.color.text_primary') : '#FF9500')
+                    .fontColor(item.name.length > 0 ? $r('app.color.text_primary') : $r('app.color.status_warning'))
                     .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                   Row({ space: 8 }) {
                     if (item.barcode.length > 0) {
@@ -298,20 +298,20 @@ struct BatchAddPage {
                       Text(item.category).fontSize(11).fontColor($r('app.color.text_hint'))
                     }
                     if (item.calories > 0) {
-                      Text(item.calories.toString() + 'kcal').fontSize(11).fontColor('#FF6B00')
+                      Text(item.calories.toString() + 'kcal').fontSize(11).fontColor($r('app.color.status_warning'))
                     }
                   }
                 }
                 .layoutWeight(1).alignItems(HorizontalAlign.Start)
 
                 Button('编辑')
-                  .height(40).fontSize(11).fontColor('#007DFF')
-                  .backgroundColor('#E8F0FE').borderRadius(6)
+                  .height(40).fontSize(11).fontColor($r('app.color.button_secondary_text'))
+                  .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(6)
                   .margin({ right: 6 })
                   .onClick(() => { this.openEdit(index); })
                 Button('删除')
-                  .height(40).fontSize(11).fontColor('#FF3B30')
-                  .backgroundColor('#FFEDE9').borderRadius(6)
+                  .height(40).fontSize(11).fontColor($r('app.color.button_danger_text'))
+                  .backgroundColor($r('app.color.button_danger_bg')).borderRadius(6)
                   .onClick(() => { this.removeItem(index); })
               }
               .width('100%').padding(12)
@@ -334,7 +334,7 @@ struct BatchAddPage {
         Column({ space: 6 }) {
           Row() {
             Text('食品名称').fontSize(14).fontColor($r('app.color.text_primary'))
-            Text(' *').fontSize(14).fontColor('#FF3B30')
+            Text(' *').fontSize(14).fontColor($r('app.color.status_danger'))
           }
           TextInput({ text: this.editName, placeholder: '如：纯牛奶、苹果' })
             .width('100%').height(44).fontSize(15).borderRadius(8)
@@ -353,7 +353,7 @@ struct BatchAddPage {
                 .fontColor(this.editCategory === cat ? Color.White : $r('app.color.text_secondary'))
                 .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                 .margin({ right: 8, bottom: 8 }).borderRadius(16)
-                .backgroundColor(this.editCategory === cat ? '#007DFF' : $r('app.color.chip_background'))
+                .backgroundColor(this.editCategory === cat ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .onClick(() => { this.editCategory = cat; })
             }, (cat: string) => cat)
           }
@@ -378,14 +378,14 @@ struct BatchAddPage {
               .fontSize(13)
               .fontColor(this.editCalorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.editCalorieUnit === 'kJ' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.editCalorieUnit === 'kJ' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.editCalorieUnit = 'kJ'; })
             Text('千卡 kcal')
               .fontSize(13)
               .fontColor(this.editCalorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.editCalorieUnit === 'kcal' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.editCalorieUnit === 'kcal' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.editCalorieUnit = 'kcal'; })
           }
@@ -400,7 +400,7 @@ struct BatchAddPage {
           }
           if (this.editCalorieUnit === 'kJ' && this.editCalories.length > 0) {
             Text('≈ ' + kjToKcal(Number(this.editCalories) || 0) + ' kcal（自动换算）')
-              .fontSize(12).fontColor('#007DFF')
+              .fontSize(12).fontColor($r('app.color.accent_link'))
           }
         }
         .width('100%').padding({ left: 16, right: 16 })
@@ -411,15 +411,15 @@ struct BatchAddPage {
           Row({ space: 0 }) {
             Text('冷藏').fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .fontColor(this.editStorage === StorageType.FRIDGE ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.FRIDGE ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.editStorage === StorageType.FRIDGE ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .onClick(() => { this.editStorage = StorageType.FRIDGE; })
             Text('冷冻').fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .fontColor(this.editStorage === StorageType.FREEZER ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.FREEZER ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.editStorage === StorageType.FREEZER ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .onClick(() => { this.editStorage = StorageType.FREEZER; })
             Text('常温').fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .fontColor(this.editStorage === StorageType.ROOM ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.ROOM ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.editStorage === StorageType.ROOM ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .onClick(() => { this.editStorage = StorageType.ROOM; })
           }
           .width('100%').borderRadius(8).clip(true)
@@ -429,7 +429,7 @@ struct BatchAddPage {
         // 确认按钮
         Button('确认信息')
           .width('100%').height(48).fontSize(16)
-          .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(12)
+          .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(12)
           .margin({ left: 16, right: 16, top: 8, bottom: 32 })
           .onClick(() => { this.saveEdit(); })
       }
