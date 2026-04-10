@@ -47,7 +47,7 @@ struct OcrRecordPage {
         // 导航栏
         Row() {
           Button('返回')
-            .height(40).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
             .backgroundColor(Color.Transparent)
             .onClick(() => { router.back(); })
           Text('OCR记录')
@@ -117,7 +117,7 @@ struct OcrRecordPage {
       if (this.showEditDialog) {
         Column() {
           Column()
-            .width('100%').height('100%').backgroundColor('#80000000')
+            .width('100%').height('100%').backgroundColor($r('app.color.overlay_background'))
             .onClick(() => { this.showEditDialog = false; })
         }
         .width('100%').height('100%').position({ x: 0, y: 0 })
@@ -138,7 +138,7 @@ struct OcrRecordPage {
               .fontColor($r('app.color.text_secondary')).backgroundColor($r('app.color.chip_background')).borderRadius(8)
               .onClick(() => { this.showEditDialog = false; })
             Button('保存').layoutWeight(1).height(40).fontSize(14)
-              .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
+              .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
               .onClick(() => { this.saveEdit(); })
           }.width('100%')
         }
@@ -154,10 +154,10 @@ struct OcrRecordPage {
   buildDayTab(label: string, days: number) {
     Text(label)
       .fontSize(14)
-      .fontColor(this.filterDays === days ? Color.White : '#666666')
+      .fontColor(this.filterDays === days ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .layoutWeight(1).height(40)
-      .backgroundColor(this.filterDays === days ? '#007DFF' : '#F0F0F0')
+      .backgroundColor(this.filterDays === days ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
       .borderRadius(8)
       .onClick(() => {
         this.filterDays = days;
@@ -185,19 +185,19 @@ struct OcrRecordPage {
         Column({ space: 2 }) {
           Text('AI识别值').fontSize(11).fontColor($r('app.color.text_hint'))
           Text(record.ocrValue > 0 ? record.ocrValue.toFixed(0) + ' kcal' : '无')
-            .fontSize(14).fontColor(record.ocrValue > 0 ? '#007DFF' : '#CCCCCC')
+            .fontSize(14).fontColor(record.ocrValue > 0 ? $r('app.color.status_info') : $r('app.color.text_disabled'))
         }
         Column({ space: 2 }) {
           Text('最终确认值').fontSize(11).fontColor($r('app.color.text_hint'))
           Text(record.finalValue > 0 ? record.finalValue.toFixed(0) + ' kcal' : '0')
             .fontSize(14).fontWeight(FontWeight.Medium)
-            .fontColor(record.finalValue > 0 ? '#FF6B00' : '#CCCCCC')
+            .fontColor(record.finalValue > 0 ? $r('app.color.status_warning') : $r('app.color.text_disabled'))
         }
         .layoutWeight(1)
 
         Button('修改')
-          .height(40).fontSize(11).fontColor('#007DFF')
-          .backgroundColor('#E8F0FE').borderRadius(6)
+          .height(40).fontSize(11).fontColor($r('app.color.button_secondary_text'))
+          .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(6)
           .onClick(() => { this.openEditDialog(record); })
       }.width('100%')
     }

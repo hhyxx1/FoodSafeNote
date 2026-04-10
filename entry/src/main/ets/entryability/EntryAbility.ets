@@ -2,6 +2,7 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { DatabaseHelper } from '../common/DatabaseHelper';
+import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 
 const DOMAIN = 0x0000;
 
@@ -13,14 +14,22 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     if (this.context && this.context.config) {
-      AppStorage.setOrCreate<number>('appColorMode', this.context.config.colorMode);
+      const colorMode: number = this.context.config.colorMode !== undefined
+        ? this.context.config.colorMode
+        : ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+      AdaptiveColorHelper.setCurrentColorMode(colorMode);
+      AppStorage.setOrCreate<number>('appColorMode', colorMode);
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {
-    if (newConfig && AppStorage.get('appColorMode') !== newConfig.colorMode) {
-      AppStorage.setOrCreate<number>('appColorMode', newConfig.colorMode);
+    if (newConfig) {
+      const colorMode: number = newConfig.colorMode !== undefined
+        ? newConfig.colorMode
+        : ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+      AdaptiveColorHelper.setCurrentColorMode(colorMode);
+      AppStorage.setOrCreate<number>('appColorMode', colorMode);
     }
   }
 

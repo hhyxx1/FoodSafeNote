@@ -10,7 +10,7 @@ import { TvMineView } from '../views/TvMineView';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { common } from '@kit.AbilityKit';
+import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { router } from '@kit.ArkUI';
 import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 
@@ -22,31 +22,73 @@ struct Index {
   @State watchListOpen: boolean = false;
   @State watchTouchStartX: number = 0;
   @State watchTouchStartY: number = 0;
+  @StorageLink('appColorMode') appColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
   private tabsController: TabsController = new TabsController();
   private currentDeviceType: string = deviceInfo.deviceType;
-  @State inventoryTabBg: string = '#E8F0FE';
-  @State healthTabBg: string = '#FDECEC';
-  @State dictTabBg: string = '#EEF2F5';
+  @State inventoryTabBgLight: string = '#E8F0FE';
+  @State healthTabBgLight: string = '#FDECEC';
+  @State dictTabBgLight: string = '#EEF2F5';
+  @State inventoryTabBgDark: string = '#2F4560';
+  @State healthTabBgDark: string = '#4A3535';
+  @State dictTabBgDark: string = '#3A4148';
+
+  private isDarkMode(): boolean {
+    return this.appColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+  }
+
+  private getDefaultTabIconBg(iconRaw: string, darkMode: boolean): string {
+    if (iconRaw === 'icon_inventory.svg') {
+      return darkMode ? '#2F4560' : '#E8F0FE';
+    }
+    if (iconRaw === 'icon_health.svg') {
+      return darkMode ? '#4A3535' : '#FDECEC';
+    }
+    if (iconRaw === 'icon_dict.svg') {
+      return darkMode ? '#3A4148' : '#EEF2F5';
+    }
+    return darkMode ? '#2F4560' : '#E8F0FE';
+  }
+
+  private loadAdaptiveTabBackgrounds(ctx: Context): void {
+    this.inventoryTabBgLight = this.getDefaultTabIconBg('icon_inventory.svg', false);
+    this.healthTabBgLight = this.getDefaultTabIconBg('icon_health.svg', false);
+    this.dictTabBgLight = this.getDefaultTabIconBg('icon_dict.svg', false);
+    this.inventoryTabBgDark = this.getDefaultTabIconBg('icon_inventory.svg', true);
+    this.healthTabBgDark = this.getDefaultTabIconBg('icon_health.svg', true);
+    this.dictTabBgDark = this.getDefaultTabIconBg('icon_dict.svg', true);
+
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_inventory.svg', false).then((color: string) => {
+      this.inventoryTabBgLight = color;
+    });
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_health.svg', false).then((color: string) => {
+      this.healthTabBgLight = color;
+    });
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_dict.svg', false).then((color: string) => {
+      this.dictTabBgLight = color;
+    });
+
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_inventory.svg', true).then((color: string) => {
+      this.inventoryTabBgDark = color;
+    });
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_health.svg', true).then((color: string) => {
+      this.healthTabBgDark = color;
+    });
+    AdaptiveColorHelper.accentBgFromIconWithMode(ctx, 'icon_dict.svg', true).then((color: string) => {
+      this.dictTabBgDark = color;
+    });
+  }
 
   private getTabIconBg(iconRaw: string): string {
-    if (iconRaw === 'icon_inventory.svg') return this.inventoryTabBg;
-    if (iconRaw === 'icon_health.svg') return this.healthTabBg;
-    if (iconRaw === 'icon_dict.svg') return this.dictTabBg;
-    return '#E8F0FE';
+    const darkMode: boolean = this.isDarkMode();
+    if (iconRaw === 'icon_inventory.svg') return darkMode ? this.inventoryTabBgDark : this.inventoryTabBgLight;
+    if (iconRaw === 'icon_health.svg') return darkMode ? this.healthTabBgDark : this.healthTabBgLight;
+    if (iconRaw === 'icon_dict.svg') return darkMode ? this.dictTabBgDark : this.dictTabBgLight;
+    return this.getDefaultTabIconBg(iconRaw, darkMode);
   }
 
   aboutToAppear(): void {
-    const ctx = getContext(this);
-
-    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_inventory.svg').then((color: string) => {
-      this.inventoryTabBg = color;
-    });
-    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_health.svg').then((color: string) => {
-      this.healthTabBg = color;
-    });
-    AdaptiveColorHelper.accentBgFromIcon(ctx, 'icon_dict.svg').then((color: string) => {
-      this.dictTabBg = color;
-    });
+    const ctx: Context = getContext(this) as Context;
+    this.loadAdaptiveTabBackgrounds(ctx);
 
     DatabaseHelper.getInstance().initDB(ctx).then(() => {
       this.onDBReady(ctx);
@@ -142,9 +184,9 @@ struct Index {
       if (!this.watchListOpen) {
         Row({ space: 6 }) {
           Circle().width(5).height(5)
-            .fill(this.currentIndex === 0 ? '#007DFF' : '#CCCCCC')
+            .fill(this.currentIndex === 0 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
           Circle().width(5).height(5)
-            .fill(this.currentIndex === 1 ? '#007DFF' : '#CCCCCC')
+            .fill(this.currentIndex === 1 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
@@ -213,7 +255,7 @@ struct Index {
       Text(title)
         .fontSize(11)
         .fontWeight(this.currentIndex === targetIndex ? FontWeight.Medium : FontWeight.Normal)
-        .fontColor(this.currentIndex === targetIndex ? '#007DFF' : $r('app.color.tab_inactive'))
+        .fontColor(this.currentIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)
@@ -229,7 +271,7 @@ struct Index {
     Text(title)
       .fontSize(14)
       .fontWeight(this.currentIndex === targetIndex ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(this.currentIndex === targetIndex ? '#007DFF' : $r('app.color.tab_inactive'))
+      .fontColor(this.currentIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
       .textAlign(TextAlign.Center)
       .width('100%').height('100%')
       .onClick(() => {
@@ -252,7 +294,7 @@ struct Index {
       Text(title)
         .fontSize(18)
         .fontWeight(this.currentIndex === targetIndex ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(this.currentIndex === targetIndex ? '#007DFF' : $r('app.color.tab_inactive'))
+        .fontColor(this.currentIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)

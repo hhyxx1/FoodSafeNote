@@ -73,7 +73,7 @@ struct DataBackupPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(40).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('数据备份与恢复')
@@ -95,19 +95,19 @@ struct DataBackupPage {
 
             Button('全量导出（食品+成员+字典）')
               .width('100%').height(44).fontSize(14)
-              .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
+              .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
               .enabled(!this.isExporting)
               .onClick(() => { this.exportAll(); })
 
             Button('产品字典单独导出')
               .width('100%').height(44).fontSize(14)
-              .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
               .enabled(!this.isExporting)
               .onClick(() => { this.exportDict(); })
 
             Button('全量导入（从沙箱目录）')
               .width('100%').height(44).fontSize(14)
-              .fontColor(Color.White).backgroundColor('#34C759').borderRadius(8)
+              .fontColor($r('app.color.button_success_text')).backgroundColor($r('app.color.button_success_bg')).borderRadius(8)
               .enabled(!this.isImporting)
               .onClick(() => { this.importAll(); })
 
@@ -116,7 +116,7 @@ struct DataBackupPage {
 
             if (this.lastExportPath.length > 0) {
               Text('最近导出: ' + this.lastExportPath)
-                .fontSize(11).fontColor('#34C759').width('100%')
+                .fontSize(11).fontColor($r('app.color.status_success')).width('100%')
             }
           }
           .width('100%').padding(16).margin({ left: 16, right: 16, top: 16 })
@@ -136,7 +136,7 @@ struct DataBackupPage {
               .fontSize(13).fontColor($r('app.color.text_secondary'))
           }
           .width('100%').padding(16).margin({ left: 16, right: 16 })
-          .backgroundColor('#E8F5E9').borderRadius(16)
+          .backgroundColor($r('app.color.chip_success_bg')).borderRadius(16)
           .alignItems(HorizontalAlign.Start)
 
           // 备份文件列表

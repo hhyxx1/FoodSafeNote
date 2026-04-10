@@ -142,7 +142,7 @@ struct ProductDictPage {
         // 导航栏
         Row() {
           Button('返回')
-            .height(40).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
             .backgroundColor(Color.Transparent)
             .onClick(() => { router.back(); })
           Text('产品字典')
@@ -201,13 +201,13 @@ struct ProductDictPage {
         Row({ space: 12 }) {
           Button('导出字典')
             .layoutWeight(1).height(40).fontSize(13)
-            .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
+            .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
             .enabled(!this.isDictExporting)
             .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { this.exportDict(); })
           Button('导入字典')
             .layoutWeight(1).height(40).fontSize(13)
-            .fontColor(Color.White).backgroundColor('#34C759').borderRadius(8)
+            .fontColor($r('app.color.button_success_text')).backgroundColor($r('app.color.button_success_bg')).borderRadius(8)
             .enabled(!this.isDictImporting)
             .hoverEffect(HoverEffect.Highlight)
             .onClick(() => { this.importDict(); })
@@ -220,7 +220,7 @@ struct ProductDictPage {
       if (this.showEditDialog) {
         Column() {
           Column()
-            .width('100%').height('100%').backgroundColor('#80000000')
+            .width('100%').height('100%').backgroundColor($r('app.color.overlay_background'))
             .onClick(() => { this.showEditDialog = false; })
         }
         .width('100%').height('100%').position({ x: 0, y: 0 })
@@ -266,7 +266,7 @@ struct ProductDictPage {
               .fontColor($r('app.color.text_secondary')).backgroundColor($r('app.color.chip_background')).borderRadius(8)
               .onClick(() => { this.showEditDialog = false; })
             Button('保存').layoutWeight(1).height(40).fontSize(14)
-              .fontColor(Color.White).backgroundColor('#007DFF').borderRadius(8)
+              .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
               .onClick(() => { this.saveEdit(); })
           }.width('100%')
         }
@@ -300,9 +300,9 @@ struct ProductDictPage {
           .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
           .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
         Text(getSourceName(item.source))
-          .fontSize(11).fontColor('#007DFF')
+          .fontSize(11).fontColor($r('app.color.button_secondary_text'))
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(8).backgroundColor('#E8F0FE')
+          .borderRadius(8).backgroundColor($r('app.color.button_secondary_bg'))
       }.width('100%')
 
       Row({ space: 12 }) {
@@ -329,27 +329,27 @@ struct ProductDictPage {
 
           Text(item.isReliable ? '已标准化' : '待补全')
             .fontSize(10)
-            .fontColor(item.isReliable ? '#34C759' : '#FF9500')
+            .fontColor(item.isReliable ? $r('app.color.chip_success_text') : $r('app.color.chip_warning_text'))
             .padding({ left: 6, right: 6, top: 2, bottom: 2 })
             .borderRadius(8)
-            .backgroundColor(item.isReliable ? '#E8F5E9' : '#FFF3E0')
+            .backgroundColor(item.isReliable ? $r('app.color.chip_success_bg') : $r('app.color.chip_warning_bg'))
         }
         .width('100%')
 
         Text(this.getNormalizedLabel(item))
           .fontSize(12)
-          .fontColor(item.calories > 0 ? '#FF6B00' : '#CCCCCC')
+          .fontColor(item.calories > 0 ? $r('app.color.status_warning') : $r('app.color.text_disabled'))
       }
       .width('100%')
 
       Row() {
         Blank().layoutWeight(1)
         Button('编辑')
-          .height(40).fontSize(11).fontColor('#007DFF').backgroundColor('#E8F0FE')
+          .height(40).fontSize(11).fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg'))
           .borderRadius(6).margin({ right: 8 })
           .onClick(() => { this.openEditDialog(item); })
         Button('删除')
-          .height(40).fontSize(11).fontColor('#FF3B30').backgroundColor('#FFEDE9')
+          .height(40).fontSize(11).fontColor($r('app.color.button_danger_text')).backgroundColor($r('app.color.button_danger_bg'))
           .borderRadius(6)
           .onClick(() => { this.deleteItem(item); })
       }.width('100%')

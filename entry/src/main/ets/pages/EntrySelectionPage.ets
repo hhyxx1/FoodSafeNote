@@ -1,4 +1,5 @@
 import { router } from '@kit.ArkUI';
+import { ConfigurationConstant } from '@kit.AbilityKit';
 import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 
 interface EntryCardConfig {
@@ -11,11 +12,17 @@ interface EntryCardConfig {
 @Entry
 @Component
 struct EntrySelectionPage {
-  @State scanCardBg: string = '#EDF3FB';
-  @State photoCardBg: string = '#EDF3FB';
-  @State manualCardBg: string = '#EDF3FB';
-  @State batchCardBg: string = '#EDF3FB';
-  @State clipCardBg: string = '#EDF3FB';
+  @StorageLink('appColorMode') appColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+  @State scanCardBgLight: string = '#EDF3FB';
+  @State photoCardBgLight: string = '#EDF3FB';
+  @State manualCardBgLight: string = '#EDF3FB';
+  @State batchCardBgLight: string = '#EDF3FB';
+  @State clipCardBgLight: string = '#EDF3FB';
+  @State scanCardBgDark: string = '#2A3340';
+  @State photoCardBgDark: string = '#2A3340';
+  @State manualCardBgDark: string = '#2A3340';
+  @State batchCardBgDark: string = '#2A3340';
+  @State clipCardBgDark: string = '#2A3340';
 
   private cardConfigs: EntryCardConfig[] = [
     { iconRaw: 'icon_scan.svg', title: '扫码入库', subtitle: '扫描商品条码，自动匹配商品信息', routeUrl: 'pages/BarcodeScanPage' },
@@ -25,32 +32,53 @@ struct EntrySelectionPage {
     { iconRaw: 'icon_clipboard.svg', title: '剪贴板解析', subtitle: '手动读取剪贴板中的购物清单并生成待入库卡片', routeUrl: 'pages/ClipboardParsePage' }
   ];
 
-  private getDefaultCardBg(): string {
-    return AdaptiveColorHelper.isDarkModeEnabled() ? '#2A3340' : '#EDF3FB';
+  private isDarkMode(): boolean {
+    return this.appColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+  }
+
+  private getDefaultCardBg(darkMode: boolean): string {
+    return darkMode ? '#2A3340' : '#EDF3FB';
+  }
+
+  private loadAdaptiveCardBackgrounds(ctx: Context): void {
+    this.scanCardBgLight = this.getDefaultCardBg(false);
+    this.photoCardBgLight = this.getDefaultCardBg(false);
+    this.manualCardBgLight = this.getDefaultCardBg(false);
+    this.batchCardBgLight = this.getDefaultCardBg(false);
+    this.clipCardBgLight = this.getDefaultCardBg(false);
+
+    this.scanCardBgDark = this.getDefaultCardBg(true);
+    this.photoCardBgDark = this.getDefaultCardBg(true);
+    this.manualCardBgDark = this.getDefaultCardBg(true);
+    this.batchCardBgDark = this.getDefaultCardBg(true);
+    this.clipCardBgDark = this.getDefaultCardBg(true);
+
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_scan.svg', false).then((color: string) => { this.scanCardBgLight = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_photo.svg', false).then((color: string) => { this.photoCardBgLight = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_edit.svg', false).then((color: string) => { this.manualCardBgLight = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_batch.svg', false).then((color: string) => { this.batchCardBgLight = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_clipboard.svg', false).then((color: string) => { this.clipCardBgLight = color; });
+
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_scan.svg', true).then((color: string) => { this.scanCardBgDark = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_photo.svg', true).then((color: string) => { this.photoCardBgDark = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_edit.svg', true).then((color: string) => { this.manualCardBgDark = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_batch.svg', true).then((color: string) => { this.batchCardBgDark = color; });
+    AdaptiveColorHelper.cardBgFromIconWithMode(ctx, 'icon_clipboard.svg', true).then((color: string) => { this.clipCardBgDark = color; });
   }
 
   aboutToAppear(): void {
     const ctx: Context = getContext(this) as Context;
-    const defaultBg: string = this.getDefaultCardBg();
-    this.scanCardBg = defaultBg;
-    this.photoCardBg = defaultBg;
-    this.manualCardBg = defaultBg;
-    this.batchCardBg = defaultBg;
-    this.clipCardBg = defaultBg;
-    AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_scan.svg').then((color: string) => { this.scanCardBg = color; });
-    AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_photo.svg').then((color: string) => { this.photoCardBg = color; });
-    AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_edit.svg').then((color: string) => { this.manualCardBg = color; });
-    AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_batch.svg').then((color: string) => { this.batchCardBg = color; });
-    AdaptiveColorHelper.cardBgFromIcon(ctx, 'icon_clipboard.svg').then((color: string) => { this.clipCardBg = color; });
+    this.loadAdaptiveCardBackgrounds(ctx);
   }
 
   private getEntryCardBg(iconRaw: string): string {
-    if (iconRaw === 'icon_scan.svg') return this.scanCardBg;
-    if (iconRaw === 'icon_photo.svg') return this.photoCardBg;
-    if (iconRaw === 'icon_edit.svg') return this.manualCardBg;
-    if (iconRaw === 'icon_batch.svg') return this.batchCardBg;
-    if (iconRaw === 'icon_clipboard.svg') return this.clipCardBg;
-    return this.getDefaultCardBg();
+    const darkMode: boolean = this.isDarkMode();
+    if (iconRaw === 'icon_scan.svg') return darkMode ? this.scanCardBgDark : this.scanCardBgLight;
+    if (iconRaw === 'icon_photo.svg') return darkMode ? this.photoCardBgDark : this.photoCardBgLight;
+    if (iconRaw === 'icon_edit.svg') return darkMode ? this.manualCardBgDark : this.manualCardBgLight;
+    if (iconRaw === 'icon_batch.svg') return darkMode ? this.batchCardBgDark : this.batchCardBgLight;
+    if (iconRaw === 'icon_clipboard.svg') return darkMode ? this.clipCardBgDark : this.clipCardBgLight;
+    return this.getDefaultCardBg(darkMode);
   }
 
   private getEntryCardTitleColor(iconRaw: string): string {

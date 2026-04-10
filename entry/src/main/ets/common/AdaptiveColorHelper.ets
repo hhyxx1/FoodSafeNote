@@ -16,13 +16,14 @@ interface HsvColor {
 export class AdaptiveColorHelper {
   private static cardCache: Map<string, string> = new Map<string, string>();
   private static accentCache: Map<string, string> = new Map<string, string>();
+  private static currentColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+
+  public static setCurrentColorMode(mode: number): void {
+    AdaptiveColorHelper.currentColorMode = mode;
+  }
 
   private static getCurrentColorMode(): number {
-    const mode = AppStorage.get('appColorMode');
-    if (typeof mode === 'number') {
-      return mode;
-    }
-    return ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+    return AdaptiveColorHelper.currentColorMode;
   }
 
   public static isDarkModeEnabled(): boolean {
@@ -244,9 +245,12 @@ export class AdaptiveColorHelper {
     }
   }
 
-  public static async cardBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
-    const darkMode: boolean = AdaptiveColorHelper.isDarkModeEnabled();
-    const cacheKey: string = iconRawfileName + (darkMode ? ':dark' : ':light');
+  private static buildModeCacheKey(iconRawfileName: string, darkMode: boolean): string {
+    return iconRawfileName + (darkMode ? ':dark' : ':light');
+  }
+
+  public static async cardBgFromIconWithMode(ctx: Context, iconRawfileName: string, darkMode: boolean): Promise<string> {
+    const cacheKey: string = AdaptiveColorHelper.buildModeCacheKey(iconRawfileName, darkMode);
     if (AdaptiveColorHelper.cardCache.has(cacheKey)) {
       return AdaptiveColorHelper.cardCache.get(cacheKey) as string;
     }
@@ -264,9 +268,16 @@ export class AdaptiveColorHelper {
     }
   }
 
-  public static async accentBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
-    const darkMode: boolean = AdaptiveColorHelper.isDarkModeEnabled();
-    const cacheKey: string = iconRawfileName + (darkMode ? ':dark' : ':light');
+  public static async cardBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
+    return AdaptiveColorHelper.cardBgFromIconWithMode(
+      ctx,
+      iconRawfileName,
+      AdaptiveColorHelper.isDarkModeEnabled()
+    );
+  }
+
+  public static async accentBgFromIconWithMode(ctx: Context, iconRawfileName: string, darkMode: boolean): Promise<string> {
+    const cacheKey: string = AdaptiveColorHelper.buildModeCacheKey(iconRawfileName, darkMode);
     if (AdaptiveColorHelper.accentCache.has(cacheKey)) {
       return AdaptiveColorHelper.accentCache.get(cacheKey) as string;
     }
@@ -282,5 +293,13 @@ export class AdaptiveColorHelper {
     } catch (e) {
       return darkMode ? '#2F4560' : '#E8F0FE';
     }
+  }
+
+  public static async accentBgFromIcon(ctx: Context, iconRawfileName: string): Promise<string> {
+    return AdaptiveColorHelper.accentBgFromIconWithMode(
+      ctx,
+      iconRawfileName,
+      AdaptiveColorHelper.isDarkModeEnabled()
+    );
   }
 }

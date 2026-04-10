@@ -641,7 +641,7 @@ struct CalorieInputPage {
         Button('返回')
           .height(40)
           .fontSize(14)
-          .fontColor('#007DFF')
+          .fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             router.back();
@@ -695,7 +695,7 @@ struct CalorieInputPage {
             if (this.autoFillCalories > 0) {
               Row({ space: 6 }) {
                 Text('✅').fontSize(14)
-                Text(this.calorieSource).fontSize(13).fontColor('#34C759')
+                Text(this.calorieSource).fontSize(13).fontColor($r('app.color.status_success'))
               }
             }
 
@@ -705,14 +705,14 @@ struct CalorieInputPage {
                 .fontSize(13)
                 .fontColor(this.calorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-                .backgroundColor(this.calorieUnit === 'kJ' ? '#007DFF' : $r('app.color.chip_background'))
+                .backgroundColor(this.calorieUnit === 'kJ' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieUnit = 'kJ'; })
               Text('千卡 kcal')
                 .fontSize(13)
                 .fontColor(this.calorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-                .backgroundColor(this.calorieUnit === 'kcal' ? '#007DFF' : $r('app.color.chip_background'))
+                .backgroundColor(this.calorieUnit === 'kcal' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieUnit = 'kcal'; })
             }
@@ -724,14 +724,14 @@ struct CalorieInputPage {
                 .fontSize(13)
                 .fontColor(this.calorieBasis === 'per100' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-                .backgroundColor(this.calorieBasis === 'per100' ? '#007DFF' : $r('app.color.chip_background'))
+                .backgroundColor(this.calorieBasis === 'per100' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieBasis = 'per100'; })
               Text('每份')
                 .fontSize(13)
                 .fontColor(this.calorieBasis === 'perServing' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-                .backgroundColor(this.calorieBasis === 'perServing' ? '#007DFF' : $r('app.color.chip_background'))
+                .backgroundColor(this.calorieBasis === 'perServing' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieBasis = 'perServing'; })
             }
@@ -749,7 +749,7 @@ struct CalorieInputPage {
 
             if (this.calorieUnit === 'kJ' && this.caloriesText.length > 0) {
               Text('≈ ' + this.getReferenceKcal() + ' kcal（仅换算一次）')
-                .fontSize(12).fontColor('#007DFF')
+                .fontSize(12).fontColor($r('app.color.accent_link'))
             }
 
             if (this.calorieBasis === 'per100') {
@@ -769,14 +769,14 @@ struct CalorieInputPage {
                       .fontSize(13)
                       .fontColor(this.per100Unit === 'g' ? Color.White : $r('app.color.text_secondary'))
                       .textAlign(TextAlign.Center).width(44).height(40)
-                      .backgroundColor(this.per100Unit === 'g' ? '#007DFF' : $r('app.color.chip_background'))
+                      .backgroundColor(this.per100Unit === 'g' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                       .borderRadius(8)
                       .onClick(() => { this.per100Unit = 'g'; })
                     Text('ml')
                       .fontSize(13)
                       .fontColor(this.per100Unit === 'ml' ? Color.White : $r('app.color.text_secondary'))
                       .textAlign(TextAlign.Center).width(44).height(40)
-                      .backgroundColor(this.per100Unit === 'ml' ? '#007DFF' : $r('app.color.chip_background'))
+                      .backgroundColor(this.per100Unit === 'ml' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                       .borderRadius(8)
                       .onClick(() => { this.per100Unit = 'ml'; })
                   }
@@ -806,14 +806,14 @@ struct CalorieInputPage {
                       .fontSize(13)
                       .fontColor(this.servingUnit === 'g' ? Color.White : $r('app.color.text_secondary'))
                       .textAlign(TextAlign.Center).width(44).height(40)
-                      .backgroundColor(this.servingUnit === 'g' ? '#007DFF' : $r('app.color.chip_background'))
+                      .backgroundColor(this.servingUnit === 'g' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                       .borderRadius(8)
                       .onClick(() => { this.servingUnit = 'g'; })
                     Text('ml')
                       .fontSize(13)
                       .fontColor(this.servingUnit === 'ml' ? Color.White : $r('app.color.text_secondary'))
                       .textAlign(TextAlign.Center).width(44).height(40)
-                      .backgroundColor(this.servingUnit === 'ml' ? '#007DFF' : $r('app.color.chip_background'))
+                      .backgroundColor(this.servingUnit === 'ml' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                       .borderRadius(8)
                       .onClick(() => { this.servingUnit = 'ml'; })
                   }
@@ -823,18 +823,18 @@ struct CalorieInputPage {
 
             if (this.getActualCalories() > 0) {
               Text('本次入库热量 ≈ ' + this.getActualCalories() + ' kcal')
-                .fontSize(13).fontColor('#34C759')
+                .fontSize(13).fontColor($r('app.color.status_success'))
             }
 
             Button('实时拍照识别 (OCR)')
               .width('100%').height(40).fontSize(14)
-              .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
               .onClick(() => { this.startOcrRecognition(); })
 
             if (this.showCollaborationButton) {
               Button('手机协同传图识别')
                 .width('100%').height(40).fontSize(14)
-                .fontColor('#007DFF').backgroundColor('#E8F0FE').borderRadius(8)
+                .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
                 .bindMenu(this.collaborationMenu)
             }
 
@@ -844,11 +844,11 @@ struct CalorieInputPage {
                   .fontSize(14)
                 Text('未录入热量值，建议补录用于健康统计')
                   .fontSize(13)
-                  .fontColor('#FF9500')
+                  .fontColor($r('app.color.chip_warning_text'))
               }
               .width('100%')
               .padding({ top: 4, bottom: 4, left: 8, right: 8 })
-              .backgroundColor('#FFF3E0')
+              .backgroundColor($r('app.color.chip_warning_bg'))
               .borderRadius(8)
             }
 
@@ -856,11 +856,11 @@ struct CalorieInputPage {
               Row({ space: 6 }) {
                 Text('⚠️').fontSize(14)
                 Text('严格模式：未填写“每份重量/体积”时，不会沉淀标准化值（仅保存原始标注）')
-                  .fontSize(12).fontColor('#FF9500')
+                  .fontSize(12).fontColor($r('app.color.chip_warning_text'))
               }
               .width('100%')
               .padding({ top: 4, bottom: 4, left: 8, right: 8 })
-              .backgroundColor('#FFF3E0')
+              .backgroundColor($r('app.color.chip_warning_bg'))
               .borderRadius(8)
             }
           }
@@ -889,7 +889,7 @@ struct CalorieInputPage {
           .width('100%')
           .padding(16)
           .margin({ left: 16, right: 16 })
-          .backgroundColor('#E8F5E9')
+          .backgroundColor($r('app.color.chip_success_bg'))
           .borderRadius(16)
           .alignItems(HorizontalAlign.Start)
 
@@ -898,8 +898,8 @@ struct CalorieInputPage {
             .width('100%')
             .height(48)
             .fontSize(16)
-            .fontColor(Color.White)
-            .backgroundColor('#007DFF')
+            .fontColor($r('app.color.button_primary_text'))
+            .backgroundColor($r('app.color.button_primary_bg'))
             .borderRadius(12)
             .margin({ left: 16, right: 16, top: 8, bottom: 32 })
             .onClick(() => {
@@ -915,7 +915,7 @@ struct CalorieInputPage {
           Column()
             .width('100%')
             .height('100%')
-            .backgroundColor('#80000000')
+            .backgroundColor($r('app.color.overlay_background'))
             .onClick(() => {
               this.showOcrCheckDialog = false;
             })
@@ -957,14 +957,14 @@ struct CalorieInputPage {
               .fontSize(13)
               .fontColor(this.ocrDialogUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.ocrDialogUnit === 'kJ' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.ocrDialogUnit === 'kJ' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.ocrDialogUnit = 'kJ'; })
             Text('kcal')
               .fontSize(13)
               .fontColor(this.ocrDialogUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.ocrDialogUnit === 'kcal' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.ocrDialogUnit === 'kcal' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.ocrDialogUnit = 'kcal'; })
           }
@@ -975,14 +975,14 @@ struct CalorieInputPage {
               .fontSize(13)
               .fontColor(this.ocrDialogBasis === 'per100' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.ocrDialogBasis === 'per100' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.ocrDialogBasis === 'per100' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.ocrDialogBasis = 'per100'; })
             Text('每份')
               .fontSize(13)
               .fontColor(this.ocrDialogBasis === 'perServing' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.ocrDialogBasis === 'perServing' ? '#007DFF' : $r('app.color.chip_background'))
+              .backgroundColor(this.ocrDialogBasis === 'perServing' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.ocrDialogBasis = 'perServing'; })
           }
@@ -996,14 +996,14 @@ struct CalorieInputPage {
                   .fontSize(13)
                   .fontColor(this.ocrDialogPer100Unit === 'g' ? Color.White : $r('app.color.text_secondary'))
                   .textAlign(TextAlign.Center).width(42).height(40)
-                  .backgroundColor(this.ocrDialogPer100Unit === 'g' ? '#007DFF' : $r('app.color.chip_background'))
+                  .backgroundColor(this.ocrDialogPer100Unit === 'g' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                   .borderRadius(8)
                   .onClick(() => { this.ocrDialogPer100Unit = 'g'; })
                 Text('ml')
                   .fontSize(13)
                   .fontColor(this.ocrDialogPer100Unit === 'ml' ? Color.White : $r('app.color.text_secondary'))
                   .textAlign(TextAlign.Center).width(42).height(40)
-                  .backgroundColor(this.ocrDialogPer100Unit === 'ml' ? '#007DFF' : $r('app.color.chip_background'))
+                  .backgroundColor(this.ocrDialogPer100Unit === 'ml' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                   .borderRadius(8)
                   .onClick(() => { this.ocrDialogPer100Unit = 'ml'; })
               }
@@ -1022,14 +1022,14 @@ struct CalorieInputPage {
                   .fontSize(13)
                   .fontColor(this.ocrDialogServingUnit === 'g' ? Color.White : $r('app.color.text_secondary'))
                   .textAlign(TextAlign.Center).width(42).height(40)
-                  .backgroundColor(this.ocrDialogServingUnit === 'g' ? '#007DFF' : $r('app.color.chip_background'))
+                  .backgroundColor(this.ocrDialogServingUnit === 'g' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                   .borderRadius(8)
                   .onClick(() => { this.ocrDialogServingUnit = 'g'; })
                 Text('ml')
                   .fontSize(13)
                   .fontColor(this.ocrDialogServingUnit === 'ml' ? Color.White : $r('app.color.text_secondary'))
                   .textAlign(TextAlign.Center).width(42).height(40)
-                  .backgroundColor(this.ocrDialogServingUnit === 'ml' ? '#007DFF' : $r('app.color.chip_background'))
+                  .backgroundColor(this.ocrDialogServingUnit === 'ml' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                   .borderRadius(8)
                   .onClick(() => { this.ocrDialogServingUnit = 'ml'; })
               }
@@ -1052,8 +1052,8 @@ struct CalorieInputPage {
               .layoutWeight(1)
               .height(40)
               .fontSize(14)
-              .fontColor(Color.White)
-              .backgroundColor('#007DFF')
+              .fontColor($r('app.color.button_primary_text'))
+              .backgroundColor($r('app.color.button_primary_bg'))
               .borderRadius(8)
               .onClick(() => {
                 this.confirmOcrValue();

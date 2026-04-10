@@ -86,8 +86,8 @@ struct FoodDetailPage {
       title: '确认删除',
       message: '确定要删除 "' + (this.foodItem !== null ? this.foodItem.name : '') + '" 吗？此操作不可恢复。',
       buttons: [
-        { text: '取消', color: '#999999' },
-        { text: '删除', color: '#FF3B30' }
+        { text: '取消', color: '#6B7280' },
+        { text: '删除', color: '#B42318' }
       ]
     }).then((result: promptAction.ShowDialogSuccessResponse) => {
       if (result.index === 1) {
@@ -109,7 +109,7 @@ struct FoodDetailPage {
       // 导航栏
       Row() {
         Button('返回')
-          .height(40).fontSize(14).fontColor('#007DFF')
+          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
           .backgroundColor(Color.Transparent)
           .onClick(() => { router.back(); })
         Text('食品详情')
@@ -117,7 +117,7 @@ struct FoodDetailPage {
           .layoutWeight(1).textAlign(TextAlign.Center)
         if (this.foodItem !== null && this.foodItem.status === 0) {
           Button('编辑')
-            .height(40).fontSize(14).fontColor('#007DFF')
+            .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
             .backgroundColor(Color.Transparent)
             .onClick(() => { this.handleEdit(); })
         } else {
@@ -152,7 +152,7 @@ struct FoodDetailPage {
             // 删除
             Button('删除此食品')
               .width('100%').height(44).fontSize(14)
-              .fontColor('#FF3B30').backgroundColor('#FFEDE9').borderRadius(12)
+              .fontColor($r('app.color.button_danger_text')).backgroundColor($r('app.color.button_danger_bg')).borderRadius(12)
               .margin({ left: 16, right: 16, top: 16, bottom: 32 })
               .onClick(() => { this.handleDelete(); })
           }
@@ -200,7 +200,7 @@ struct FoodDetailPage {
           }
         }
 
-        Divider().color('#F0F0F0')
+        Divider().color($r('app.color.divider'))
 
         if (this.foodItem.barcode.length > 0) {
           this.buildInfoRow('条码', this.foodItem.barcode)
@@ -215,12 +215,12 @@ struct FoodDetailPage {
           this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : '未知')
 
         if (this.foodItem.status === 1) {
-          Divider().color('#F0F0F0')
+          Divider().color($r('app.color.divider'))
           this.buildInfoRow('食用者', this.foodItem.consumedBy)
           this.buildInfoRow('食用时间', formatTimestamp(this.foodItem.consumeTime))
         }
         if (this.foodItem.status === 2) {
-          Divider().color('#F0F0F0')
+          Divider().color($r('app.color.divider'))
           this.buildInfoRow('丢弃原因', this.foodItem.wasteReason)
           this.buildInfoRow('丢弃时间', formatTimestamp(this.foodItem.consumeTime))
         }
@@ -252,7 +252,7 @@ struct FoodDetailPage {
       if (this.foodItem !== null && !this.foodItem.isExpired()) {
         Button('🍽️ 吃掉')
           .layoutWeight(1).height(48).fontSize(15)
-          .fontColor(Color.White).backgroundColor('#34C759').borderRadius(12)
+          .fontColor($r('app.color.button_success_text')).backgroundColor($r('app.color.button_success_bg')).borderRadius(12)
           .onClick(() => {
             this.showEatPanel = !this.showEatPanel;
             this.showWastePanel = false;
@@ -264,7 +264,7 @@ struct FoodDetailPage {
       }
       Button('🗑️ 扔掉')
         .layoutWeight(1).height(48).fontSize(15)
-        .fontColor(Color.White).backgroundColor('#FF6B00').borderRadius(12)
+        .fontColor($r('app.color.button_warning_text')).backgroundColor($r('app.color.button_warning_bg')).borderRadius(12)
         .onClick(() => {
           this.showWastePanel = !this.showWastePanel;
           this.showEatPanel = false;
@@ -287,7 +287,7 @@ struct FoodDetailPage {
               Text(member.name.substring(0, 1))
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(Color.White)
                 .textAlign(TextAlign.Center).width(48).height(48).borderRadius(24)
-                .backgroundColor('#007DFF')
+                .backgroundColor($r('app.color.button_primary_bg'))
               Text(member.name).fontSize(12).fontColor($r('app.color.text_primary'))
             }
             .alignItems(HorizontalAlign.Center)
@@ -311,11 +311,11 @@ struct FoodDetailPage {
         ForEach(WASTE_REASONS, (reason: string) => {
           Text(reason)
             .fontSize(14)
-            .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : '#FF6B00')
+            .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : $r('app.color.chip_warning_text'))
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .margin({ right: 8, bottom: 8 })
             .borderRadius(8)
-            .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : '#FFF3E0')
+            .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : $r('app.color.chip_warning_bg'))
             .opacity(this.isWasteReasonDisabled(reason) ? 0.65 : 1)
             .onClick(() => {
               if (!this.isWasteReasonDisabled(reason)) {
