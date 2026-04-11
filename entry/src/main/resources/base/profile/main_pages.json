@@ -11,6 +11,7 @@
     "pages/HealthReportPage",
     "pages/DataBackupPage",
     "pages/OcrRecordPage",
+    "pages/PrivacyPolicyPage",
     "pages/WatchFoodDetailPage",
     "pages/TvFoodDetailPage",
     "pages/ClipboardParsePage",

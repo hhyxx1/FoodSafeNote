@@ -10,7 +10,7 @@ import { TvMineView } from '../views/TvMineView';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { common, ConfigurationConstant } from '@kit.AbilityKit';
+import { common, ConfigurationConstant, Want } from '@kit.AbilityKit';
 import { router } from '@kit.ArkUI';
 import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 
@@ -20,6 +20,7 @@ struct Index {
   @State currentIndex: number = 0;
   @State refreshKey: number = 0;
   @State @Watch('onWatchListOpenChanged') watchListOpen: boolean = false;
+  @State showPrivacyConsentDialog: boolean = false;
   private watchTouchStartX: number = 0;
   private watchTouchStartY: number = 0;
   @StorageLink('appColorMode') appColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
@@ -27,6 +28,9 @@ struct Index {
   private currentDeviceType: string = deviceInfo.deviceType;
   private lastWatchListClosedAt: number = 0;
   private prevWatchListOpen: boolean = false;
+  private hasInitializedData: boolean = false;
+  private readonly privacyPolicyVersion: string = '2026-04-11';
+  private readonly privacyPolicyUrl: string = 'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1881994806624794944';
   @State inventoryTabBgLight: string = '#E8F0FE';
   @State healthTabBgLight: string = '#FDECEC';
   @State dictTabBgLight: string = '#EEF2F5';
@@ -91,7 +95,49 @@ struct Index {
   aboutToAppear(): void {
     const ctx: Context = getContext(this) as Context;
     this.loadAdaptiveTabBackgrounds(ctx);
+    this.initPrivacyConsentState();
+    this.tryInitDataAfterConsent(ctx);
+  }
 
+  private initPrivacyConsentState(): void {
+    PersistentStorage.persistProp('privacyConsentVersion', '');
+    const savedVersion: string | undefined = AppStorage.get<string>('privacyConsentVersion');
+    this.showPrivacyConsentDialog = savedVersion !== this.privacyPolicyVersion;
+  }
+
+  private hasPrivacyConsent(): boolean {
+    const savedVersion: string | undefined = AppStorage.get<string>('privacyConsentVersion');
+    return savedVersion === this.privacyPolicyVersion;
+  }
+
+  private agreePrivacyPolicy(): void {
+    AppStorage.setOrCreate<string>('privacyConsentVersion', this.privacyPolicyVersion);
+    this.showPrivacyConsentDialog = false;
+    const ctx: Context = getContext(this) as Context;
+    this.tryInitDataAfterConsent(ctx);
+  }
+
+  private rejectPrivacyPolicy(): void {
+    this.terminateApp();
+  }
+
+  private openPrivacyPolicyPage(): void {
+    const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+    const want: Want = {
+      action: 'ohos.want.action.viewData',
+      uri: this.privacyPolicyUrl
+    };
+    ctx.startAbility(want).catch(() => {
+      // 兜底：若系统浏览器拉起失败，仍可在应用内加载同一份在线隐私协议
+      router.pushUrl({ url: 'pages/PrivacyPolicyPage', params: { policyUrl: this.privacyPolicyUrl } });
+    });
+  }
+
+  private tryInitDataAfterConsent(ctx: Context): void {
+    if (!this.hasPrivacyConsent() || this.hasInitializedData) {
+      return;
+    }
+    this.hasInitializedData = true;
     DatabaseHelper.getInstance().initDB(ctx).then(() => {
       this.onDBReady(ctx);
     }).catch(() => {
@@ -112,6 +158,9 @@ struct Index {
   }
 
   onPageShow(): void {
+    if (!this.hasPrivacyConsent()) {
+      return;
+    }
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.refreshKey = this.refreshKey + 1;
     }
@@ -125,6 +174,9 @@ struct Index {
   }
 
   onBackPress(): boolean {
+    if (this.showPrivacyConsentDialog) {
+      return true;
+    }
     if (this.currentDeviceType === 'wearable' && this.currentIndex === 0) {
       if (this.watchListOpen) {
         this.watchListOpen = false;
@@ -138,7 +190,7 @@ struct Index {
     return false;
   }
 
-  private exitWatchApp(): void {
+  private terminateApp(): void {
     try {
       const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
       ctx.terminateSelf();
@@ -148,14 +200,22 @@ struct Index {
   }
 
   build() {
-    if (this.currentDeviceType === 'wearable') {
-      this.buildWatchLayout()
-    } else if (this.currentDeviceType === 'tv') {
-      this.buildTvLayout()
-    } else {
-      // phone / tablet / 2in1 均使用全功能布局
-      this.buildPhoneLayout()
+    Stack() {
+      if (this.currentDeviceType === 'wearable') {
+        this.buildWatchLayout()
+      } else if (this.currentDeviceType === 'tv') {
+        this.buildTvLayout()
+      } else {
+        // phone / tablet / 2in1 均使用全功能布局
+        this.buildPhoneLayout()
+      }
+
+      if (this.showPrivacyConsentDialog) {
+        this.buildPrivacyConsentDialog()
+      }
     }
+    .width('100%')
+    .height('100%')
   }
 
   // 手机/平板布局
@@ -203,8 +263,8 @@ struct Index {
         this.currentIndex = index;
       })
 
-      // 指示点 - 仅总览时显示，列表展开时隐藏
-      if (!this.watchListOpen) {
+      // 指示点 - 仅总览时显示，列表展开或隐私弹窗时隐藏
+      if (!this.watchListOpen && !this.showPrivacyConsentDialog) {
         Row({ space: 6 }) {
           Circle().width(5).height(5)
             .fill(this.currentIndex === 0 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
@@ -218,6 +278,7 @@ struct Index {
     }
     .width('100%')
     .height('100%')
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
     .backgroundColor($r('app.color.page_background'))
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
@@ -231,11 +292,150 @@ struct Index {
         const isExitSwipe: boolean = dx > 70 && Math.abs(dx) > Math.abs(dy);
         const justClosedList: boolean = Date.now() - this.lastWatchListClosedAt < 450;
         // 仅在库存总览页允许侧滑退出；列表刚收起时忽略同次手势，避免连退
-        if (isExitSwipe && this.currentIndex === 0 && !this.watchListOpen && !justClosedList) {
-          this.exitWatchApp();
+        if (isExitSwipe && this.currentIndex === 0 && !this.watchListOpen && !justClosedList && !this.showPrivacyConsentDialog) {
+          this.terminateApp();
         }
       }
     })
+  }
+
+  @Builder
+  buildPrivacyConsentDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.overlay_background'))
+
+      if (this.currentDeviceType === 'wearable') {
+        Column({ space: 6 }) {
+          Text($r('app.string.privacy_dialog_title'))
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(2)
+            .textAlign(TextAlign.Center)
+            .width('100%')
+
+          Scroll() {
+            Column({ space: 5 }) {
+              Text($r('app.string.privacy_dialog_content_watch'))
+                .fontSize(10)
+                .fontColor($r('app.color.text_secondary'))
+                .lineHeight(14)
+                .textAlign(TextAlign.Center)
+                .width('100%')
+
+              Text($r('app.string.privacy_dialog_view_full'))
+                .fontSize(11)
+                .fontColor($r('app.color.accent_link'))
+                .textAlign(TextAlign.Center)
+                .width('100%')
+                .onClick(() => {
+                  this.openPrivacyPolicyPage();
+                })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Center)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+
+          Row({ space: 8 }) {
+            Button($r('app.string.privacy_dialog_reject_watch'))
+              .layoutWeight(1)
+              .height(34)
+              .fontSize(10)
+              .fontColor($r('app.color.button_danger_text'))
+              .backgroundColor($r('app.color.button_danger_bg'))
+              .borderRadius(18)
+              .onClick(() => {
+                this.rejectPrivacyPolicy();
+              })
+
+            Button($r('app.string.privacy_dialog_accept_watch'))
+              .layoutWeight(1)
+              .height(34)
+              .fontSize(10)
+              .fontColor($r('app.color.button_secondary_text'))
+              .backgroundColor($r('app.color.button_secondary_bg'))
+              .borderRadius(18)
+              .onClick(() => {
+                this.agreePrivacyPolicy();
+              })
+          }
+          .width('100%')
+        }
+        .height('60%')
+        .width('66%')
+        .padding({ left: 10, right: 10, top: 10, bottom: 10 })
+        .backgroundColor($r('app.color.card_background'))
+        .borderRadius(16)
+        .justifyContent(FlexAlign.Start)
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        Column({ space: 12 }) {
+          Text($r('app.string.privacy_dialog_title'))
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+            .width('100%')
+
+          Text($r('app.string.privacy_dialog_content'))
+            .fontSize(13)
+            .fontColor($r('app.color.text_secondary'))
+            .lineHeight(20)
+            .width('100%')
+
+          Text($r('app.string.privacy_dialog_view_full'))
+            .fontSize(13)
+            .fontColor($r('app.color.accent_link'))
+            .width('100%')
+            .onClick(() => {
+              this.openPrivacyPolicyPage();
+            })
+
+          Text($r('app.string.privacy_dialog_agreement_tip'))
+            .fontSize(12)
+            .fontColor($r('app.color.text_hint'))
+            .width('100%')
+
+          Row({ space: 12 }) {
+            Button($r('app.string.privacy_dialog_reject'))
+              .layoutWeight(1)
+              .height(44)
+              .fontSize(14)
+              .fontColor($r('app.color.button_danger_text'))
+              .backgroundColor($r('app.color.button_danger_bg'))
+              .borderRadius(10)
+              .onClick(() => {
+                this.rejectPrivacyPolicy();
+              })
+
+            Button($r('app.string.privacy_dialog_accept'))
+              .layoutWeight(1)
+              .height(44)
+              .fontSize(14)
+              .fontColor($r('app.color.button_primary_text'))
+              .backgroundColor($r('app.color.button_primary_bg'))
+              .borderRadius(10)
+              .onClick(() => {
+                this.agreePrivacyPolicy();
+              })
+          }
+          .width('100%')
+        }
+        .width('90%')
+        .constraintSize({ maxWidth: 560 })
+        .padding(16)
+        .backgroundColor($r('app.color.card_background'))
+        .borderRadius(16)
+        .alignItems(HorizontalAlign.Start)
+      }
+    }
+    .width('100%')
+    .height('100%')
   }
 
   // 智慧屏布局 - 大Tab

@@ -111,6 +111,46 @@
     {
       "name": "status_wasted",
       "value": "已丢弃"
+    },
+    {
+      "name": "privacy_dialog_title",
+      "value": "隐私政策与个人信息保护"
+    },
+    {
+      "name": "privacy_dialog_content",
+      "value": "欢迎使用食安记。为向你提供食品管理、扫码识别和多设备同步等服务，我们会在你主动操作时处理必要信息。请你在使用前认真阅读《隐私政策》。"
+    },
+    {
+      "name": "privacy_dialog_view_full",
+      "value": "查看《隐私政策》全文"
+    },
+    {
+      "name": "privacy_dialog_agreement_tip",
+      "value": "点击“同意并继续”表示你已阅读并同意隐私政策。"
+    },
+    {
+      "name": "privacy_dialog_reject",
+      "value": "不同意并退出"
+    },
+    {
+      "name": "privacy_dialog_accept",
+      "value": "同意并继续"
+    },
+    {
+      "name": "privacy_dialog_content_watch",
+      "value": "为提供食品管理、扫码识别和多设备同步服务，我们会处理必要信息。请先阅读《隐私政策》。"
+    },
+    {
+      "name": "privacy_dialog_accept_watch",
+      "value": "同意"
+    },
+    {
+      "name": "privacy_dialog_reject_watch",
+      "value": "不同意"
+    },
+    {
+      "name": "privacy_policy_page_title",
+      "value": "隐私政策"
     }
   ]
 }
