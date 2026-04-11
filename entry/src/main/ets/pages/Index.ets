@@ -19,12 +19,14 @@ import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
 struct Index {
   @State currentIndex: number = 0;
   @State refreshKey: number = 0;
-  @State watchListOpen: boolean = false;
-  @State watchTouchStartX: number = 0;
-  @State watchTouchStartY: number = 0;
+  @State @Watch('onWatchListOpenChanged') watchListOpen: boolean = false;
+  private watchTouchStartX: number = 0;
+  private watchTouchStartY: number = 0;
   @StorageLink('appColorMode') appColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
   private tabsController: TabsController = new TabsController();
   private currentDeviceType: string = deviceInfo.deviceType;
+  private lastWatchListClosedAt: number = 0;
+  private prevWatchListOpen: boolean = false;
   @State inventoryTabBgLight: string = '#E8F0FE';
   @State healthTabBgLight: string = '#FDECEC';
   @State dictTabBgLight: string = '#EEF2F5';
@@ -113,6 +115,27 @@ struct Index {
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.refreshKey = this.refreshKey + 1;
     }
+  }
+
+  private onWatchListOpenChanged(): void {
+    if (this.prevWatchListOpen && !this.watchListOpen) {
+      this.lastWatchListClosedAt = Date.now();
+    }
+    this.prevWatchListOpen = this.watchListOpen;
+  }
+
+  onBackPress(): boolean {
+    if (this.currentDeviceType === 'wearable' && this.currentIndex === 0) {
+      if (this.watchListOpen) {
+        this.watchListOpen = false;
+        return true;
+      }
+      // 防止同一次侧滑手势导致“返回总览后又退出应用”的连触发
+      if (Date.now() - this.lastWatchListClosedAt < 450) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private exitWatchApp(): void {
@@ -205,8 +228,10 @@ struct Index {
       if (event.type === TouchType.Up) {
         const dx: number = event.changedTouches[0].x - this.watchTouchStartX;
         const dy: number = event.changedTouches[0].y - this.watchTouchStartY;
-        // 手表首页右滑退出应用（仅在库存总览页生效）
-        if (dx > 70 && Math.abs(dx) > Math.abs(dy) && this.currentIndex === 0 && !this.watchListOpen) {
+        const isExitSwipe: boolean = dx > 70 && Math.abs(dx) > Math.abs(dy);
+        const justClosedList: boolean = Date.now() - this.lastWatchListClosedAt < 450;
+        // 仅在库存总览页允许侧滑退出；列表刚收起时忽略同次手势，避免连退
+        if (isExitSwipe && this.currentIndex === 0 && !this.watchListOpen && !justClosedList) {
           this.exitWatchApp();
         }
       }

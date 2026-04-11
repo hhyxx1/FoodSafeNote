@@ -15,8 +15,6 @@ export struct WatchInventoryView {
   @State normalCount: number = 0;
   @State nearExpiryCount: number = 0;
   @State expiredCount: number = 0;
-  @State touchStartX: number = 0;
-  @State touchStartY: number = 0;
 
   aboutToAppear(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
@@ -68,15 +66,6 @@ export struct WatchInventoryView {
       return this.getString($r('app.string.status_near_expiry').id, 'Near expiry');
     }
     return this.getString($r('app.string.status_normal').id, 'Normal');
-  }
-
-  private exitWatchApp(): void {
-    try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-      ctx.terminateSelf();
-    } catch (e) {
-      // ignore
-    }
   }
 
   build() {
@@ -192,21 +181,6 @@ export struct WatchInventoryView {
       .width('100%')
       .height('100%')
       .padding({ bottom: 12 })
-      .onTouch((event: TouchEvent) => {
-        if (event.type === TouchType.Down) {
-          this.touchStartX = event.touches[0].x;
-          this.touchStartY = event.touches[0].y;
-          return;
-        }
-        if (event.type === TouchType.Up) {
-          const dx: number = event.changedTouches[0].x - this.touchStartX;
-          const dy: number = event.changedTouches[0].y - this.touchStartY;
-          // 列表页右滑直接退出应用
-          if (dx > 70 && Math.abs(dx) > Math.abs(dy)) {
-            this.exitWatchApp();
-          }
-        }
-      })
     }
   }
 }

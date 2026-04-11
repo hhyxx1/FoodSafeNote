@@ -11,6 +11,8 @@ interface WatchFoodParams {
 @Component
 struct WatchFoodDetailPage {
   @State foodItem: FoodItem | null = null;
+  @State touchStartX: number = 0;
+  @State touchStartY: number = 0;
   private foodId: number = 0;
 
   aboutToAppear(): void {
@@ -115,5 +117,19 @@ struct WatchFoodDetailPage {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .backgroundColor($r('app.color.page_background'))
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.touchStartX = event.touches[0].x;
+        this.touchStartY = event.touches[0].y;
+        return;
+      }
+      if (event.type === TouchType.Up) {
+        const dx: number = event.changedTouches[0].x - this.touchStartX;
+        const dy: number = event.changedTouches[0].y - this.touchStartY;
+        if (dx > 70 && Math.abs(dx) > Math.abs(dy)) {
+          router.back();
+        }
+      }
+    })
   }
 }
