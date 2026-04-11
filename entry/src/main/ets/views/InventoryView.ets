@@ -1,4 +1,5 @@
 import { router, promptAction } from '@kit.ArkUI';
+import { deviceInfo } from '@kit.BasicServicesKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem, FamilyMember } from '../model/DataModels';
 import { EXPIRED_WASTE_REASON, getStorageTypeName, WASTE_REASONS } from '../common/Constants';
@@ -26,6 +27,23 @@ export struct InventoryView {
   @State normalCount: number = 0;
   @State nearExpiryCount: number = 0;
   @State expiredCount: number = 0;
+  private currentDeviceType: string = deviceInfo.deviceType;
+
+  private isDesktopLikeDevice(): boolean {
+    return this.currentDeviceType === '2in1' || this.currentDeviceType === 'tablet';
+  }
+
+  private getFilterChipRowSpace(): number {
+    return this.isDesktopLikeDevice() ? 12 : 8;
+  }
+
+  private getFilterChipHorizontalPadding(): number {
+    return this.isDesktopLikeDevice() ? 12 : 10;
+  }
+
+  private getFilterChipMinHeight(): number {
+    return this.isDesktopLikeDevice() ? 58 : 54;
+  }
 
   aboutToAppear(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
@@ -155,7 +173,7 @@ export struct InventoryView {
         .padding({ left: 16, right: 16, top: 12, bottom: 8 })
 
         // 筛选chip栏 - 直接引用@State计数变量，不通过builder参数传递
-        Row({ space: 8 }) {
+        Row({ space: this.getFilterChipRowSpace() }) {
           // 全部
           Row({ space: 4 }) {
             Circle().width(8).height(8)
@@ -163,7 +181,8 @@ export struct InventoryView {
             Text('全部 ' + this.foodItems.length)
               .fontSize(12).fontColor(this.filterType === 'all' ? '#007DFF' : $r('app.color.text_secondary'))
           }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
+          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'all' ? $r('app.color.card_background') : $r('app.color.chip_background'))
           .hoverEffect(HoverEffect.Highlight)
@@ -176,7 +195,8 @@ export struct InventoryView {
             Text('正常 ' + this.normalCount)
               .fontSize(12).fontColor(this.filterType === 'normal' ? '#34C759' : $r('app.color.text_secondary'))
           }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
+          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'normal' ? $r('app.color.card_background') : $r('app.color.chip_background'))
           .hoverEffect(HoverEffect.Highlight)
@@ -189,7 +209,8 @@ export struct InventoryView {
             Text('临期 ' + this.nearExpiryCount)
               .fontSize(12).fontColor(this.filterType === 'nearExpiry' ? '#FF9500' : $r('app.color.text_secondary'))
           }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
+          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'nearExpiry' ? $r('app.color.card_background') : $r('app.color.chip_background'))
           .hoverEffect(HoverEffect.Highlight)
@@ -202,7 +223,8 @@ export struct InventoryView {
             Text('过期 ' + this.expiredCount)
               .fontSize(12).fontColor(this.filterType === 'expired' ? '#FF3B30' : $r('app.color.text_secondary'))
           }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
+          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
           .borderRadius(16)
           .backgroundColor(this.filterType === 'expired' ? $r('app.color.card_background') : $r('app.color.chip_background'))
           .hoverEffect(HoverEffect.Highlight)
