@@ -241,6 +241,8 @@ struct AddFoodPage {
       if (this.isEditMode) {
         food.id = this.editFoodId;
         await DatabaseHelper.getInstance().updateFoodItem(food);
+        AppStorage.setOrCreate<number>('foodDetailRefreshFoodId', this.editFoodId);
+        AppStorage.setOrCreate<number>('foodDetailRefreshVersion', Date.now());
         promptAction.showToast({ message: '修改成功', duration: 1500 });
       } else {
         await DatabaseHelper.getInstance().insertFoodItem(food);

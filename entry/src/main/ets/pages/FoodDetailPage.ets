@@ -15,6 +15,7 @@ interface EditFoodParams {
 @Entry
 @Component
 struct FoodDetailPage {
+  @StorageLink('foodDetailRefreshVersion') @Watch('onFoodDetailRefreshVersionChanged') foodDetailRefreshVersion: number = 0;
   @State foodItem: FoodItem | null = null;
   @State isLoading: boolean = true;
   @State showEatPanel: boolean = false;
@@ -32,6 +33,13 @@ struct FoodDetailPage {
 
   onPageShow(): void {
     if (this.foodId > 0) {
+      this.loadData();
+    }
+  }
+
+  private onFoodDetailRefreshVersionChanged(): void {
+    const refreshedFoodId: number | undefined = AppStorage.get<number>('foodDetailRefreshFoodId');
+    if (this.foodId > 0 && refreshedFoodId !== undefined && refreshedFoodId === this.foodId) {
       this.loadData();
     }
   }
