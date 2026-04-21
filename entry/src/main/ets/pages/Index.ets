@@ -29,6 +29,7 @@ struct Index {
   private lastWatchListClosedAt: number = 0;
   private prevWatchListOpen: boolean = false;
   private hasInitializedData: boolean = false;
+  private readonly watchPrivacyConsentKey: string = 'watchPrivacyConsentVersion';
   private readonly privacyPolicyVersion: string = '2026-04-11';
   private readonly privacyPolicyUrl: string = 'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1881994806624794944';
   @State inventoryTabBgLight: string = '#E8F0FE';
@@ -92,6 +93,10 @@ struct Index {
     return this.getDefaultTabIconBg(iconRaw, darkMode);
   }
 
+  private isWearableDevice(): boolean {
+    return this.currentDeviceType === 'wearable';
+  }
+
   aboutToAppear(): void {
     const ctx: Context = getContext(this) as Context;
     this.loadAdaptiveTabBackgrounds(ctx);
@@ -100,18 +105,27 @@ struct Index {
   }
 
   private initPrivacyConsentState(): void {
-    PersistentStorage.persistProp('privacyConsentVersion', '');
-    const savedVersion: string | undefined = AppStorage.get<string>('privacyConsentVersion');
+    if (!this.isWearableDevice()) {
+      this.showPrivacyConsentDialog = false;
+      return;
+    }
+    PersistentStorage.persistProp(this.watchPrivacyConsentKey, '');
+    const savedVersion: string | undefined = AppStorage.get<string>(this.watchPrivacyConsentKey);
     this.showPrivacyConsentDialog = savedVersion !== this.privacyPolicyVersion;
   }
 
   private hasPrivacyConsent(): boolean {
-    const savedVersion: string | undefined = AppStorage.get<string>('privacyConsentVersion');
+    if (!this.isWearableDevice()) {
+      return true;
+    }
+    const savedVersion: string | undefined = AppStorage.get<string>(this.watchPrivacyConsentKey);
     return savedVersion === this.privacyPolicyVersion;
   }
 
   private agreePrivacyPolicy(): void {
-    AppStorage.setOrCreate<string>('privacyConsentVersion', this.privacyPolicyVersion);
+    if (this.isWearableDevice()) {
+      AppStorage.setOrCreate<string>(this.watchPrivacyConsentKey, this.privacyPolicyVersion);
+    }
     this.showPrivacyConsentDialog = false;
     const ctx: Context = getContext(this) as Context;
     this.tryInitDataAfterConsent(ctx);
