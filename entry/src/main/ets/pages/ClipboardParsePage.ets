@@ -8,6 +8,8 @@ interface AddFoodParams {
   spec: string;
   calories: number;
   fromBarcodeScan: boolean;
+  fromClipboardParse?: boolean;
+  clipboardSourceIndex?: number;
 }
 
 // 解析出的食品条目
@@ -28,6 +30,31 @@ struct ClipboardParsePage {
 
   aboutToAppear(): void {
     // 剪贴板读取改为用户点击安全控件触发
+  }
+
+  onPageShow(): void {
+    this.consumeCompletedClipboardCard();
+  }
+
+  private consumeCompletedClipboardCard(): void {
+    const completedIndex: number | undefined = AppStorage.get<number>('clipboardEntryCompletedIndex');
+    if (completedIndex === undefined || completedIndex < 0) {
+      return;
+    }
+
+    if (completedIndex >= this.parsedItems.length) {
+      AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', -1);
+      return;
+    }
+
+    const newList: ParsedFoodEntry[] = [];
+    for (let i = 0; i < this.parsedItems.length; i++) {
+      if (i !== completedIndex) {
+        newList.push(this.parsedItems[i]);
+      }
+    }
+    this.parsedItems = newList;
+    AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', -1);
   }
 
   private handlePasteButtonResult(result: PasteButtonOnClickResult): void {
@@ -191,24 +218,15 @@ struct ClipboardParsePage {
       return;
     }
 
-    const newList: ParsedFoodEntry[] = [];
-    for (let i = 0; i < this.parsedItems.length; i++) {
-      const current: ParsedFoodEntry = this.parsedItems[i];
-      if (i === index) {
-        newList.push({ name: current.name, selected: false, confidence: current.confidence });
-      } else {
-        newList.push(current);
-      }
-    }
-    this.parsedItems = newList;
-
     const params: AddFoodParams = {
       barcode: '',
       name: item.name,
       category: '',
       spec: '',
       calories: 0,
-      fromBarcodeScan: false
+      fromBarcodeScan: false,
+      fromClipboardParse: true,
+      clipboardSourceIndex: index
     };
     router.pushUrl({ url: 'pages/AddFoodPage', params: params });
   }

@@ -47,10 +47,13 @@ struct BarcodeScanPage {
   @State currentBarcode: string = '';
   @State matchSource: string = '';
   @State forceAlbumMode: boolean = false;
+  @State showCollaborationButton: boolean = true;
 
   aboutToAppear(): void {
     // 2in1 机型普遍无本地摄像头，默认使用相册/协同路径
     this.forceAlbumMode = deviceInfo.deviceType === '2in1' || !canIUse('SystemCapability.Multimedia.Camera.Core');
+    // 协同服务仅支持从更大设备发起到更便携设备，手机端不展示远端设备菜单
+    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
   }
 
   @Builder
@@ -178,6 +181,20 @@ struct BarcodeScanPage {
       return { amount: Number(pureNumber[1]) || 0, unit: 'g' };
     }
     return { amount: 0, unit: 'g' };
+  }
+
+  private onCollaborationScanClick(): void {
+    if (!this.showCollaborationButton) {
+      promptAction.showToast({
+        message: '当前手机端不支持发起协同扫码，请在平板或2in1设备使用',
+        duration: 2000
+      });
+      return;
+    }
+    promptAction.showToast({
+      message: '请在弹出菜单中选择远端手机（需同账号并已组网）',
+      duration: 1500
+    });
   }
 
   // 调用系统扫码
@@ -333,14 +350,30 @@ struct BarcodeScanPage {
                 this.startScanFromAlbum();
               })
 
-            Button('手机协同扫码')
-              .width(200)
-              .height(40)
-              .fontSize(14)
-              .fontColor($r('app.color.button_secondary_text'))
-              .backgroundColor($r('app.color.button_secondary_bg'))
-              .borderRadius(20)
-              .bindMenu(this.collaborationMenu)
+            if (this.showCollaborationButton) {
+              Button('手机协同扫码')
+                .width(200)
+                .height(40)
+                .fontSize(14)
+                .fontColor($r('app.color.button_secondary_text'))
+                .backgroundColor($r('app.color.button_secondary_bg'))
+                .borderRadius(20)
+                .onClick(() => {
+                  this.onCollaborationScanClick();
+                })
+                .bindMenu(this.collaborationMenu)
+            } else {
+              Button('手机协同扫码')
+                .width(200)
+                .height(40)
+                .fontSize(14)
+                .fontColor($r('app.color.text_hint'))
+                .backgroundColor($r('app.color.chip_background'))
+                .borderRadius(20)
+                .onClick(() => {
+                  this.onCollaborationScanClick();
+                })
+            }
           }
           .width('100%')
           .padding({ top: 40, bottom: 24 })

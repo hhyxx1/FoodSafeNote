@@ -22,6 +22,8 @@ interface AddFoodParams {
   photoUri?: string;
   storageType?: string;
   freshnessLevel?: string;
+  fromClipboardParse?: boolean;
+  clipboardSourceIndex?: number;
   editMode: boolean;
   foodId: number;
 }
@@ -51,6 +53,8 @@ struct AddFoodPage {
   @State fromPhotoCapture: boolean = false;
   @State photoUri: string = '';
   @State freshnessLevel: string = 'fresh';
+  @State fromClipboardParse: boolean = false;
+  @State clipboardSourceIndex: number = -1;
 
   aboutToAppear(): void {
     const params: AddFoodParams = router.getParams() as AddFoodParams;
@@ -87,6 +91,12 @@ struct AddFoodPage {
       }
       if (params.freshnessLevel !== undefined && params.freshnessLevel.length > 0) {
         this.freshnessLevel = params.freshnessLevel;
+      }
+      if (params.fromClipboardParse !== undefined && params.fromClipboardParse) {
+        this.fromClipboardParse = true;
+      }
+      if (params.clipboardSourceIndex !== undefined && params.clipboardSourceIndex >= 0) {
+        this.clipboardSourceIndex = params.clipboardSourceIndex;
       }
       // 编辑模式
       if (params.editMode !== undefined && params.editMode) {
@@ -246,6 +256,9 @@ struct AddFoodPage {
         promptAction.showToast({ message: '修改成功', duration: 1500 });
       } else {
         await DatabaseHelper.getInstance().insertFoodItem(food);
+        if (this.fromClipboardParse && this.clipboardSourceIndex >= 0) {
+          AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', this.clipboardSourceIndex);
+        }
         promptAction.showToast({ message: '入库成功', duration: 1500 });
       }
       router.back();
