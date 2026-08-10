@@ -7,3 +7,27 @@
 **/.cxx
 *.har
 oh-package-lock.json5
+
+# DevEco Studio 本地配置
+/.deveco
+# AtomCode 项目配置
+/.atomcode
+# 本地日志
+/log
+
+# 签名证书与密钥（禁止入库）
+*.cer
+*.p7b
+*.p12
+*.csr
+# 本地签名配置文件（动态注入，不入库）
+/signing-config.local.json
+/signdata.json
+.env
+
+# 测试工程副本（本地保留，不入库）
+/test
+# 本地资料文件（保留本地，不入库）
+/打分.md
+/文档
+/示例

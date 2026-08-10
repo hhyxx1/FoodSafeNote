@@ -1,17 +1,19 @@
 {
   "app": {
+    // 签名信息通过 hvigorfile.ts 从本地 signing-config.local.json 动态注入，
+    // 此处仅保留结构占位，避免敏感凭据（密码/证书路径）入库
     "signingConfigs": [
       {
         "name": "publish",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "***REMOVED***",
+          "certpath": "",
           "keyAlias": "debugKey",
-          "keyPassword": "***REMOVED***",
-          "profile": "***REMOVED***",
+          "keyPassword": "",
+          "profile": "",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "***REMOVED***",
-          "storePassword": "***REMOVED***"
+          "storeFile": "",
+          "storePassword": ""
         }
       }
     ],
