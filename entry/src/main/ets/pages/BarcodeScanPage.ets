@@ -92,7 +92,8 @@ struct BarcodeScanPage {
     }
 
     // 兜底提取常见条码格式（8-18位数字）
-    const m: RegExpMatchArray | null = txt.match(/\b\d{8,18}\b/);
+    const barcodeRegex: RegExp = new RegExp('\\b\\d{8,18}\\b');
+    const m: RegExpMatchArray | null = txt.match(barcodeRegex);
     return m !== null && m.length > 0 ? m[0] : '';
   }
 
@@ -160,7 +161,7 @@ struct BarcodeScanPage {
     if (text.length === 0) {
       return { amount: 0, unit: 'g' };
     }
-    const matchWithUnit: RegExpMatchArray | null = text.match(/(\d+(?:\.\d+)?)\s*(g|G|克|kg|KG|千克|ml|mL|ML|毫升|l|L|升)/);
+    const matchWithUnit: RegExpMatchArray | null = text.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*(g|G|克|kg|KG|千克|ml|mL|ML|毫升|l|L|升)'));
     if (matchWithUnit !== null && matchWithUnit.length >= 3) {
       const value: number = Number(matchWithUnit[1]) || 0;
       const unitToken: string = matchWithUnit[2];
@@ -176,7 +177,7 @@ struct BarcodeScanPage {
     }
 
     // 兜底：若规格仅数字，默认按g处理
-    const pureNumber: RegExpMatchArray | null = text.match(/(\d+(?:\.\d+)?)/);
+    const pureNumber: RegExpMatchArray | null = text.match(new RegExp('(\\d+(?:\\.\\d+)?)'));
     if (pureNumber !== null && pureNumber.length > 1) {
       return { amount: Number(pureNumber[1]) || 0, unit: 'g' };
     }
@@ -246,6 +247,8 @@ struct BarcodeScanPage {
         this.matchSource = '';
       }
       this.showVerifyDialog = true;
+    }).catch(() => {
+      this.isMatching = false;
     });
   }
 
@@ -265,7 +268,9 @@ struct BarcodeScanPage {
     BarcodeService.getInstance().saveToProductDict(
       this.currentBarcode, this.matchedName.trim(),
       this.matchedCategory, this.matchedSpec, 0, source
-    );
+    ).catch(() => {
+      // 产品字典写入失败不阻断跳转
+    });
     this.showVerifyDialog = false;
     const parsedAmount: ParsedAmountResult = this.parseAmountFromSpec(this.matchedSpec);
     // 跳转到热量获取页

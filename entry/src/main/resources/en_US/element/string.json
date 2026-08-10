@@ -21,6 +21,10 @@
       "value": "Used to sync food inventory across your devices"
     },
     {
+      "name": "internet_reason",
+      "value": "Used to load the online privacy policy page"
+    },
+    {
       "name": "watch_inventory_title",
       "value": "Inventory"
     },

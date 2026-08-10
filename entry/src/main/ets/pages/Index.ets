@@ -265,7 +265,7 @@ struct Index {
   buildWatchLayout() {
     Stack({ alignContent: Alignment.Top }) {
       Swiper() {
-        WatchInventoryView({ refreshKey: this.refreshKey, listOpen: this.watchListOpen })
+        WatchInventoryView({ refreshKey: this.refreshKey, listOpen: $watchListOpen })
         WatchHealthView({ refreshKey: this.refreshKey })
       }
       .indicator(false)
@@ -296,13 +296,20 @@ struct Index {
     .backgroundColor($r('app.color.page_background'))
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
-        this.watchTouchStartX = event.touches[0].x;
-        this.watchTouchStartY = event.touches[0].y;
+        const startTouch: TouchObject | undefined = event.touches[0];
+        if (startTouch !== undefined) {
+          this.watchTouchStartX = startTouch.x;
+          this.watchTouchStartY = startTouch.y;
+        }
         return;
       }
       if (event.type === TouchType.Up) {
-        const dx: number = event.changedTouches[0].x - this.watchTouchStartX;
-        const dy: number = event.changedTouches[0].y - this.watchTouchStartY;
+        const changedTouch: TouchObject | undefined = event.changedTouches[0];
+        if (changedTouch === undefined) {
+          return;
+        }
+        const dx: number = changedTouch.x - this.watchTouchStartX;
+        const dy: number = changedTouch.y - this.watchTouchStartY;
         const isExitSwipe: boolean = dx > 70 && Math.abs(dx) > Math.abs(dy);
         const justClosedList: boolean = Date.now() - this.lastWatchListClosedAt < 450;
         // 仅在库存总览页允许侧滑退出；列表刚收起时忽略同次手势，避免连退

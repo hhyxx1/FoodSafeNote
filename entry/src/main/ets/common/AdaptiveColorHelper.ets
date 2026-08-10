@@ -1,5 +1,6 @@
 import { image } from '@kit.ImageKit';
 import { ConfigurationConstant } from '@kit.AbilityKit';
+import { resourceManager } from '@kit.LocalizationKit';
 
 interface RgbColor {
   red: number;
@@ -193,7 +194,7 @@ export class AdaptiveColorHelper {
   }
 
   private static async extractDominantColor(ctx: Context, iconRawfileName: string): Promise<RgbColor> {
-    const rawDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
+    const rawDescriptor: resourceManager.RawFileDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
     const imgSource: image.ImageSource = image.createImageSource(rawDescriptor);
     try {
       const pixelMap: image.PixelMap = await imgSource.createPixelMap({
@@ -216,15 +217,13 @@ export class AdaptiveColorHelper {
             continue;
           }
           const key: number = (red << 16) | (green << 8) | blue;
-          if (colorCounter.has(key)) {
-            colorCounter.set(key, (colorCounter.get(key) as number) + 1);
-          } else {
-            colorCounter.set(key, 1);
-          }
+          const existing: number | undefined = colorCounter.get(key);
+          colorCounter.set(key, existing !== undefined ? existing + 1 : 1);
         }
 
         let bestColor: number = 0x7DA8D6;
         let bestCount: number = -1;
+        // Map.forEach 回调签名是 (value, key) —— 此处 color 为 key、count 为 value
         colorCounter.forEach((count: number, color: number) => {
           if (count > bestCount) {
             bestCount = count;
@@ -242,6 +241,8 @@ export class AdaptiveColorHelper {
       }
     } finally {
       imgSource.release();
+      // 关闭 getRawFdSync 打开的 raw fd，避免 fd 泄漏
+      ctx.resourceManager.closeRawFdSync(iconRawfileName);
     }
   }
 
@@ -301,5 +302,11 @@ export class AdaptiveColorHelper {
       iconRawfileName,
       AdaptiveColorHelper.isDarkModeEnabled()
     );
+  }
+
+  // 清空全部缓存（Ability 销毁时调用，避免长生命周期下缓存膨胀）
+  public static clearCache(): void {
+    AdaptiveColorHelper.cardCache.clear();
+    AdaptiveColorHelper.accentCache.clear();
   }
 }

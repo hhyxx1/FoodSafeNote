@@ -39,8 +39,13 @@ export struct HealthView {
     } else if (this.viewMode === 'month') {
       startTime = endTime - 30 * 24 * 60 * 60 * 1000;
     } else if (this.viewMode === 'custom') {
-      this.customStart.setHours(0, 0, 0, 0);
-      this.customEnd.setHours(23, 59, 59, 999);
+      // 赋新 Date 对象触发 @State 重绘（直接 setHours 改内部字段不触发刷新）
+      const start = new Date(this.customStart.getTime());
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(this.customEnd.getTime());
+      end.setHours(23, 59, 59, 999);
+      this.customStart = start;
+      this.customEnd = end;
       startTime = this.customStart.getTime();
       return [startTime, this.customEnd.getTime()];
     }

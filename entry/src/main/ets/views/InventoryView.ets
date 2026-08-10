@@ -61,9 +61,13 @@ export struct InventoryView {
       this.updateCounts();
       this.applyFilter();
       this.isLoading = false;
+    }).catch(() => {
+      this.isLoading = false;
     });
     DatabaseHelper.getInstance().getAllMembers().then((members: FamilyMember[]) => {
       this.members = members;
+    }).catch(() => {
+      this.members = [];
     });
   }
 

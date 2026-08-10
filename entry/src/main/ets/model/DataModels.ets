@@ -118,6 +118,7 @@ export class BuiltinBarcode {
   barcode: string = '';
   name: string = '';
   category: string = '';
+  spec: string = '';
 }
 
 // 条码匹配结果

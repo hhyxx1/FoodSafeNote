@@ -21,6 +21,10 @@
       "value": "用于同账号设备间同步食品库存数据"
     },
     {
+      "name": "internet_reason",
+      "value": "用于加载在线隐私协议页面"
+    },
+    {
       "name": "watch_inventory_title",
       "value": "库存"
     },

@@ -48,9 +48,13 @@ struct FoodDetailPage {
     DatabaseHelper.getInstance().getFoodItemById(this.foodId).then((item: FoodItem | null) => {
       this.foodItem = item;
       this.isLoading = false;
+    }).catch(() => {
+      this.isLoading = false;
     });
     DatabaseHelper.getInstance().getAllMembers().then((members: FamilyMember[]) => {
       this.members = members;
+    }).catch(() => {
+      this.members = [];
     });
   }
 

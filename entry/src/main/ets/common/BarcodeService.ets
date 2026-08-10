@@ -46,27 +46,38 @@ export class BarcodeService {
       const barcodes: string[] = [];
       const names: string[] = [];
       const categories: string[] = [];
+      const specs: string[] = [];
       // 跳过header行
       for (let i = 1; i < lines.length; i++) {
         const line: string = lines[i].trim();
         if (line.length === 0) continue;
-        const commaIdx: number = line.indexOf(',');
-        if (commaIdx <= 0) continue;
-        const barcode: string = line.substring(0, commaIdx).trim();
-        const name: string = line.substring(commaIdx + 1).trim();
+        const firstComma: number = line.indexOf(',');
+        if (firstComma <= 0) continue;
+        const barcode: string = line.substring(0, firstComma).trim();
+        const rest: string = line.substring(firstComma + 1);
+        const secondComma: number = rest.indexOf(',');
+        let name: string = '';
+        let spec: string = '';
+        if (secondComma >= 0) {
+          name = rest.substring(0, secondComma).trim();
+          spec = rest.substring(secondComma + 1).trim();
+        } else {
+          name = rest.trim();
+          spec = '';
+        }
         if (barcode.length > 0 && name.length > 0) {
           barcodes.push(barcode);
           names.push(name);
           categories.push(this.inferBuiltinCategory(name));
+          specs.push(spec);
         }
       }
       if (barcodes.length > 0) {
-        await db.batchInsertBuiltinBarcodes(barcodes, names, categories);
+        await db.batchInsertBuiltinBarcodes(barcodes, names, categories, specs);
       }
       this.initialized = true;
     } catch (e) {
-      // CSV导入失败不影响应用使用
-      this.initialized = true;
+      // CSV导入失败：不标记 initialized，允许下次启动重试；不影响应用其他功能
     }
   }
 
@@ -117,7 +128,7 @@ export class BarcodeService {
     if (builtinInfo !== null && builtinInfo.name.length > 0) {
       result.name = builtinInfo.name;
       result.category = builtinInfo.category;
-      result.spec = '';
+      result.spec = builtinInfo.spec;
       result.calories = 0;
       result.source = 'builtin';
       result.matched = true;
@@ -171,6 +182,10 @@ export class BarcodeService {
     const db: DatabaseHelper = DatabaseHelper.getInstance();
     const dict = new ProductDict();
     dict.dictKey = barcode.length > 0 ? barcode : (category + '_' + name);
+    // dict_key 列为 UNIQUE NOT NULL，键为空时直接放弃写入，避免违反约束
+    if (dict.dictKey.length === 0) {
+      return;
+    }
     dict.barcode = barcode;
     dict.name = name;
     dict.category = category;

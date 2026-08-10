@@ -145,8 +145,8 @@ export class DataExportService {
     const buf = new ArrayBuffer(stat.size);
     fileIo.readSync(file.fd, buf);
     fileIo.closeSync(file.fd);
-    const decoder = new util.TextDecoder('utf-8');
-    return decoder.decode(new Uint8Array(buf));
+    const decoder = util.TextDecoder.create('utf-8');
+    return decoder.decodeToString(new Uint8Array(buf));
   }
 
   // 全量导入

@@ -130,17 +130,20 @@ struct PhotoEntryPage {
 
   private handleCollaborationImage(buffer: ArrayBuffer): void {
     this.recognitionHint = '正在处理协同图片...';
-    image.createImageSource(buffer).createPixelMap().then(async (pixelMap: image.PixelMap) => {
+    const imgSource: image.ImageSource = image.createImageSource(buffer);
+    imgSource.createPixelMap().then(async (pixelMap: image.PixelMap): Promise<void> => {
       let recognizedText: string = '';
       try {
         recognizedText = await this.recognizeTextFromPixelMap(pixelMap);
       } finally {
         pixelMap.release();
+        imgSource.release();
       }
       this.applySuggestionsFromText(recognizedText);
       this.updateEstimatedExpiry();
       promptAction.showToast({ message: '已接收协同图片并生成建议', duration: 1800 });
     }).catch(() => {
+      imgSource.release();
       this.recognitionHint = '协同图片解析失败，请重试';
       promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
     });

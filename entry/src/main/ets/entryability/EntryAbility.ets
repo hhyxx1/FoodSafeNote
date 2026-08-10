@@ -24,7 +24,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {
-    if (newConfig) {
+    if (newConfig !== null && newConfig !== undefined) {
       const colorMode: number = newConfig.colorMode !== undefined
         ? newConfig.colorMode
         : ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
@@ -34,6 +34,8 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    // 清空自适应颜色缓存，避免 Ability 多次创建时的内存累积
+    AdaptiveColorHelper.clearCache();
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 

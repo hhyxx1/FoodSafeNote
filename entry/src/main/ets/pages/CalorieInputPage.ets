@@ -102,7 +102,8 @@ struct CalorieInputPage {
     }
 
     const specText: string = params.spec !== undefined ? params.spec : '';
-    const m: RegExpMatchArray | null = specText.match(/(\d+(?:\.\d+)?)\s*(g|G|克|ml|mL|ML|毫升)/);
+    const specUnitRegex: RegExp = new RegExp('(\\d+(?:\\.\\d+)?)\\s*(g|G|克|ml|mL|ML|毫升)');
+    const m: RegExpMatchArray | null = specText.match(specUnitRegex);
     if (m !== null && m.length >= 3) {
       this.amountText = (Number(m[1]) || 0).toString();
       const unitToken: string = m[2];
@@ -212,7 +213,8 @@ struct CalorieInputPage {
   }
 
   private handleCollaborationImage(buffer: ArrayBuffer): void {
-    image.createImageSource(buffer).createPixelMap().then(async (pixelMap: image.PixelMap) => {
+    const imgSource: image.ImageSource = image.createImageSource(buffer);
+    imgSource.createPixelMap().then(async (pixelMap: image.PixelMap): Promise<void> => {
       let recognizedText: string = '';
       try {
         const visionInfo: textRecognition.VisionInfo = { pixelMap: pixelMap };
@@ -224,9 +226,11 @@ struct CalorieInputPage {
         recognizedText = '';
       } finally {
         pixelMap.release();
+        imgSource.release();
       }
       this.applyOcrResultFromText(recognizedText, '协同图片');
     }).catch(() => {
+      imgSource.release();
       promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
     });
   }
@@ -314,7 +318,7 @@ struct CalorieInputPage {
     for (let i = 0; i < lines.length; i++) {
       const line: string = lines[i].trim();
       if (line.length === 0) continue;
-      if (line.match(/能.{0,2}量|热.{0,2}量|energy/i) !== null) {
+      if (line.match(new RegExp('能.{0,2}量|热.{0,2}量|energy', 'i')) !== null) {
         targetLine = line;
         energyLineIndex = i;
         break;
@@ -324,13 +328,14 @@ struct CalorieInputPage {
       targetLine = normalizedText;
     }
 
-    const hasEnergyKeyword: boolean = targetLine.match(/能.{0,2}量|热.{0,2}量|energy/i) !== null;
+    const energyKeywordRegex: RegExp = new RegExp('能.{0,2}量|热.{0,2}量|energy', 'i');
+    const hasEnergyKeyword: boolean = targetLine.match(energyKeywordRegex) !== null;
     let value: number = 0;
     let unit: string = 'kJ';
 
     // 回退1：优先从“数值+单位”组合中提取
     if (value <= 0) {
-      const withUnit: RegExpMatchArray | null = targetLine.match(/(\d+(?:[\.,]\d+)?)\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)/);
+      const withUnit: RegExpMatchArray | null = targetLine.match(new RegExp('(\\d+(?:[\\.,]\\d+)?)\\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)'));
       if (withUnit !== null && withUnit.length >= 3) {
         value = Number(withUnit[1].replace(',', '')) || 0;
         const unitToken: string = withUnit[2];
@@ -341,7 +346,7 @@ struct CalorieInputPage {
 
     // 回退1.5：关键词行中优先取“紧邻单位(kJ/kcal)”的数字，避免取到“每100”
     if (value <= 0 && hasEnergyKeyword) {
-      const lineWithUnit: RegExpMatchArray | null = targetLine.match(/(\d+(?:[\.,]\d+)?)\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)/);
+      const lineWithUnit: RegExpMatchArray | null = targetLine.match(new RegExp('(\\d+(?:[\\.,]\\d+)?)\\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)'));
       if (lineWithUnit !== null && lineWithUnit.length >= 3) {
         value = Number(lineWithUnit[1].replace(',', '')) || 0;
         const unitToken: string = lineWithUnit[2];
@@ -352,7 +357,7 @@ struct CalorieInputPage {
 
     // 回退1.6：在“能量/热量”关键词后再取数字，避免拿到“每100ml”的100
     if (value <= 0 && hasEnergyKeyword) {
-      const afterKeyword: RegExpMatchArray | null = targetLine.match(/(?:能.{0,2}量|热.{0,2}量|energy)[^0-9]{0,12}(\d+(?:[\.,]\d+)?)/i);
+      const afterKeyword: RegExpMatchArray | null = targetLine.match(new RegExp('(?:能.{0,2}量|热.{0,2}量|energy)[^0-9]{0,12}(\\d+(?:[\\.,]\\d+)?)', 'i'));
       if (afterKeyword !== null && afterKeyword.length >= 2) {
         value = Number(afterKeyword[1].replace(',', '')) || 0;
       }
@@ -360,7 +365,7 @@ struct CalorieInputPage {
 
     // 回退1.7：最后才在全文找“数值+单位”，尽量避免条码/批号等噪声
     if (value <= 0) {
-      const withUnitGlobal: RegExpMatchArray | null = normalizedText.match(/(\d+(?:[\.,]\d+)?)\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)/);
+      const withUnitGlobal: RegExpMatchArray | null = normalizedText.match(new RegExp('(\\d+(?:[\\.,]\\d+)?)\\s*(kJ|KJ|千焦|kcal|KCAL|千卡|大卡)'));
       if (withUnitGlobal !== null && withUnitGlobal.length >= 3) {
         value = Number(withUnitGlobal[1].replace(',', '')) || 0;
         const unitToken: string = withUnitGlobal[2];
@@ -371,7 +376,7 @@ struct CalorieInputPage {
 
     // 回退2：从全文数字中按“能量相关性”打分，避免把年份/地址/条码数字当成能量
     if (value <= 0) {
-      const reg: RegExp = /(\d+(?:[\.,]\d+)?)/g;
+      const reg: RegExp = new RegExp('(\\d+(?:[\\.,]\\d+)?)', 'g');
       let best: number = 0;
       let bestScore: number = -999;
       let energyWindow: string = '';
@@ -390,12 +395,12 @@ struct CalorieInputPage {
           const end: number = idx + token.length + 10 < normalizedText.length ? idx + token.length + 10 : normalizedText.length;
           const around: string = normalizedText.substring(start, end);
           // 过滤“每100g/每100ml/100克/100毫升”这类基准数字
-          const isBasisNumber: boolean = around.match(/每\s*100|\/\s*100|100\s*(g|克|ml|毫升)/i) !== null && Math.round(n) === 100;
+          const isBasisNumber: boolean = around.match(new RegExp('每\\s*100|\\/\\s*100|100\\s*(g|克|ml|毫升)', 'i')) !== null && Math.round(n) === 100;
           // 过滤NRV百分比等非能量值
           const isPercent: boolean = around.indexOf('%') >= 0 || around.indexOf('NRV') >= 0 || around.indexOf('nrv') >= 0;
           const isBarcodeLike: boolean = token.length >= 8;
           const isYearLike: boolean = Math.round(n) >= 1900 && Math.round(n) <= 2099;
-          const hasDateOrAddrHint: boolean = around.match(/年|月|日|号|室|栋|幢|单元|省|市|区|县|路|街|巷|地址|电话|SC|GB|生产|标准|保质期/i) !== null;
+          const hasDateOrAddrHint: boolean = around.match(new RegExp('年|月|日|号|室|栋|幢|单元|省|市|区|县|路|街|巷|地址|电话|SC|GB|生产|标准|保质期', 'i')) !== null;
           if (isBasisNumber || isPercent || isBarcodeLike) {
             m = reg.exec(normalizedText);
             continue;
@@ -406,8 +411,8 @@ struct CalorieInputPage {
           }
 
           let score: number = 0;
-          if (around.match(/kJ|KJ|千焦|kcal|KCAL|千卡|大卡/) !== null) score += 6;
-          if (around.match(/能.{0,2}量|热.{0,2}量|energy/i) !== null) score += 4;
+          if (around.match(new RegExp('kJ|KJ|千焦|kcal|KCAL|千卡|大卡')) !== null) score += 6;
+          if (around.match(energyKeywordRegex) !== null) score += 4;
           if (energyWindow.length > 0 && energyWindow.indexOf(token) >= 0) score += 3;
           if (n >= 20 && n <= 800) score += 3;
           else if (n > 800 && n <= 2500) score += 1;
@@ -432,25 +437,26 @@ struct CalorieInputPage {
       return null;
     }
 
-    if (targetLine.match(/kcal|KCAL|千卡|大卡/) !== null || normalizedText.match(/kcal|KCAL|千卡|大卡/) !== null) {
+    const kcalRegex: RegExp = new RegExp('kcal|KCAL|千卡|大卡');
+    if (targetLine.match(kcalRegex) !== null || normalizedText.match(kcalRegex) !== null) {
       unit = 'kcal';
     }
 
     let basisType: string = 'per100';
     let per100Unit: string = 'g';
-    if (normalizedText.match(/每\s*份|每份|per\s*serving/i) !== null) {
+    if (normalizedText.match(new RegExp('每\\s*份|每份|per\\s*serving', 'i')) !== null) {
       basisType = 'perServing';
-    } else if (normalizedText.match(/每\s*100\s*(ml|毫升)|\/\s*100\s*(ml|毫升)|100\s*(ml|毫升)/i) !== null) {
+    } else if (normalizedText.match(new RegExp('每\\s*100\\s*(ml|毫升)|\\/\\s*100\\s*(ml|毫升)|100\\s*(ml|毫升)', 'i')) !== null) {
       basisType = 'per100';
       per100Unit = 'ml';
-    } else if (normalizedText.match(/每\s*100\s*(g|克)|\/\s*100\s*(g|克)|100\s*(g|克)/i) !== null) {
+    } else if (normalizedText.match(new RegExp('每\\s*100\\s*(g|克)|\\/\\s*100\\s*(g|克)|100\\s*(g|克)', 'i')) !== null) {
       basisType = 'per100';
       per100Unit = 'g';
     }
 
     let servingSize: number = 0;
     let servingUnit: string = 'g';
-    const servingMatch: RegExpMatchArray | null = normalizedText.match(/每\s*份[^0-9]{0,10}(\d+(?:[\.,]\d+)?)\s*(g|克|ml|毫升)/i);
+    const servingMatch: RegExpMatchArray | null = normalizedText.match(new RegExp('每\\s*份[^0-9]{0,10}(\\d+(?:[\\.,]\\d+)?)\\s*(g|克|ml|毫升)', 'i'));
     if (servingMatch !== null && servingMatch.length >= 3) {
       servingSize = Number(servingMatch[1].replace(',', '')) || 0;
       const unitStr: string = servingMatch[2];
@@ -492,11 +498,13 @@ struct CalorieInputPage {
         arr.push(ch);
       }
     }
-    const joined: string = arr.join('').replace(/\u00A0/g, ' ');
+    const nbspRegex: RegExp = new RegExp('\\u00A0', 'g');
+    const whitespaceRegex: RegExp = new RegExp('[ \\t\\f\\v]+', 'g');
+    const joined: string = arr.join('').replace(nbspRegex, ' ');
     const lines: string[] = joined.split('\n');
     const normalizedLines: string[] = [];
     for (let i = 0; i < lines.length; i++) {
-      const line: string = lines[i].replace(/[ \t\f\v]+/g, ' ').trim();
+      const line: string = lines[i].replace(whitespaceRegex, ' ').trim();
       if (line.length > 0) {
         normalizedLines.push(line);
       }
@@ -600,7 +608,9 @@ struct CalorieInputPage {
       BarcodeService.getInstance().saveToProductDict(
         this.barcode, this.foodName, this.category,
         this.spec, normalizedCalories, source, meta
-      );
+      ).catch(() => {
+        // 产品字典写入失败不阻断流程
+      });
       if (meta.basisType === 'perServing' && !meta.isReliable) {
         promptAction.showToast({ message: '已按严格模式保存原始标注，待补全每份重量后再沉淀标准化值', duration: 2200 });
       }
@@ -613,7 +623,9 @@ struct CalorieInputPage {
       ocrRec.barcode = this.barcode;
       ocrRec.ocrValue = this.autoFillCalories;
       ocrRec.finalValue = finalCalories;
-      DatabaseHelper.getInstance().insertOcrRecord(ocrRec);
+      DatabaseHelper.getInstance().insertOcrRecord(ocrRec).catch(() => {
+        // OCR 记录写入失败不阻断流程
+      });
     }
 
     // 跳转到AddFoodPage完成入库

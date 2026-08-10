@@ -68,7 +68,8 @@ const SQL_CREATE_BUILTIN_BARCODE: string =
   'id INTEGER PRIMARY KEY AUTOINCREMENT,' +
   'barcode TEXT NOT NULL,' +
   'name TEXT NOT NULL,' +
-  'category TEXT DEFAULT "")';
+  'category TEXT DEFAULT "",' +
+  'spec TEXT DEFAULT "")';
 
 const SQL_CREATE_BUILTIN_INDEX: string =
   'CREATE INDEX IF NOT EXISTS idx_builtin_barcode ON builtin_barcodes(barcode)';
@@ -108,27 +109,39 @@ export class DatabaseHelper {
       return;
     }
     this.initializing = true;
-    const storeConfig: relationalStore.StoreConfig = {
-      name: DB_NAME,
-      securityLevel: relationalStore.SecurityLevel.S1
-    };
-    this.rdbStore = await relationalStore.getRdbStore(context, storeConfig);
-    await this.rdbStore.executeSql(SQL_CREATE_FOOD);
-    await this.rdbStore.executeSql(SQL_CREATE_MEMBER);
-    await this.rdbStore.executeSql(SQL_CREATE_CONSUMPTION);
-    await this.rdbStore.executeSql(SQL_CREATE_PRODUCT_DICT);
-    await this.rdbStore.executeSql(SQL_CREATE_BUILTIN_BARCODE);
-    await this.rdbStore.executeSql(SQL_CREATE_BUILTIN_INDEX);
-    await this.rdbStore.executeSql(SQL_CREATE_OCR_RECORD);
-    // 数据库迁移：为已有表添加新列（ALTER TABLE不会报错如果列已存在会忽略）
-    await this.migrateDatabase();
-    // 首次初始化时添加默认成员"我"
-    await this.ensureDefaultMember();
-    // 配置分布式表（同账号设备间自动同步，失败不影响本地功能）
     try {
-      await this.setupDistributedTables();
+      const storeConfig: relationalStore.StoreConfig = {
+        name: DB_NAME,
+        securityLevel: relationalStore.SecurityLevel.S1
+      };
+      this.rdbStore = await relationalStore.getRdbStore(context, storeConfig);
+      await this.rdbStore.executeSql(SQL_CREATE_FOOD);
+      await this.rdbStore.executeSql(SQL_CREATE_MEMBER);
+      await this.rdbStore.executeSql(SQL_CREATE_CONSUMPTION);
+      await this.rdbStore.executeSql(SQL_CREATE_PRODUCT_DICT);
+      await this.rdbStore.executeSql(SQL_CREATE_BUILTIN_BARCODE);
+      await this.rdbStore.executeSql(SQL_CREATE_BUILTIN_INDEX);
+      await this.rdbStore.executeSql(SQL_CREATE_OCR_RECORD);
+      // 数据库迁移：为已有表添加新列（ALTER TABLE不会报错如果列已存在会忽略）
+      await this.migrateDatabase();
+      // 首次初始化时添加默认成员"我"
+      await this.ensureDefaultMember();
+      // 配置分布式表（同账号设备间自动同步，失败不影响本地功能）
+      try {
+        await this.setupDistributedTables();
+      } catch (e) {
+        // 分布式设置失败（虚拟机/单设备环境），不影响本地数据库使用
+      }
     } catch (e) {
-      // 分布式设置失败（虚拟机/单设备环境），不影响本地数据库使用
+      // 初始化失败：复位标志，允许下次重试；保留已获取的 rdbStore（部分表可能已建好）
+      this.initializing = false;
+      const message: string = (e instanceof Error) ? e.message : 'Database init failed';
+      throw new Error(message);
+    } finally {
+      // 正常完成时复位 initializing（rdbStore 已非 null，下次直接短路返回）
+      if (this.rdbStore !== null) {
+        this.initializing = false;
+      }
     }
   }
 
@@ -168,13 +181,6 @@ export class DatabaseHelper {
     }
   }
 
-  // 同步所有分布式表
-  private syncAllTables(): void {
-    for (let i = 0; i < DISTRIBUTED_TABLES.length; i++) {
-      this.syncTable(DISTRIBUTED_TABLES[i]);
-    }
-  }
-
   // 数据库迁移：为旧版数据库添加新字段
   private async migrateDatabase(): Promise<void> {
     if (this.rdbStore === null) return;
@@ -182,6 +188,7 @@ export class DatabaseHelper {
     const migrations: string[] = [
       'ALTER TABLE food_items ADD COLUMN is_opened INTEGER DEFAULT 0',
       'ALTER TABLE builtin_barcodes ADD COLUMN category TEXT DEFAULT ""',
+      'ALTER TABLE builtin_barcodes ADD COLUMN spec TEXT DEFAULT ""',
       'ALTER TABLE product_dict ADD COLUMN raw_energy REAL DEFAULT 0',
       'ALTER TABLE product_dict ADD COLUMN energy_unit TEXT DEFAULT "kJ"',
       'ALTER TABLE product_dict ADD COLUMN basis_type TEXT DEFAULT "per100g"',
@@ -762,23 +769,40 @@ export class DatabaseHelper {
       builtin.barcode = resultSet.getString(resultSet.getColumnIndex('barcode'));
       builtin.name = resultSet.getString(resultSet.getColumnIndex('name'));
       builtin.category = resultSet.getString(resultSet.getColumnIndex('category'));
+      builtin.spec = resultSet.getString(resultSet.getColumnIndex('spec'));
     }
     resultSet.close();
     return builtin;
   }
 
-  async batchInsertBuiltinBarcodes(barcodes: string[], names: string[], categories: string[]): Promise<void> {
+  async batchInsertBuiltinBarcodes(barcodes: string[], names: string[], categories: string[], specs: string[]): Promise<void> {
     if (this.rdbStore === null) return;
     const BATCH_SIZE: number = 500;
     const total: number = barcodes.length;
+    const escapeSqlValue = (raw: string): string => {
+      // 转义反斜杠和单引号，防止 SQL 注入和字符串截断
+      let escaped: string = '';
+      for (let i = 0; i < raw.length; i++) {
+        const ch: string = raw.charAt(i);
+        if (ch === '\\') {
+          escaped = escaped + '\\\\';
+        } else if (ch === '\'') {
+          escaped = escaped + "''";
+        } else {
+          escaped = escaped + ch;
+        }
+      }
+      return escaped;
+    };
     for (let start = 0; start < total; start += BATCH_SIZE) {
       const end: number = Math.min(start + BATCH_SIZE, total);
-      let sql: string = 'INSERT INTO builtin_barcodes (barcode, name, category) VALUES ';
+      let sql: string = 'INSERT INTO builtin_barcodes (barcode, name, category, spec) VALUES ';
       const parts: string[] = [];
       for (let i = start; i < end; i++) {
-        const escapedName: string = names[i].replace(/'/g, "''");
-        const escapedCategory: string = categories[i].replace(/'/g, "''");
-        parts.push("('" + barcodes[i] + "','" + escapedName + "','" + escapedCategory + "')");
+        const escapedName: string = escapeSqlValue(names[i]);
+        const escapedCategory: string = escapeSqlValue(categories[i]);
+        const escapedSpec: string = escapeSqlValue(specs[i]);
+        parts.push("('" + escapeSqlValue(barcodes[i]) + "','" + escapedName + "','" + escapedCategory + "','" + escapedSpec + "')");
       }
       sql = sql + parts.join(',');
       await this.rdbStore.executeSql(sql);
