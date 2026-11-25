@@ -26,7 +26,6 @@ export struct InventoryView {
   @State showActionPanel: boolean = false;
   @State selectedItem: FoodItem | null = null;
   @State members: FamilyMember[] = [];
-  // 用@State存储计数，直接在UI中引用，避免通过@Builder参数传递断开绑定
   @State pendingDateCount: number = 0;
   @State eatCalorieInput: string = '';
   @State normalCount: number = 0;
@@ -216,10 +215,10 @@ export struct InventoryView {
         .width('100%').padding({ left: 20, right: 20 })
 
         Row({ space: 2 }) {
-          this.inventoryFilter($r('app.string.ui_all'), this.foodItems.length, 'all')
-          this.inventoryFilter($r('app.string.status_normal'), this.normalCount, 'normal')
-          this.inventoryFilter($r('app.string.status_near_expiry'), this.nearExpiryCount, 'nearExpiry')
-          this.inventoryFilter($r('app.string.status_expired'), this.expiredCount, 'expired')
+          this.inventoryFilter($r('app.string.ui_all'), 'all')
+          this.inventoryFilter($r('app.string.status_normal'), 'normal')
+          this.inventoryFilter($r('app.string.status_near_expiry'), 'nearExpiry')
+          this.inventoryFilter($r('app.string.status_expired'), 'expired')
         }
         .width('100%')
         .padding({ left: 20, right: 20 })
@@ -344,13 +343,14 @@ export struct InventoryView {
   }
 
   @Builder
-  inventoryFilter(label: ResourceStr, count: number, filter: string) {
+  inventoryFilter(label: ResourceStr, filter: string) {
     Column({ space: 4 }) {
       Text(label)
         .fontSize(13).fontWeight(FontWeight.Medium)
         .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_secondary'))
         .textAlign(TextAlign.Center)
-      Text(count.toString())
+      Text((filter === 'all' ? this.foodItems.length : filter === 'normal' ? this.normalCount :
+        filter === 'nearExpiry' ? this.nearExpiryCount : this.expiredCount).toString())
         .fontSize(17).fontWeight(FontWeight.Bold)
         .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_primary'))
     }

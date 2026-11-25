@@ -17,6 +17,20 @@ interface EditFoodParams {
 }
 
 @Component
+struct FoodDetailInfoRow {
+  @Prop label: ResourceStr = '';
+  @Prop value: ResourceStr = '';
+
+  build() {
+    Row() {
+      Text(this.label).fontSize(14).fontColor($r('app.color.text_secondary')).width(80)
+      Text(this.value).fontSize(14).fontColor($r('app.color.text_primary')).layoutWeight(1).textAlign(TextAlign.End)
+    }
+    .width('100%').padding({ top: 6, bottom: 6 })
+  }
+}
+
+@Component
 struct FoodDetailPage {
   @StorageLink('foodDetailRefreshVersion') @Watch('onFoodDetailRefreshVersionChanged') foodDetailRefreshVersion: number = 0;
   @StorageProp('dataChangeTick') @Watch('onDataChangeTick') dataChangeTick: number = 0;
@@ -276,44 +290,34 @@ struct FoodDetailPage {
           .padding({ bottom: 4 })
 
         if (this.foodItem.category.length > 0) {
-          this.buildInfoRow($r('app.string.ui_food_category'), localizedFoodLabel(this.foodItem.category))
+          FoodDetailInfoRow({ label: $r('app.string.ui_food_category'), value: localizedFoodLabel(this.foodItem.category) })
         }
         if (this.foodItem.spec.length > 0) {
-          this.buildInfoRow($r('app.string.ui_package_details_optional'), this.foodItem.spec)
+          FoodDetailInfoRow({ label: $r('app.string.ui_package_details_optional'), value: this.foodItem.spec })
         }
         if (this.foodItem.barcode.length > 0) {
-          this.buildInfoRow($r('app.string.ui_barcode'), this.foodItem.barcode)
+          FoodDetailInfoRow({ label: $r('app.string.ui_barcode'), value: this.foodItem.barcode })
         }
-        this.buildInfoRow($r('app.string.ui_expiry_date'),
-          this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : $r('app.string.watch_not_set'))
-        this.buildInfoRow($r('app.string.ui_calories_for_this_item'),
-          this.foodItem.nutritionKnown ? this.foodItem.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded'))
-        this.buildInfoRow($r('app.string.ui_added_on'),
-          this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : $r('app.string.ui_unknown'))
+        FoodDetailInfoRow({ label: $r('app.string.ui_expiry_date'),
+          value: this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : $r('app.string.watch_not_set') })
+        FoodDetailInfoRow({ label: $r('app.string.ui_calories_for_this_item'),
+          value: this.foodItem.nutritionKnown ? this.foodItem.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded') })
+        FoodDetailInfoRow({ label: $r('app.string.ui_added_on'), value: this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : $r('app.string.ui_unknown') })
 
         if (this.foodItem.status === 1) {
           Divider().color($r('app.color.divider'))
-          this.buildInfoRow($r('app.string.ui_eaten_by'), this.foodItem.consumedBy)
-          this.buildInfoRow($r('app.string.ui_eaten_on'), formatTimestamp(this.foodItem.consumeTime))
+          FoodDetailInfoRow({ label: $r('app.string.ui_eaten_by'), value: this.foodItem.consumedBy })
+          FoodDetailInfoRow({ label: $r('app.string.ui_eaten_on'), value: formatTimestamp(this.foodItem.consumeTime) })
         }
         if (this.foodItem.status === 2) {
           Divider().color($r('app.color.divider'))
-          this.buildInfoRow($r('app.string.ui_reason_for_discarding'), localizedFoodLabel(this.foodItem.wasteReason))
-          this.buildInfoRow($r('app.string.ui_discarded_on'), formatTimestamp(this.foodItem.consumeTime))
+          FoodDetailInfoRow({ label: $r('app.string.ui_reason_for_discarding'), value: localizedFoodLabel(this.foodItem.wasteReason) })
+          FoodDetailInfoRow({ label: $r('app.string.ui_discarded_on'), value: formatTimestamp(this.foodItem.consumeTime) })
         }
       }
       .width('100%').padding(16).margin({ left: 16, right: 16 })
       .backgroundColor($r('app.color.card_background')).borderRadius(16)
     }
-  }
-
-  @Builder
-  buildInfoRow(label: ResourceStr, value: ResourceStr) {
-    Row() {
-      Text(label).fontSize(14).fontColor($r('app.color.text_secondary')).width(80)
-      Text(value).fontSize(14).fontColor($r('app.color.text_primary')).layoutWeight(1).textAlign(TextAlign.End)
-    }
-    .width('100%').padding({ top: 6, bottom: 6 })
   }
 
   private toggleFoodAction(eat: boolean): void {
