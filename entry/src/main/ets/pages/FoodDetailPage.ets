@@ -23,6 +23,7 @@ struct FoodDetailPage {
   @State foodItem: FoodItem | null = null;
   @State isLoading: boolean = true;
   @State isChangingFood: boolean = false;
+  @State eatCalorieInput: string = '';
   @State showEatPanel: boolean = false;
   @State showWastePanel: boolean = false;
   @State members: FamilyMember[] = [];
@@ -72,6 +73,9 @@ struct FoodDetailPage {
   private getExpiryText(): ResourceStr {
     if (this.foodItem === null) return '';
     if (this.foodItem.expiryDate <= 0) return $r('app.string.ui_expiry_date_not_set');
+    if (this.foodItem.expiryEstimated) {
+      return $r('app.string.intake_estimated_date', new Date(this.foodItem.expiryDate).toLocaleDateString());
+    }
     const days: number = this.foodItem.getRemainingDays();
     if (days < 0) return $r('app.string.ui_expired_d_days_ago', Math.abs(days));
     if (days === 0) return $r('app.string.watch_expire_today');
@@ -80,8 +84,16 @@ struct FoodDetailPage {
 
   private handleEat(memberName: string): void {
     if (this.foodItem === null || this.isChangingFood) return;
+    const text = this.eatCalorieInput.trim();
+    const calories = this.foodItem.nutritionKnown ? this.foodItem.calories : Number(text);
+    if (!Number.isFinite(calories) || calories < 0) {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_valid_energy_value') });
+      return;
+    }
     this.isChangingFood = true;
-    DatabaseHelper.getInstance().consumeFood(this.foodItem.id, memberName, this.foodItem.calories, this.foodItem.name).then(() => {
+    DatabaseHelper.getInstance().consumeFood(this.foodItem.id, memberName, calories, this.foodItem.name,
+      this.foodItem.nutritionKnown || text.length > 0).then(() => {
+      AppNavigation.notifyDataChanged();
       this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_recorded_as_eaten_by_s', memberName), duration: 1500 });
       AppNavigation.pop();
     }).catch(() => {
@@ -275,7 +287,7 @@ struct FoodDetailPage {
         this.buildInfoRow($r('app.string.ui_expiry_date'),
           this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : $r('app.string.watch_not_set'))
         this.buildInfoRow($r('app.string.ui_calories_for_this_item'),
-          this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded'))
+          this.foodItem.nutritionKnown ? this.foodItem.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded'))
         this.buildInfoRow($r('app.string.ui_added_on'),
           this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : $r('app.string.ui_unknown'))
 
@@ -308,6 +320,7 @@ struct FoodDetailPage {
     if (this.isChangingFood) return;
     this.getUIContext().animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
       this.showEatPanel = eat && !this.showEatPanel;
+      this.eatCalorieInput = '';
       this.showWastePanel = !eat && !this.showWastePanel;
     });
   }
@@ -337,6 +350,11 @@ struct FoodDetailPage {
   @Builder
   buildEatPanel() {
     Column({ space: 12 }) {
+      if (this.foodItem !== null && !this.foodItem.nutritionKnown && this.members.length > 0) {
+        TextInput({ text: this.eatCalorieInput, placeholder: $r('app.string.intake_eat_calories_optional') })
+          .type(InputType.NUMBER_DECIMAL).width('100%')
+          .onChange((value: string) => { this.eatCalorieInput = value; })
+      }
       Text($r('app.string.ui_who_ate_this')).fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
       if (this.members.length === 0) {
         Text($r('app.string.ui_add_a_family_member_in_profile_first')).fontSize(13).fontColor($r('app.color.text_hint'))

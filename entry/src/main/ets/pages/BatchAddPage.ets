@@ -1,503 +1,642 @@
-import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
-import { localizedFoodLabel } from '../common/Constants';
-import { scanBarcode, scanCore } from '@kit.ScanKit';
-import { BusinessError } from '@kit.BasicServicesKit';
-import { BarcodeService } from '../common/BarcodeService';
+import { FoodButtonStyle, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
+import { calculateExpiryTimestamp, FOOD_CATEGORIES, getStorageTypeName, localizedFoodLabel, StorageType } from '../common/Constants';
+import { IntakeDraft, IntakeImportParams, IntakeNutritionParams, IntakeParams, IntakeSeed } from '../common/FoodIntake';
 import { DatabaseHelper } from '../common/DatabaseHelper';
-import { FoodItem, BarcodeMatchResult } from '../model/DataModels';
-import { StorageType, FOOD_CATEGORIES, isPackagedFood, calculateExpiryTimestamp, padZero, kjToKcal } from '../common/Constants';
-import { HdsNavDestination, HdsNavigationBadgeIconOptions, TextStyleMode } from '@kit.UIDesignKit';
+import { BarcodeService } from '../common/BarcodeService';
+import { FoodItem } from '../model/DataModels';
+import { abilityAccessCtrl, common } from '@kit.AbilityKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { scanBarcode, scanCore, customScan } from '@kit.ScanKit';
+import { HdsNavDestination } from '@kit.UIDesignKit';
 import { AppNavigation } from '../common/AppNavigation';
 
-// 批量条目
-interface BatchItem {
-  name: string;
-  barcode: string;
-  category: string;
-  spec: string;
-  calories: number;
-  storageType: string;
-  expiryDays: number;
-  confirmed: boolean;
+@Component
+struct IntakeCard {
+  @ObjectLink draft: IntakeDraft;
+  @Prop compact: boolean = false;
+  @State expanded: boolean = false;
+  @State showDate: boolean = false;
+  @State chosenDate: Date = new Date();
+  @State showDetails: boolean = false;
+  onDelete: () => void = () => {};
+  onNutrition: () => void = () => {};
+  onSplit: () => void = () => {};
+
+  @Builder
+  storageChip(storage: string) {
+    Button(getStorageTypeName(storage))
+      .attributeModifier(this.draft.storage === storage ? FoodButtonStyle.compactSecondary : FoodButtonStyle.compactNeutral)
+      .layoutWeight(1)
+      .accessibilitySelected(this.draft.storage === storage)
+      .onClick(() => {
+        this.draft.storage = storage;
+        if (this.draft.estimated) this.estimateDate();
+      })
+  }
+
+  private estimateDate(): void {
+    this.draft.expiry = calculateExpiryTimestamp(this.draft.category || '其他', this.draft.storage);
+    this.draft.estimated = true;
+    this.showDate = false;
+  }
+
+  @Builder
+  summary() {
+    Row({ space: 10 }) {
+      Column({ space: 3 }) {
+        Text(this.draft.name.trim() || $r('app.string.intake_name_needed'))
+          .fontSize(16).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+        Text($r('app.string.intake_quantity_value', this.draft.quantity))
+          .fontSize(13).fontColor($r('app.color.text_secondary'))
+      }
+      .layoutWeight(1).alignItems(HorizontalAlign.Start)
+      if (this.compact) {
+        Button(this.expanded ? $r('app.string.intake_done') : $r('app.string.ui_edit'))
+          .attributeModifier(FoodButtonStyle.compactSecondary)
+          .onClick(() => { this.expanded = !this.expanded; })
+      }
+    }
+    .width('100%')
+  }
+
+  @Builder
+  fields() {
+    if (this.draft.photoUri.length > 0) {
+      Image(this.draft.photoUri).width('100%').height(100).objectFit(ImageFit.Contain).borderRadius(14)
+    }
+    TextInput({ text: this.draft.name, placeholder: $r('app.string.intake_name') })
+      .fontSize(17).height(48)
+      .backgroundColor($r('app.color.input_background'))
+      .borderRadius(14)
+      .accessibilityText($r('app.string.intake_name'))
+      .onChange((value: string) => { this.draft.name = value; })
+
+    Row({ space: 10 }) {
+      Text($r('app.string.intake_quantity')).layoutWeight(1).fontColor($r('app.color.text_primary')).fontSize(14)
+      Button('−').attributeModifier(FoodButtonStyle.compactNeutral)
+        .enabled(this.draft.quantity > 1)
+        .onClick(() => { this.draft.quantity--; })
+      Text(this.draft.quantity.toString()).width(30).textAlign(TextAlign.Center).fontColor($r('app.color.text_primary'))
+      Button('+').attributeModifier(FoodButtonStyle.compactSecondary)
+        .enabled(this.draft.quantity < 99)
+        .onClick(() => { this.draft.quantity++; })
+    }
+    .width('100%')
+
+    Row({ space: 6 }) {
+      this.storageChip(StorageType.FRIDGE)
+      this.storageChip(StorageType.FREEZER)
+      this.storageChip(StorageType.ROOM)
+    }
+
+    Row({ space: 8 }) {
+      Column({ space: 3 }) {
+        Text($r('app.string.intake_expiry')).fontSize(14).fontColor($r('app.color.text_primary'))
+        Text(this.draft.expiry === 0 ? $r('app.string.intake_pending_date') :
+          new Date(this.draft.expiry).toLocaleDateString())
+          .fontSize(14).fontColor($r('app.color.text_secondary'))
+        if (this.draft.estimated) {
+          Text($r('app.string.intake_estimated')).fontSize(12).fontColor($r('app.color.status_warning'))
+        }
+      }
+      .layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Button($r('app.string.intake_date_select')).attributeModifier(FoodButtonStyle.compactSecondary)
+        .onClick(() => {
+          if (!this.showDate) this.chosenDate = this.draft.expiry > 0 ? new Date(this.draft.expiry) : new Date();
+          this.showDate = !this.showDate;
+        })
+    }
+    .width('100%')
+
+    if (this.showDate) {
+      DatePicker({ start: new Date(2000, 0, 1), end: new Date(2100, 11, 31),
+        selected: this.chosenDate })
+        .height(140).width('100%')
+        .onDateChange((value: Date) => { this.chosenDate = value; })
+      Row({ space: 6 }) {
+        Button($r('app.string.intake_later')).attributeModifier(FoodButtonStyle.compactNeutral)
+          .layoutWeight(1).onClick(() => {
+            this.draft.expiry = 0;
+            this.draft.estimated = false;
+            this.showDate = false;
+          })
+        if (this.draft.category.trim().length > 0) {
+          Button($r('app.string.intake_use_estimate')).attributeModifier(FoodButtonStyle.compactSecondary)
+            .layoutWeight(1).onClick(() => { this.estimateDate(); })
+        }
+        Button($r('app.string.ui_confirm')).attributeModifier(FoodButtonStyle.compactPrimary)
+          .layoutWeight(1).onClick(() => {
+            const date = new Date(this.chosenDate.getTime());
+            date.setHours(23, 59, 59, 999);
+            this.draft.expiry = date.getTime();
+            this.draft.estimated = false;
+            this.showDate = false;
+          })
+      }
+      .width('100%')
+    }
+
+    Button($r('app.string.intake_more')).attributeModifier(FoodButtonStyle.text)
+      .onClick(() => { this.showDetails = !this.showDetails; })
+    if (this.showDetails) {
+      Select(FOOD_CATEGORIES.map((category: string): SelectOption => ({ value: localizedFoodLabel(category) })))
+        .value(this.draft.category.length > 0 ? localizedFoodLabel(this.draft.category) : $r('app.string.intake_category'))
+        .width('100%')
+        .onSelect((index: number) => {
+          this.draft.category = FOOD_CATEGORIES[index];
+          if (this.draft.estimated) this.estimateDate();
+        })
+      if (this.draft.photoUri.length > 0) {
+        Image(this.draft.photoUri).width('100%').height(110).borderRadius(12).objectFit(ImageFit.Cover)
+      }
+      TextInput({ text: this.draft.spec, placeholder: $r('app.string.intake_spec') })
+        .height(44).backgroundColor($r('app.color.input_background')).borderRadius(12)
+        .onChange((value: string) => { this.draft.spec = value; })
+      TextInput({ text: this.draft.calorieText, placeholder: $r('app.string.intake_calories_per_unit') })
+        .type(InputType.NUMBER_DECIMAL).height(44).backgroundColor($r('app.color.input_background')).borderRadius(12)
+        .onChange((value: string) => { this.draft.calorieText = value; })
+      Button($r('app.string.intake_read_nutrition')).attributeModifier(FoodButtonStyle.compactSecondary)
+        .onClick(() => { this.onNutrition(); })
+    }
+    if (this.compact) {
+      Row({ space: 8 }) {
+        if (this.draft.quantity > 1) {
+          Button($r('app.string.intake_split')).attributeModifier(FoodButtonStyle.compactSecondary)
+            .onClick(() => { this.onSplit(); })
+        }
+        Button($r('app.string.ui_delete')).attributeModifier(FoodButtonStyle.compactDanger)
+          .onClick(() => { this.onDelete(); })
+      }
+    }
+  }
+
+  build() {
+    Column({ space: 10 }) {
+      if (this.compact) {
+        this.summary()
+      }
+      if (!this.compact || this.expanded) {
+        this.fields()
+      } else {
+        Row({ space: 8 }) {
+          Text(getStorageTypeName(this.draft.storage)).fontSize(13).fontColor($r('app.color.text_secondary'))
+          Text(this.draft.expiry === 0 ? $r('app.string.intake_pending_date') : new Date(this.draft.expiry).toLocaleDateString())
+            .fontSize(13).fontColor($r('app.color.text_secondary'))
+          if (this.draft.estimated) {
+            Text($r('app.string.intake_estimated')).fontSize(12).fontColor($r('app.color.status_warning'))
+          }
+        }
+        .width('100%')
+      }
+    }
+    .width('100%').padding(16).alignItems(HorizontalAlign.Start)
+    .borderRadius(20).backgroundColor($r('app.color.card_background'))
+  }
 }
 
 @Component
 struct BatchAddPage {
-  @State items: BatchItem[] = [];
-  @State currentStep: string = 'collect';
-  @State editIndex: number = -1;
-  @State isSaving: boolean = false;
-  // 编辑用临时状态
-  @State editName: string = '';
-  @State editCategory: string = '';
-  @State editSpec: string = '';
-  @State editCalories: string = '';
-  @State editCalorieUnit: string = 'kJ';
-  @State editStorage: string = StorageType.FRIDGE;
-  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
-  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
-  // 收集态 List 与编辑态 Scroll 两个互斥滚动区的控制器
+  @State drafts: IntakeDraft[] = [];
+  @State recent: FoodItem[] = [];
+  @State mode: string = 'batch';
+  @State busy: boolean = false;
+  @State undoIds: number[] = [];
+  @State showBatchScanner: boolean = false;
+  @State scanReady: boolean = false;
+  @State scanCount: number = 0;
+  @State showStorageOptions: boolean = false;
+  private nextKey: number = 1;
+  private autoScan: boolean = false;
+  private shown = false;
+  private scanController: XComponentController = new XComponentController();
+  private scanSession: number = 0;
+  private scanInitialized: boolean = false;
   private scroller: Scroller = new Scroller();
-  private scroller2: Scroller = new Scroller();
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
 
-  // 步骤1：扫码收集
-  private startScan(): void {
-    const options: scanBarcode.ScanOptions = {
-      scanTypes: [scanCore.ScanType.ALL],
-      enableMultiMode: true,
-      enableAlbum: true
+  aboutToAppear(): void {
+    const params = AppNavigation.getParamByName('BatchAddPage') as IntakeParams | undefined;
+    this.mode = params?.mode ?? 'batch';
+    this.autoScan = this.mode === 'scan';
+    if (params?.seeds) this.addImported(params.seeds);
+    if (this.mode !== 'batch' && this.drafts.length === 0) this.drafts = [this.makeDraft()];
+    this.loadRecent();
+  }
+
+  private loadRecent(): void {
+    DatabaseHelper.getInstance().getRecentFoods().then((foods: FoodItem[]) => {
+      if (this.shown) this.recent = foods;
+    }).catch(() => {});
+  }
+
+  private makeDraft(seed?: IntakeSeed): IntakeDraft {
+    return new IntakeDraft(this.nextKey++, seed);
+  }
+
+  private addImported(seeds: IntakeSeed[]): void {
+    const drafts = this.drafts.slice();
+    for (const seed of seeds) {
+      const same = seed.name.trim().length > 0 && !seed.photoUri && !seed.barcode && !seed.category
+        ? drafts.find((draft: IntakeDraft): boolean => draft.quantity < 99 && draft.expiry === 0 &&
+          draft.name.trim().toLowerCase() === seed.name.trim().toLowerCase() && draft.barcode.length === 0 &&
+          draft.category.length === 0 && draft.photoUri.length === 0 && draft.calorieText.length === 0 &&
+          draft.spec.length === 0 && draft.storage === StorageType.FRIDGE) : undefined;
+      if (same) {
+        same.quantity++;
+      } else {
+        drafts.push(this.makeDraft(seed));
+      }
+    }
+    this.drafts = drafts;
+  }
+
+  private openImport(page: string): void {
+    const params: IntakeImportParams = { onImported: (items: IntakeSeed[]) => { this.addImported(items); } };
+    AppNavigation.push(page, params);
+  }
+
+  private useRecent(food: FoodItem): void {
+    const seed: IntakeSeed = {
+      name: food.name, barcode: food.barcode, category: food.category, spec: food.spec,
+      calories: food.nutritionKnown ? food.calories : undefined, storage: food.storageType
     };
+    const draft = this.makeDraft(seed);
+    this.drafts = this.mode === 'batch' ? this.drafts.concat([draft]) : [draft];
+  }
+
+  private async scan(): Promise<void> {
+    const context = this.getUIContext().getHostContext();
+    if (this.busy || context === undefined) return;
+    this.busy = true;
     try {
-      scanBarcode.startScanForResult(this.getUIContext().getHostContext(), options)
-        .then((result: scanBarcode.ScanResult) => {
-          const code: string = result.originalValue;
-          if (code.length > 0) {
-            this.matchAndAdd(code);
-          }
-        })
-        .catch((error: BusinessError) => {
-          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_scan_canceled'), duration: 1500 });
-        });
-    } catch (error) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_barcode_scanning_is_unavailable'), duration: 1500 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
-    }
-  }
-
-  private matchAndAdd(barcode: string): void {
-    BarcodeService.getInstance().matchBarcodeInfo(barcode).then((result: BarcodeMatchResult) => {
-      const item: BatchItem = {
-        name: result.matched ? result.name : '',
-        barcode: barcode,
-        category: result.category,
-        spec: result.spec,
-        calories: result.calories,
-        storageType: StorageType.FRIDGE,
-        expiryDays: 7,
-        confirmed: false
+      const options: scanBarcode.ScanOptions = {
+        scanTypes: [scanCore.ScanType.ALL], enableMultiMode: false, enableAlbum: true
       };
-      const newList: BatchItem[] = [];
-      for (let i = 0; i < this.items.length; i++) {
-        newList.push(this.items[i]);
+      const result = await scanBarcode.startScanForResult(context, options);
+      await this.addBarcode(result.originalValue.trim());
+    } catch (error) {
+      if ((error as BusinessError).code !== scanCore.ScanErrorCode.SCAN_SERVICE_CANCELED && this.shown) {
+        this.toast($r('app.string.ui_no_scan_result_received'));
       }
-      newList.push(item);
-      this.items = newList;
-      if (result.matched) {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_match_found_s', result.name), duration: 1500 });
-      } else {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_match_found_enter_a_name_manually'), duration: 1500 });
-      }
-    });
-  }
-
-  // 手动添加空条目
-  private addManualItem(): void {
-    const item: BatchItem = {
-      name: '',
-      barcode: '',
-      category: '',
-      spec: '',
-      calories: 0,
-      storageType: StorageType.FRIDGE,
-      expiryDays: 7,
-      confirmed: false
-    };
-    const newList: BatchItem[] = [];
-    for (let i = 0; i < this.items.length; i++) {
-      newList.push(this.items[i]);
+    } finally {
+      this.busy = false;
     }
-    newList.push(item);
-    this.items = newList;
   }
 
-  private removeItem(index: number): void {
-    const newList: BatchItem[] = [];
-    for (let i = 0; i < this.items.length; i++) {
-      if (i !== index) {
-        newList.push(this.items[i]);
-      }
-    }
-    this.items = newList;
-  }
-
-  // 打开编辑
-  private openEdit(index: number): void {
-    const item: BatchItem = this.items[index];
-    this.editIndex = index;
-    this.editCalorieUnit = 'kcal';
-    this.editName = item.name;
-    this.editCategory = item.category;
-    this.editSpec = item.spec;
-    this.editCalories = item.calories > 0 ? item.calories.toString() : '';
-    this.editStorage = item.storageType;
-    this.getUIContext().animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
-      this.currentStep = 'edit';
-    });
-  }
-
-  // 保存编辑
-  private saveEdit(): void {
-    if (this.editName.trim().length === 0) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_food_name_2'), duration: 1500 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
-      return;
-    }
-    const newList: BatchItem[] = [];
-    for (let i = 0; i < this.items.length; i++) {
-      if (i === this.editIndex) {
-        const rawCal: number = Number(this.editCalories) || 0;
-        const finalCal: number = this.editCalorieUnit === 'kJ' ? kjToKcal(rawCal) : rawCal;
-        const updated: BatchItem = {
-          name: this.editName.trim(),
-          barcode: this.items[i].barcode,
-          category: this.editCategory,
-          spec: this.editSpec,
-          calories: finalCal,
-          storageType: this.editStorage,
-          expiryDays: this.items[i].expiryDays,
-          confirmed: true
-        };
-        newList.push(updated);
-      } else {
-        newList.push(this.items[i]);
-      }
-    }
-    this.items = newList;
-    this.currentStep = 'collect';
-  }
-
-  // 批量入库
-  private async batchSave(): Promise<void> {
-    if (this.isSaving) return;
-    // 检查是否所有条目都有名称
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].name.trim().length === 0) {
-        try {
-          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_item_d_needs_a_name_tap_edit', i + 1), duration: 2000 });
-        } catch (e) {
-          // Toast 展示失败时忽略
-        }
+  private async addBarcode(code: string): Promise<void> {
+    if (code.length === 0) return;
+    if (this.mode === 'batch') {
+      const same = this.drafts.find((draft: IntakeDraft): boolean =>
+        draft.barcode === code && draft.expiry === 0 && draft.quantity < 99);
+      if (same !== undefined) {
+        same.quantity++;
+        this.drafts = this.drafts.slice();
         return;
       }
     }
-    if (this.items.length === 0) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_add_a_food_item_first'), duration: 1500 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
+    const matched = await BarcodeService.getInstance().matchBarcodeInfo(code).catch(() => undefined);
+    const previous = this.recent.find((item: FoodItem): boolean => item.barcode === code);
+    const draft = this.makeDraft({
+      name: matched?.name ?? previous?.name ?? '', barcode: code,
+      category: matched?.category || previous?.category, spec: matched?.spec || previous?.spec,
+      storage: previous?.storageType, calories: previous?.nutritionKnown ? previous.calories : undefined
+    });
+    this.drafts = this.mode === 'batch' ? this.drafts.concat([draft]) : [draft];
+  }
+
+  private async openBatchScanner(): Promise<void> {
+    const context = this.getUIContext().getHostContext() as common.UIAbilityContext | undefined;
+    if (!context || this.busy) return;
+    if (!canIUse('SystemCapability.Multimedia.Scan.ScanBarcode')) {
+      await this.scan();
       return;
     }
-    this.isSaving = true;
-    const db: DatabaseHelper = DatabaseHelper.getInstance();
-    let count: number = 0;
+    this.busy = true;
+    let granted = false;
     try {
-      for (let i = 0; i < this.items.length; i++) {
-        const item: BatchItem = this.items[i];
-        const food = new FoodItem();
-        food.name = item.name;
-        food.barcode = item.barcode;
-        food.category = item.category;
-        food.spec = item.spec;
-        food.calories = item.calories;
-        food.storageType = item.storageType;
-        if (isPackagedFood(item.category)) {
-          food.expiryDate = Date.now() + item.expiryDays * 24 * 60 * 60 * 1000;
-        } else {
-          food.expiryDate = calculateExpiryTimestamp(item.category, item.storageType);
-        }
-        food.status = 0;
-        if (await db.insertFoodItem(food) <= 0) {
-          throw new Error('Food item was not inserted');
-        }
-        count++;
-        // 存入产品字典
-        if (item.barcode.length > 0) {
-          await BarcodeService.getInstance().saveToProductDict(
-            item.barcode, item.name, item.category, item.spec, item.calories, 'manual'
-          );
+      const permission = await abilityAccessCtrl.createAtManager().requestPermissionsFromUser(context, ['ohos.permission.CAMERA']);
+      granted = permission.authResults[0] === 0;
+    } catch (error) {
+      console.warn('Could not request scanner permission: ' + error);
+    } finally {
+      this.busy = false;
+    }
+    if (!granted) {
+      this.toast($r('app.string.intake_camera_unavailable'));
+      return;
+    }
+    this.scanCount = 0;
+    this.scanReady = false;
+    this.showBatchScanner = true;
+  }
+
+  private startBatchCamera(): void {
+    const session = ++this.scanSession;
+    try {
+      customScan.init({ scanTypes: [scanCore.ScanType.ALL], enableMultiMode: false });
+      this.scanInitialized = true;
+      customScan.start({ surfaceId: this.scanController.getXComponentSurfaceId(), width: 288, height: 204 },
+        (error: BusinessError, results: scanBarcode.ScanResult[]) => {
+          if (session !== this.scanSession) return;
+          if (error) {
+            this.toast($r('app.string.intake_camera_unavailable'));
+            void this.closeBatchScanner();
+            return;
+          }
+          const code = results[0]?.originalValue.trim() ?? '';
+          if (!code || this.busy || this.scanReady) return;
+          this.busy = true;
+          void this.addBarcode(code).then(() => {
+            if (session !== this.scanSession) return;
+            this.scanCount++;
+            this.scanReady = true;
+          }).finally(() => { this.busy = false; });
+        });
+    } catch (error) {
+      this.toast($r('app.string.intake_camera_unavailable'));
+      void this.closeBatchScanner();
+    }
+  }
+
+  private nextScan(): void {
+    if (!this.scanReady) return;
+    this.scanReady = false;
+    try {
+      customScan.rescan();
+    } catch (error) {
+      this.toast($r('app.string.intake_camera_unavailable'));
+      void this.closeBatchScanner();
+    }
+  }
+
+  private async closeBatchScanner(): Promise<void> {
+    ++this.scanSession;
+    if (!this.scanInitialized) {
+      this.showBatchScanner = false;
+      return;
+    }
+    this.scanInitialized = false;
+    this.busy = true;
+    try {
+      await customScan.stop();
+    } catch (error) {
+      console.warn('Could not stop batch scanner: ' + error);
+    }
+    try {
+      await customScan.release();
+    } catch (error) {
+      console.warn('Could not release batch scanner: ' + error);
+    } finally {
+      this.busy = false;
+      this.showBatchScanner = false;
+    }
+  }
+
+  private openNutrition(draft: IntakeDraft): void {
+    const params: IntakeNutritionParams = {
+      barcode: draft.barcode, name: draft.name, category: draft.category, spec: draft.spec,
+      onApplied: (calories: number) => { draft.calorieText = calories.toString(); }
+    };
+    AppNavigation.push('CalorieInputPage', params);
+  }
+
+  private splitDraft(draft: IntakeDraft): void {
+    if (draft.quantity < 2) return;
+    const newDraft = this.makeDraft({
+      name: draft.name, barcode: draft.barcode, category: draft.category, spec: draft.spec,
+      calories: draft.calorieText.trim().length > 0 ? Number(draft.calorieText) : undefined,
+      storage: draft.storage, photoUri: draft.photoUri
+    });
+    draft.quantity--;
+    this.drafts = this.drafts.concat([newDraft]);
+  }
+
+  private applyStorage(storage: string): void {
+    for (const draft of this.drafts) {
+      draft.storage = storage;
+      if (draft.estimated) draft.expiry = calculateExpiryTimestamp(draft.category || '其他', storage);
+    }
+    this.drafts = this.drafts.slice();
+    this.showStorageOptions = false;
+  }
+
+  private toast(message: ResourceStr): void {
+    this.getUIContext().getPromptAction().showToast({ message: message, duration: 1800 });
+  }
+
+  private async rememberProduct(item: FoodItem): Promise<void> {
+    if (item.barcode.length === 0) return;
+    const database = DatabaseHelper.getInstance();
+    if (await database.queryProductDictByBarcode(item.barcode) === null) {
+      // The database stores normalized label energy. An intake amount belongs to this entry.
+      await BarcodeService.getInstance().saveToProductDict(item.barcode, item.name, item.category, item.spec, 0, 'manual');
+    }
+  }
+
+  private async save(): Promise<void> {
+    if (this.busy || this.drafts.length === 0) return;
+    const items: FoodItem[] = [];
+    const products: Map<string, FoodItem> = new Map<string, FoodItem>();
+    for (const draft of this.drafts) {
+      if (!draft.name.trim()) {
+        this.toast($r('app.string.intake_name_needed'));
+        return;
+      }
+      const text = draft.calorieText.trim();
+      const kcal = text.length > 0 ? Number(text) : 0;
+      if (!Number.isFinite(kcal) || kcal < 0) {
+        this.toast($r('app.string.ui_enter_a_valid_energy_value'));
+        return;
+      }
+      const item = new FoodItem();
+      item.name = draft.name.trim();
+      item.category = draft.category;
+      item.spec = draft.spec.trim();
+      item.barcode = draft.barcode;
+      item.storageType = draft.storage;
+      item.expiryDate = draft.expiry;
+      item.expiryEstimated = draft.estimated;
+      item.calories = kcal;
+      item.nutritionKnown = text.length > 0;
+      for (let unit = 0; unit < draft.quantity; unit++) items.push(item);
+      if (item.barcode.length > 0) products.set(item.barcode, item);
+    }
+    this.busy = true;
+    try {
+      this.undoIds = await DatabaseHelper.getInstance().insertIntake(items);
+      this.drafts = [];
+      AppNavigation.notifyDataChanged();
+      for (const item of products.values()) {
+        try {
+          await this.rememberProduct(item);
+        } catch (error) {
+          console.warn('Could not remember intake product: ' + error);
         }
       }
-      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_added_d_items', count), duration: 2000 });
-      AppNavigation.pop();
-    } catch (e) {
-      // 已写入的条目从待保存队列移除，重试只处理剩余条目。
-      this.items = this.items.slice(count);
-      if (count > 0) AppNavigation.notifyDataChanged();
-      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_save_try_again'), duration: 2000 });
+      this.loadRecent();
+    } catch (error) {
+      this.toast($r('app.string.ui_could_not_save_try_again'));
     } finally {
-      this.isSaving = false;
+      this.busy = false;
     }
   }
 
-  private getConfirmedCount(): number {
-    let count: number = 0;
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].confirmed && this.items[i].name.length > 0) count++;
+  private async undo(): Promise<void> {
+    if (this.busy || this.undoIds.length === 0) return;
+    this.busy = true;
+    try {
+      await DatabaseHelper.getInstance().undoIntake(this.undoIds);
+      this.undoIds = [];
+      AppNavigation.notifyDataChanged();
+      this.loadRecent();
+      this.continueAdding();
+    } catch (error) {
+      this.toast($r('app.string.intake_undo_failed'));
+    } finally {
+      this.busy = false;
     }
-    return count;
   }
 
-  // 标题栏右侧菜单：收集阶段且已有条目时显示"全部入库"（等价于原标题栏按钮；保存中隐藏以模拟禁用态）
-  private getMenuItems(): Array<HdsNavigationBadgeIconOptions> {
-    if (this.currentStep !== 'collect' || this.items.length === 0 || this.isSaving) {
-      return [];
+  private continueAdding(): void {
+    this.undoIds = [];
+    this.drafts = this.mode === 'batch' ? [] : [this.makeDraft()];
+  }
+
+  @Builder
+  batchTools() {
+    Row({ space: 8 }) {
+      Button($r('app.string.ui_scan_to_add')).attributeModifier(FoodButtonStyle.compactPrimary)
+        .layoutWeight(1).onClick(() => { void this.openBatchScanner(); })
+      Button($r('app.string.ui_add_manually')).attributeModifier(FoodButtonStyle.compactSecondary)
+        .layoutWeight(1).onClick(() => { this.drafts = this.drafts.concat([this.makeDraft()]); })
     }
-    const item: HdsNavigationBadgeIconOptions = {
-      content: { type: TextStyleMode.NORMAL, componentId: 'save-batch', isEnabled: !this.isSaving, label: $r('app.string.ui_add_all_items'), action: () => { this.batchSave(); } }
-    };
-    return [item];
+    Row({ space: 8 }) {
+      Button($r('app.string.ui_add_from_a_photo')).attributeModifier(FoodButtonStyle.text)
+        .layoutWeight(1).onClick(() => { this.openImport('PhotoEntryPage'); })
+      Button($r('app.string.ui_import_from_clipboard_2')).attributeModifier(FoodButtonStyle.text)
+        .layoutWeight(1).onClick(() => { this.openImport('ClipboardParsePage'); })
+    }
+    if (this.drafts.length > 0) {
+      Button($r('app.string.intake_batch_location')).attributeModifier(FoodButtonStyle.secondary)
+        .width('100%').onClick(() => { this.showStorageOptions = !this.showStorageOptions; })
+    }
+    if (this.showStorageOptions) {
+      Row({ space: 6 }) {
+        ForEach([StorageType.FRIDGE, StorageType.FREEZER, StorageType.ROOM], (storage: StorageType) => {
+          Button(getStorageTypeName(storage)).attributeModifier(FoodButtonStyle.compactNeutral)
+            .layoutWeight(1).onClick(() => { this.applyStorage(storage); })
+        })
+      }
+    }
+  }
+
+  @Builder
+  batchScannerPanel() {
+    Column({ space: 14 }) {
+      XComponent({ id: 'intake-batch-camera', type: XComponentType.SURFACE, controller: this.scanController })
+        .width(288).height(204).borderRadius(16)
+        .onLoad(() => { this.startBatchCamera(); })
+      Text(this.scanReady ? $r('app.string.intake_scan_count', this.scanCount) :
+        $r('app.string.intake_scan_aim'))
+        .fontSize(16).fontColor($r('app.color.text_primary'))
+      Button($r('app.string.intake_scan_next')).attributeModifier(FoodButtonStyle.primary)
+        .enabled(this.scanReady).onClick(() => { this.nextScan(); })
+      Button($r('app.string.intake_done')).attributeModifier(FoodButtonStyle.secondary)
+        .onClick(() => { void this.closeBatchScanner(); })
+    }
+    .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(16)
   }
 
   build() {
     HdsNavDestination() {
-    Column() {
-      if (this.currentStep === 'collect') {
-        this.buildCollectView()
-      } else {
-        this.buildEditView()
+      Column({ space: 8 }) {
+        if (this.showBatchScanner) {
+          this.batchScannerPanel()
+        } else if (this.undoIds.length > 0) {
+          Column({ space: 14 }) {
+            Text($r('app.string.ui_added_d_items', this.undoIds.length)).fontSize(21).fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_primary'))
+            Button($r('app.string.intake_continue')).attributeModifier(FoodButtonStyle.primary)
+              .width('100%').onClick(() => { this.continueAdding(); })
+            Button($r('app.string.intake_undo')).attributeModifier(FoodButtonStyle.neutral)
+              .width('100%').onClick(() => { void this.undo(); })
+            Button($r('app.string.intake_done')).attributeModifier(FoodButtonStyle.text)
+              .onClick(() => { AppNavigation.pop(); })
+          }
+          .width('100%').padding(24).layoutWeight(1).justifyContent(FlexAlign.Center)
+        } else {
+          Scroll(this.scroller) {
+            Column({ space: 12 }) {
+              if (this.mode === 'batch') {
+                this.batchTools()
+              } else if (this.mode === 'scan' && !this.drafts[0]?.barcode) {
+                Button($r('app.string.ui_scan_to_add')).attributeModifier(FoodButtonStyle.compactSecondary)
+                  .width('100%').onClick(() => { void this.scan(); })
+              }
+              ForEach(this.drafts, (draft: IntakeDraft) => {
+                IntakeCard({
+                  draft: draft, compact: this.mode === 'batch',
+                  onDelete: () => {
+                    this.drafts = this.drafts.filter((other: IntakeDraft): boolean => other.key !== draft.key);
+                  },
+                  onNutrition: () => { this.openNutrition(draft); },
+                  onSplit: () => { this.splitDraft(draft); }
+                })
+              }, (draft: IntakeDraft): string => draft.key.toString())
+              if (this.recent.length > 0) {
+                Text($r('app.string.intake_recent')).fontSize(16).fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.text_primary'))
+                Flex({ wrap: FlexWrap.Wrap }) {
+                  ForEach(this.recent, (item: FoodItem) => {
+                    Button(item.name).attributeModifier(FoodButtonStyle.compactSecondary)
+                      .margin({ right: 6, bottom: 6 }).onClick(() => { this.useRecent(item); })
+                  }, (item: FoodItem): string => item.id.toString())
+                }
+              }
+            }
+            .width('100%').alignItems(HorizontalAlign.Start).padding({ left: 16, right: 16, top: 8, bottom: 12 })
+          }
+          .layoutWeight(1).align(Alignment.Top)
+          .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true }).scrollBar(BarState.Off)
+          Row() {
+            Button(this.mode === 'batch' ? $r('app.string.ui_add_all_items') : $r('app.string.ui_add_to_inventory'))
+              .attributeModifier(FoodButtonStyle.primary)
+              .width('100%').enabled(!this.busy && this.drafts.length > 0)
+              .onClick(() => { void this.save(); })
+          }
+          .width('100%').padding({ left: 16, right: 16, bottom: 16 })
+        }
       }
-    }
-    .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+      .enabled(!this.busy).width('100%').height('100%')
+      .padding({ top: 12 + this.statusBarHeight })
+      .backgroundColor($r('app.color.page_background'))
     }
     .titleBar({
-      content: {
-        title: { mainTitle: this.currentStep === 'edit' ? $r('app.string.ui_edit_food_details') : $r('app.string.ui_add_in_bulk_2') },
-        menu: { value: this.getMenuItems() }
-      },
+      content: { title: { mainTitle: this.mode === 'batch' ? $r('app.string.ui_add_in_bulk_2') :
+        $r('app.string.intake_quick_add') } },
       style: FOOD_TITLE_BAR_STYLE
     })
-    .bindToScrollable([this.scroller, this.scroller2])
-    .onBackPressed(() => {
-      if (this.isSaving) return true;
-      if (this.currentStep === 'edit') {
-        this.currentStep = 'collect';
-        return true;
+    .onShown(() => {
+      this.shown = true;
+      this.loadRecent();
+      if (this.autoScan) {
+        this.autoScan = false;
+        void this.scan();
       }
-      return false;
     })
     .onHidden(() => {
-      AppNavigation.notifyDataChanged();
+      this.shown = false;
+      if (this.showBatchScanner) void this.closeBatchScanner();
     })
-    .backgroundColor($r('app.color.page_background'))
-  }
-
-  // 收集阶段
-  @Builder
-  buildCollectView() {
-    Column() {
-      // 操作按钮
-      Row({ space: 12 }) {
-        Button($r('app.string.ui_scan_to_add'))
-          .attributeModifier(FoodButtonStyle.primary)
-          .layoutWeight(1)
-          .onClick(() => { this.startScan(); })
-        Button($r('app.string.ui_add_manually'))
-          .attributeModifier(FoodButtonStyle.secondary)
-          .layoutWeight(1)
-          .onClick(() => { this.addManualItem(); })
-      }
-      .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 8 })
-
-      Text($r('app.string.ui_d_added_d_reviewed', this.items.length, this.getConfirmedCount()))
-        .fontSize(13).fontColor($r('app.color.text_hint'))
-        .width('100%').padding({ left: 16, right: 16, bottom: 8 })
-
-      // 条目列表
-      if (this.items.length === 0) {
-        Scroll() {
-          Column({ space: 8 }) {
-            Image($r('app.media.icon_clipboard')).width(48).height(48).draggable(false)
-            Text($r('app.string.ui_tap_the_button_above_to_add_food')).fontSize(14).fontColor($r('app.color.text_hint'))
-            Text($r('app.string.ui_scan_multiple_barcodes_in_a_row')).fontSize(13).fontColor($r('app.color.text_disabled'))
-          }
-          .width('100%').alignItems(HorizontalAlign.Center)
-        }
-        .width('100%').layoutWeight(1).align(Alignment.Center)
-        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
-      } else {
-        List({ space: 8, scroller: this.scroller }) {
-          ForEach(this.items, (item: BatchItem, index: number) => {
-            ListItem() {
-              Row() {
-                // 状态指示
-                Row().width(10).height(10).borderRadius(5)
-                  .backgroundColor(item.confirmed ? $r('app.color.status_success') : $r('app.color.status_warning'))
-                  .margin({ right: 8 })
-
-                Column({ space: 2 }) {
-                  Text(item.name.length > 0 ? item.name : $r('app.string.ui_untitled_tap_to_edit'))
-                    .fontSize(15)
-                    .fontColor(item.name.length > 0 ? $r('app.color.text_primary') : $r('app.color.status_warning'))
-                    .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-                  Row({ space: 8 }) {
-                    if (item.barcode.length > 0) {
-                      Text(item.barcode).fontSize(13).fontColor($r('app.color.text_hint'))
-                    }
-                    if (item.category.length > 0) {
-                      Text(localizedFoodLabel(item.category)).fontSize(13).fontColor($r('app.color.text_hint'))
-                    }
-                    if (item.calories > 0) {
-                      Text(item.calories.toString() + 'kcal').fontSize(11).fontColor($r('app.color.status_warning'))
-                    }
-                  }
-                }
-                .layoutWeight(1).alignItems(HorizontalAlign.Start)
-
-                Button($r('app.string.ui_edit'))
-                  .attributeModifier(FoodButtonStyle.compactSecondary)
-                  .margin({ right: 6 })
-                  .onClick(() => { this.openEdit(index); })
-                Button($r('app.string.ui_delete'))
-                  .attributeModifier(FoodButtonStyle.compactDanger)
-                  .onClick(() => { this.removeItem(index); })
-              }
-              .width('100%').padding(12)
-              .backgroundColor($r('app.color.card_background')).borderRadius(12)
-            }
-          }, (item: BatchItem, index: number) => index.toString() + '_' + item.name)
-        }
-        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
-        .width('100%').layoutWeight(1).padding({ left: 16, right: 16, bottom: 16 })
-      }
-    }
-    // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
-    .padding({ top: 56 + this.statusBarHeight })
-    .width('100%').layoutWeight(1).enabled(!this.isSaving)
-    .transition(FoodMotion.reveal())
-  }
-
-  // 编辑阶段（逐个编辑食品详情）
-  @Builder
-  buildEditView() {
-    Scroll(this.scroller2) {
-      Column({ space: 16 }) {
-        // 原自定义标题栏"返回"按钮在编辑态的逻辑（返回收集列表）保留在内容区顶部；titleBar 的返回按钮固定为退出页面
-        Row() {
-          Button($r('app.string.ui_back_to_list'))
-            .attributeModifier(FoodButtonStyle.text)
-            .onClick(() => { this.currentStep = 'collect'; })
-        }
-        .width('100%').padding({ left: 16, right: 16, top: 8 })
-
-        // 名称
-        Column({ space: 6 }) {
-          Row() {
-            Text($r('app.string.ui_food_name')).fontSize(14).fontColor($r('app.color.text_primary'))
-            Text(' *').fontSize(14).fontColor($r('app.color.status_danger'))
-          }
-          TextInput({ text: this.editName, placeholder: $r('app.string.ui_e_g_milk_apples') })
-            .width('100%').height(44).fontSize(15).borderRadius(8)
-            .backgroundColor($r('app.color.input_background'))
-            .onChange((value: string) => { this.editName = value; })
-        }
-        .width('100%').padding({ left: 16, right: 16, top: 16 })
-
-        // 分类
-        Column({ space: 6 }) {
-          Text($r('app.string.ui_food_category')).fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
-          Flex({ wrap: FlexWrap.Wrap }) {
-            ForEach(FOOD_CATEGORIES, (cat: string) => {
-              Text(localizedFoodLabel(cat))
-                .fontSize(13)
-                .fontColor(this.editCategory === cat ? Color.White : $r('app.color.text_secondary'))
-                .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                .margin({ right: 8, bottom: 8 }).borderRadius(16)
-                .backgroundColor(this.editCategory === cat ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-                .onClick(() => { this.editCategory = cat; })
-            }, (cat: string) => cat)
-          }
-        }
-        .width('100%').padding({ left: 16, right: 16 })
-
-        // 规格
-        Column({ space: 6 }) {
-          Text($r('app.string.ui_package_size_optional_2')).fontSize(14).fontColor($r('app.color.text_primary'))
-          TextInput({ text: this.editSpec, placeholder: $r('app.string.ui_e_g_250_ml_500_g') })
-            .width('100%').height(44).fontSize(15).borderRadius(8)
-            .backgroundColor($r('app.color.input_background'))
-            .onChange((value: string) => { this.editSpec = value; })
-        }
-        .width('100%').padding({ left: 16, right: 16 })
-
-        // 热量（支持kJ/kcal切换）
-        Column({ space: 6 }) {
-          Text($r('app.string.ui_energy_per_100_g_optional')).fontSize(14).fontColor($r('app.color.text_primary'))
-          Row({ space: 0 }) {
-            Text($r('app.string.ui_kilojoules_kj'))
-              .fontSize(13)
-              .fontColor(this.editCalorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.editCalorieUnit === 'kJ' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-              .borderRadius(8)
-              .onClick(() => { this.editCalorieUnit = 'kJ'; })
-            Text($r('app.string.ui_kilocalories_kcal'))
-              .fontSize(13)
-              .fontColor(this.editCalorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .backgroundColor(this.editCalorieUnit === 'kcal' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-              .borderRadius(8)
-              .onClick(() => { this.editCalorieUnit = 'kcal'; })
-          }
-          .width('100%').borderRadius(8).clip(true)
-          Row({ space: 8 }) {
-            TextInput({ text: this.editCalories, placeholder: $r('app.string.ui_value_from_the_nutrition_label') })
-              .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .type(InputType.Number)
-              .onChange((value: string) => { this.editCalories = value; })
-            Text(this.editCalorieUnit).fontSize(14).fontColor($r('app.color.text_hint'))
-          }
-          if (this.editCalorieUnit === 'kJ' && this.editCalories.length > 0) {
-            Text($r('app.string.ui_about_d_kcal_converted', kjToKcal(Number(this.editCalories) || 0)))
-              .fontSize(12).fontColor($r('app.color.accent_link'))
-          }
-        }
-        .width('100%').padding({ left: 16, right: 16 })
-
-        // 存储方式
-        Column({ space: 6 }) {
-          Text($r('app.string.ui_storage_method')).fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
-          Row({ space: 0 }) {
-            Text($r('app.string.ui_refrigerated')).fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .fontColor(this.editStorage === StorageType.FRIDGE ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.FRIDGE ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-              .onClick(() => { this.editStorage = StorageType.FRIDGE; })
-            Text($r('app.string.ui_frozen')).fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .fontColor(this.editStorage === StorageType.FREEZER ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.FREEZER ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-              .onClick(() => { this.editStorage = StorageType.FREEZER; })
-            Text($r('app.string.ui_room_temperature')).fontSize(14).textAlign(TextAlign.Center).layoutWeight(1).height(40)
-              .fontColor(this.editStorage === StorageType.ROOM ? Color.White : $r('app.color.text_secondary'))
-              .backgroundColor(this.editStorage === StorageType.ROOM ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
-              .onClick(() => { this.editStorage = StorageType.ROOM; })
-          }
-          .width('100%').borderRadius(8).clip(true)
-        }
-        .width('100%').padding({ left: 16, right: 16 })
-
-        // 确认按钮
-        Button($r('app.string.ui_review_details'))
-          .attributeModifier(FoodButtonStyle.primary)
-          .width('100%')
-          .margin({ left: 16, right: 16, top: 8, bottom: 32 })
-          .onClick(() => { this.saveEdit(); })
-      }
-      // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
-      .padding({ top: 56 + this.statusBarHeight })
-    }
-    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
-    .layoutWeight(1).scrollBar(BarState.Off)
+    .onBackPressed((): boolean => {
+      if (this.busy) return true;
+      if (!this.showBatchScanner) return false;
+      void this.closeBatchScanner();
+      return true;
+    })
   }
 }
 
-// Navigation 系统路由表入口（router_map.json 中注册为 BatchAddPage）
 @Builder
 export function BatchAddPageBuilder() {
   BatchAddPage()

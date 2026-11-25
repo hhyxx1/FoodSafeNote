@@ -1,3 +1,4 @@
+import { IntakeNutritionParams } from '../common/FoodIntake';
 import { canReceiveRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
 import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { resolveLocalizedText } from '../common/Constants';
@@ -18,16 +19,6 @@ import {
 } from '@kit.ServiceCollaborationKit';
 import { HdsNavDestination } from '@kit.UIDesignKit';
 import { AppNavigation } from '../common/AppNavigation';
-
-// 路由参数接口
-interface CaloriePageParams {
-  barcode: string;
-  name: string;
-  category: string;
-  spec: string;
-  amount?: number;
-  amountUnit?: string;
-}
 
 // 跳转AddFoodPage参数接口
 interface AddFoodParams {
@@ -74,6 +65,7 @@ struct CalorieInputPage {
   @State ocrDialogServingSize: string = '';
   @State ocrDialogServingUnit: string = 'g';
   @State showCollaborationButton: boolean = false;
+  private onApplied?: (calories: number) => void;
   private isPageActive: boolean = true;
 
   // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
@@ -94,8 +86,9 @@ struct CalorieInputPage {
   aboutToAppear(): void {
     this.showCollaborationButton = canReceiveRemoteFoodPhoto() &&
       canIUse('SystemCapability.AI.OCR.TextRecognition');
-    const params: CaloriePageParams | undefined = AppNavigation.getParamByName('CalorieInputPage') as CaloriePageParams | undefined;
+    const params: IntakeNutritionParams | undefined = AppNavigation.getParamByName('CalorieInputPage') as IntakeNutritionParams | undefined;
     if (params !== null && params !== undefined) {
+      this.onApplied = params.onApplied;
       this.barcode = params.barcode;
       this.foodName = params.name;
       this.category = params.category;
@@ -107,7 +100,7 @@ struct CalorieInputPage {
     }
   }
 
-  private prefillAmountFromParamsOrSpec(params: CaloriePageParams): void {
+  private prefillAmountFromParamsOrSpec(params: IntakeNutritionParams): void {
     if (params.amount !== undefined && params.amount > 0) {
       this.amountText = params.amount.toString();
       if (params.amountUnit !== undefined && (params.amountUnit === 'g' || params.amountUnit === 'ml')) {
@@ -645,7 +638,7 @@ struct CalorieInputPage {
     }
 
     // 存入ProductDict（严格模式：按份但未填写每份重量时，仅存原始标注，不沉淀标准化值）
-    if (rawValue > 0) {
+    if (rawValue > 0 && (this.barcode.length > 0 || this.foodName.trim().length > 0)) {
       let source: string = 'manual';
       if (this.calorieSourceKind === 'ocr') {
         source = 'ocr';
@@ -679,6 +672,12 @@ struct CalorieInputPage {
       DatabaseHelper.getInstance().insertOcrRecord(ocrRec).catch(() => {
         // OCR 记录写入失败不阻断流程
       });
+    }
+
+    if (this.onApplied) {
+      this.onApplied(finalCalories);
+      AppNavigation.pop();
+      return;
     }
 
     // 跳转到AddFoodPage完成入库
@@ -948,7 +947,7 @@ struct CalorieInputPage {
           .alignItems(HorizontalAlign.Start)
 
           // 确认按钮
-          Button($r('app.string.ui_next_set_shelf_life'))
+          Button(this.onApplied ? $r('app.string.ui_confirm') : $r('app.string.ui_next_set_shelf_life'))
             .attributeModifier(FoodButtonStyle.primary)
             .width('100%')
             .margin({ left: 16, right: 16, top: 8, bottom: 32 })

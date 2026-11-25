@@ -39,6 +39,10 @@ struct AddFoodPage {
   @State caloriesText: string = '';
   @State barcode: string = '';
   @State storageType: string = StorageType.FRIDGE;
+  @State datePending: boolean = false;
+  @State expiryEstimated: boolean = true;
+  @State showEditDate: boolean = false;
+  @State chosenEditDate: Date = new Date();
   @State expiryDate: Date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   @State hasExactProductionInfo: boolean = false;
   @State productionDate: Date = new Date();
@@ -126,9 +130,11 @@ struct AddFoodPage {
         this.selectedCategory = item.category;
         this.spec = item.spec;
         this.barcode = item.barcode;
-        this.caloriesText = item.calories > 0 ? item.calories.toString() : '';
+        this.caloriesText = item.nutritionKnown ? item.calories.toString() : '';
         this.storageType = item.storageType;
         this.isOpened = item.isOpened;
+        this.datePending = item.expiryDate <= 0;
+        this.expiryEstimated = item.expiryEstimated;
         if (item.expiryDate > 0) {
           this.expiryDate = new Date(item.expiryDate);
           // 编辑模式下提供一个可参考的推断值（不强制）
@@ -146,6 +152,7 @@ struct AddFoodPage {
   }
 
   private updateExpiryDate(): void {
+    if (this.isEditMode && (this.datePending || !this.expiryEstimated)) return;
     if (this.hasExactProductionInfo) {
       this.calculateExpiryFromProduction();
       return;
@@ -184,6 +191,8 @@ struct AddFoodPage {
     }
     const base: Date = new Date(this.productionDate.getTime());
     base.setHours(0, 0, 0, 0);
+    this.datePending = false;
+    this.expiryEstimated = false;
     this.expiryDate = this.calculateByShelfLifeUnit(base, amount, this.shelfLifeUnit);
   }
 
@@ -254,7 +263,9 @@ struct AddFoodPage {
         }
         this.calculateExpiryFromProduction();
       }
-      food.expiryDate = this.expiryDate.getTime();
+      food.expiryDate = this.datePending ? 0 : this.expiryDate.getTime();
+      food.expiryEstimated = !this.datePending && this.expiryEstimated;
+      food.nutritionKnown = this.caloriesText.trim().length > 0;
       food.status = 0;
 
       if (this.isEditMode) {
@@ -559,13 +570,43 @@ struct AddFoodPage {
               }
 
               Column({ space: 5 }) {
-                Text($r('app.string.ui_expiry_date_calculated_automatically'))
+                Text($r('app.string.intake_expiry'))
                   .fontSize(13).fontColor($r('app.color.button_secondary_text'))
-                Text(this.formatDate(this.expiryDate))
+                Text(this.datePending ? $r('app.string.intake_pending_date') : this.formatDate(this.expiryDate))
                   .fontSize(20).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-                Text(this.hasExactProductionInfo ? $r('app.string.ui_based_on_production_date') :
-                  $r('app.string.ui_based_on_category_and_storage'))
-                  .fontSize(13).fontColor($r('app.color.text_secondary'))
+                if (!this.datePending && this.expiryEstimated) {
+                  Text($r('app.string.intake_estimated')).fontSize(13).fontColor($r('app.color.text_secondary'))
+                }
+                if (this.isEditMode) {
+                  Row({ space: 8 }) {
+                    Button($r('app.string.intake_date_select')).attributeModifier(FoodButtonStyle.compactSecondary)
+                      .onClick(() => {
+                        if (!this.showEditDate) this.chosenEditDate = this.datePending ? new Date() : this.expiryDate;
+                        this.showEditDate = !this.showEditDate;
+                      })
+                    Button($r('app.string.intake_later')).attributeModifier(FoodButtonStyle.compactNeutral)
+                      .onClick(() => {
+                        this.datePending = true;
+                        this.showEditDate = false;
+                        this.hasExactProductionInfo = false;
+                      })
+                  }
+                  if (this.showEditDate) {
+                    DatePicker({ start: new Date(2000, 0, 1), end: new Date(2100, 11, 31),
+                      selected: this.chosenEditDate })
+                      .onDateChange((date: Date) => { this.chosenEditDate = date; })
+                    Button($r('app.string.intake_done')).attributeModifier(FoodButtonStyle.compactPrimary)
+                      .onClick(() => {
+                        const selected = new Date(this.chosenEditDate.getTime());
+                        selected.setHours(23, 59, 59, 999);
+                        this.expiryDate = selected;
+                        this.datePending = false;
+                        this.expiryEstimated = false;
+                        this.showEditDate = false;
+                        this.hasExactProductionInfo = false;
+                      })
+                  }
+                }
               }
               .width('100%').padding(12).alignItems(HorizontalAlign.Start)
               .borderRadius(13).backgroundColor($r('app.color.button_secondary_bg'))

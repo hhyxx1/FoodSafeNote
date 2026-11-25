@@ -374,7 +374,7 @@
     },
     {
       "name": "ui_product_dictionary",
-      "value": "Product dictionary"
+      "value": "Product Database"
     },
     {
       "name": "ui_choose_how_to_add_food",
@@ -450,7 +450,7 @@
     },
     {
       "name": "ui_dictionary",
-      "value": "Dictionary"
+      "value": "Product Database"
     },
     {
       "name": "ui_search_food_names",
@@ -498,15 +498,15 @@
     },
     {
       "name": "ui_no_dictionary_entries",
-      "value": "No dictionary entries"
+      "value": "No product database entries"
     },
     {
       "name": "ui_export_dictionary",
-      "value": "Export dictionary"
+      "value": "Export product database"
     },
     {
       "name": "ui_import_dictionary",
-      "value": "Import dictionary"
+      "value": "Import product database"
     },
     {
       "name": "ui_product_name_2",
@@ -582,7 +582,7 @@
     },
     {
       "name": "ui_product_dictionary_2",
-      "value": "Product dictionary"
+      "value": "Product Database"
     },
     {
       "name": "ui_health_report_2",
@@ -1246,7 +1246,7 @@
     },
     {
       "name": "ui_product_dictionary_exported",
-      "value": "Product dictionary exported."
+      "value": "Product database exported."
     },
     {
       "name": "ui_exports_are_saved_as_json_files_in_app_storage",
@@ -1254,11 +1254,11 @@
     },
     {
       "name": "ui_export_foods_members_and_dictionary",
-      "value": "Export foods, members, and dictionary"
+      "value": "Export foods, members, and product database"
     },
     {
       "name": "ui_export_product_dictionary_only",
-      "value": "Export product dictionary only"
+      "value": "Export product database only"
     },
     {
       "name": "ui_import_full_backup_from_app_storage",
@@ -1542,11 +1542,11 @@
     },
     {
       "name": "ui_dictionary_exported",
-      "value": "Dictionary exported."
+      "value": "Product database exported."
     },
     {
       "name": "ui_dictionary_imported_d_added_d_skipped",
-      "value": "Dictionary imported (%d added, %d skipped)."
+      "value": "Product database imported (%d added, %d skipped)."
     },
     {
       "name": "ui_enter_a_product_name_2",
@@ -1818,11 +1818,11 @@
     },
     {
       "name": "ui_invalid_file_missing_product_dictionary",
-      "value": "Invalid file: missing product dictionary"
+      "value": "Invalid file: missing product database"
     },
     {
       "name": "ui_product_dictionary_imported",
-      "value": "Product dictionary imported"
+      "value": "Product database imported"
     },
     {
       "name": "ui_import_failed_invalid_data_format",
@@ -1910,7 +1910,7 @@
     },
     {
       "name": "food_sync_syncing",
-      "value": "Syncing inventory, members, consumption records, and dictionary"
+      "value": "Syncing inventory, members, consumption records, and product database"
     },
     {
       "name": "food_sync_synced",
@@ -1939,6 +1939,40 @@
     {
       "name": "food_could_not_process_remote_photo",
       "value": "Could not process the photo from the other device. Try again."
-    }
+    },
+    {"name": "intake_name_needed", "value": "Enter a food name"},
+    {"name": "intake_quantity_value", "value": "%d units"},
+    {"name": "intake_done", "value": "Done"},
+    {"name": "intake_name", "value": "Food name"},
+    {"name": "intake_quantity", "value": "Quantity"},
+    {"name": "intake_expiry", "value": "Expiration"},
+    {"name": "intake_pending_date", "value": "No expiration date"},
+    {"name": "intake_estimated", "value": "Estimated"},
+    {"name": "intake_date_select", "value": "Pick a date"},
+    {"name": "intake_later", "value": "Set later"},
+    {"name": "intake_use_estimate", "value": "Estimate date"},
+    {"name": "intake_more", "value": "More details"},
+    {"name": "intake_category", "value": "Select category"},
+    {"name": "intake_spec", "value": "Size (optional)"},
+    {"name": "intake_calories_per_unit", "value": "kcal per unit (optional)"},
+    {"name": "intake_split", "value": "Split 1 unit for another date"},
+    {"name": "intake_undo_failed", "value": "Could not undo. Stock may have changed."},
+    {"name": "intake_batch_location", "value": "Set storage for all"},
+    {"name": "intake_continue", "value": "Add more"},
+    {"name": "intake_undo", "value": "Undo this addition"},
+    {"name": "intake_quick_add", "value": "Quick add"},
+    {"name": "intake_recent", "value": "Recently added"},
+    {"name": "intake_other_methods", "value": "More options"},
+    {"name": "intake_pending_count", "value": "No date · %d"},
+    {"name": "intake_read_nutrition", "value": "Calculate from nutrition label"},
+    {"name": "intake_missing_calories", "value": "%d eaten records lack calories and are excluded from the total"},
+    {"name": "intake_missing_calorie_record", "value": "Calories missing"},
+    {"name": "intake_eat_calories_optional", "value": "Calories eaten (kcal, optional)"},
+    {"name": "intake_estimated_date", "value": "Estimated · %s"},
+    {"name": "intake_barcode_scan_other", "value": "Scan across devices"},
+    {"name": "intake_camera_unavailable", "value": "Camera unavailable. Check permissions or enter the item manually."},
+    {"name": "intake_scan_count", "value": "%d units scanned"},
+    {"name": "intake_scan_aim", "value": "Aim at the barcode"},
+    {"name": "intake_scan_next", "value": "Scan next item"}
   ]
 }

@@ -1,13 +1,13 @@
 {
   "dbSchema": [
     {
-      "version": 0,
+      "version": 1,
       "bundleName": "com.dudh.foodsaferecord",
       "dbName": "FoodSafeNoteShared",
       "tables": [
         {
           "tableName": "food_items",
-          "deviceSyncFields": ["sync_key", "name", "category", "spec", "barcode", "calories", "storage_type", "expiry_date", "status", "create_time", "consumed_by", "waste_reason", "consume_time", "is_opened"],
+          "deviceSyncFields": ["sync_key", "name", "category", "spec", "barcode", "calories", "storage_type", "expiry_date", "status", "create_time", "consumed_by", "waste_reason", "consume_time", "is_opened", "expiry_estimated", "nutrition_known"],
           "cloudType": ["Local"],
           "fields": [
             {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
@@ -24,7 +24,9 @@
             {"columnName": "consumed_by", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
             {"columnName": "waste_reason", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
             {"columnName": "consume_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false},
-            {"columnName": "is_opened", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false}
+            {"columnName": "is_opened", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "expiry_estimated", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "nutrition_known", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false}
           ]
         },
         {
@@ -40,7 +42,7 @@
         },
         {
           "tableName": "consumption_records",
-          "deviceSyncFields": ["sync_key", "food_sync_key", "food_name", "member_name", "type", "calories", "waste_reason", "create_time"],
+          "deviceSyncFields": ["sync_key", "food_sync_key", "food_name", "member_name", "type", "calories", "waste_reason", "create_time", "nutrition_known"],
           "cloudType": ["Local"],
           "fields": [
             {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
@@ -51,7 +53,8 @@
             {"columnName": "type", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
             {"columnName": "calories", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
             {"columnName": "waste_reason", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
-            {"columnName": "create_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false}
+            {"columnName": "create_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "nutrition_known", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false}
           ]
         },
         {

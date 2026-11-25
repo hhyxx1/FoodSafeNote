@@ -11,6 +11,7 @@ export struct HealthView {
   @Prop @Watch('onRefreshKeyChange') refreshKey: number = 0;
   @Prop tabBarInset: number = 0;
   @State dailyCalories: DailyCalorie[] = [];
+  @State missingCalories: number = 0;
   @State todayRecords: ConsumptionRecord[] = [];
   @State wasteStats: WasteStat[] = [];
   @State isLoading: boolean = true;
@@ -75,6 +76,8 @@ export struct HealthView {
 
       this.dailyCalories = calories;
       this.todayRecords = records;
+      this.missingCalories = records.filter((record: ConsumptionRecord): boolean =>
+        record.type === 0 && !record.nutritionKnown).length;
       this.wasteStats = waste;
     } finally {
       if (request === this.loadRequest) this.isLoading = false;
@@ -199,6 +202,10 @@ export struct HealthView {
             Text($r('app.string.ui_s_records_d', this.getViewModeLabel(), this.todayRecords.length))
               .fontSize(14).fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.journal_hero_secondary')).width('100%')
+            if (this.missingCalories > 0) {
+              Text($r('app.string.intake_missing_calories', this.missingCalories))
+                .fontColor($r('app.color.journal_hero_secondary')).fontSize(13).width('100%')
+            }
             Row({ space: 18 }) {
               FoodJournalMetric({
                 label: $r('app.string.ui_intake_kcal'), amount: this.getTotalCalories().toFixed(0)
@@ -283,9 +290,12 @@ export struct HealthView {
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Column({ space: 2 }) {
-                    if (record.calories > 0) {
+                    if (record.nutritionKnown) {
                       Text(record.calories.toFixed(0) + ' kcal')
                         .fontSize(13).fontColor(record.type === 0 ? $r('app.color.status_warning') : $r('app.color.text_disabled'))
+                    } else if (record.type === 0) {
+                      Text($r('app.string.intake_missing_calorie_record'))
+                        .fontSize(12).fontColor($r('app.color.text_secondary'))
                     }
                     Text(this.formatRecordTime(record.createTime))
                       .fontSize(11).fontColor($r('app.color.text_disabled'))

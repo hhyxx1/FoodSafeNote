@@ -1,19 +1,9 @@
+import { IntakeImportParams, IntakeParams, IntakeSeed } from '../common/FoodIntake';
 import { FoodButtonStyle, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { promptAction } from '@kit.ArkUI';
 import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
 import { HdsNavDestination, HdsNavigationBadgeIconOptions, TextStyleMode } from '@kit.UIDesignKit';
 import { AppNavigation } from '../common/AppNavigation';
-
-interface AddFoodParams {
-  barcode: string;
-  name: string;
-  category: string;
-  spec: string;
-  calories: number;
-  fromBarcodeScan: boolean;
-  fromClipboardParse?: boolean;
-  clipboardSourceIndex?: number;
-}
 
 // 解析出的食品条目
 interface ParsedFoodEntry {
@@ -24,7 +14,6 @@ interface ParsedFoodEntry {
 
 @Component
 struct ClipboardParsePage {
-  @StorageProp('dataChangeTick') @Watch('onDataChangeTick') dataChangeTick: number = 0;
   @State clipboardText: string = '';
   @State parsedItems: ParsedFoodEntry[] = [];
   @State manualInput: string = '';
@@ -35,36 +24,6 @@ struct ClipboardParsePage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
 
   private scroller: Scroller = new Scroller();
-
-  aboutToAppear(): void {
-    // 剪贴板读取改为用户点击安全控件触发
-  }
-
-  // 页面返回（含系统侧滑）后消费已完成卡片，等价于原 onPageShow
-  private onDataChangeTick(): void {
-    this.consumeCompletedClipboardCard();
-  }
-
-  private consumeCompletedClipboardCard(): void {
-    const completedIndex: number | undefined = AppStorage.get<number>('clipboardEntryCompletedIndex');
-    if (completedIndex === undefined || completedIndex < 0) {
-      return;
-    }
-
-    if (completedIndex >= this.parsedItems.length) {
-      AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', -1);
-      return;
-    }
-
-    const newList: ParsedFoodEntry[] = [];
-    for (let i = 0; i < this.parsedItems.length; i++) {
-      if (i !== completedIndex) {
-        newList.push(this.parsedItems[i]);
-      }
-    }
-    this.parsedItems = newList;
-    AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', -1);
-  }
 
   private handlePasteButtonResult(result: PasteButtonOnClickResult): void {
     if (result !== PasteButtonOnClickResult.SUCCESS) {
@@ -218,51 +177,28 @@ struct ClipboardParsePage {
   }
 
   private continueEntry(): void {
-    let selectedIndex: number = -1;
-    for (let i = 0; i < this.parsedItems.length; i++) {
-      if (this.parsedItems[i].selected) {
-        selectedIndex = i;
-        break;
-      }
-    }
-    if (selectedIndex < 0) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_select_at_least_one_item'), duration: 1500 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
-      return;
-    }
-
-    this.startEntryForItem(selectedIndex);
+    const seeds: IntakeSeed[] = this.parsedItems.filter((item: ParsedFoodEntry): boolean => item.selected)
+      .map((item: ParsedFoodEntry): IntakeSeed => ({ name: item.name }));
+    this.openIntake(seeds);
   }
 
   private startEntryForItem(index: number): void {
-    if (index < 0 || index >= this.parsedItems.length) return;
-    const item: ParsedFoodEntry = this.parsedItems[index];
-    if (!item.selected) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_this_entry_is_not_selected'), duration: 1200 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
+    const item = this.parsedItems[index];
+    if (item?.selected) this.openIntake([{ name: item.name }]);
+  }
+
+  private openIntake(seeds: IntakeSeed[]): void {
+    if (seeds.length === 0) {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_select_at_least_one_item') });
       return;
     }
-
-    const params: AddFoodParams = {
-      barcode: '',
-      name: item.name,
-      category: '',
-      spec: '',
-      calories: 0,
-      fromBarcodeScan: false,
-      fromClipboardParse: true,
-      clipboardSourceIndex: index
-    };
-    try {
-      AppNavigation.push('AddFoodPage', params);
-    } catch (e) {
-      // 路由跳转失败时忽略
+    const importer = AppNavigation.getParamByName('ClipboardParsePage') as IntakeImportParams | undefined;
+    if (importer?.onImported) {
+      importer.onImported(seeds);
+      AppNavigation.pop();
+    } else {
+      const params: IntakeParams = { mode: seeds.length === 1 ? 'single' : 'batch', seeds: seeds };
+      AppNavigation.replace('BatchAddPage', params);
     }
   }
 

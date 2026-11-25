@@ -1,3 +1,4 @@
+import { IntakeImportParams, IntakeParams, IntakeSeed } from '../common/FoodIntake';
 import { cacheRemoteFoodPhoto, canReceiveRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
 import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { resolveLocalizedText } from '../common/Constants';
@@ -15,19 +16,6 @@ import {
 } from '@kit.ServiceCollaborationKit';
 import { HdsNavDestination } from '@kit.UIDesignKit';
 import { AppNavigation } from '../common/AppNavigation';
-
-interface AddFoodParams {
-  barcode: string;
-  name: string;
-  category: string;
-  spec: string;
-  calories: number;
-  fromBarcodeScan: boolean;
-  fromPhotoCapture?: boolean;
-  photoUri?: string;
-  storageType?: string;
-  freshnessLevel?: string;
-}
 
 interface FoodKeywordItem {
   keyword: string;
@@ -308,23 +296,20 @@ struct PhotoEntryPage {
     return list;
   }
 
-  private goToAddFood(): void {
-    const params: AddFoodParams = {
-      barcode: '',
-      name: this.recognizedName,
-      category: this.recognizedCategory,
-      spec: '',
-      calories: 0,
-      fromBarcodeScan: false,
-      fromPhotoCapture: true,
-      photoUri: this.photoUri,
-      storageType: this.storageType,
-      freshnessLevel: this.freshnessLevel
+  private goToAddFood(usePhoto: boolean = true): void {
+    const seed: IntakeSeed = {
+      name: usePhoto ? this.recognizedName : '',
+      category: usePhoto ? this.recognizedCategory : '',
+      photoUri: usePhoto ? this.photoUri : '',
+      storage: usePhoto ? this.storageType : undefined
     };
-    try {
-      AppNavigation.push('AddFoodPage', params);
-    } catch (e) {
-      // 路由跳转失败时忽略
+    const importer = AppNavigation.getParamByName('PhotoEntryPage') as IntakeImportParams | undefined;
+    if (importer?.onImported) {
+      importer.onImported([seed]);
+      AppNavigation.pop();
+    } else {
+      const params: IntakeParams = { mode: 'single', seeds: [seed] };
+      AppNavigation.replace('BatchAddPage', params);
     }
   }
 
@@ -449,7 +434,7 @@ struct PhotoEntryPage {
             .attributeModifier(FoodButtonStyle.text)
             .width('100%')
             .onClick(() => {
-              AppNavigation.push('AddFoodPage');
+              this.goToAddFood(false);
             })
         }
         // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)

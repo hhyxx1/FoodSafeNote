@@ -74,3 +74,25 @@ export async function migrateLegacyFoodDatabase(store: relationalStore.RdbStore,
     await store.detach(LEGACY_ALIAS);
   }
 }
+
+export async function migrateIntakeColumns(store: relationalStore.RdbStore): Promise<void> {
+  const foods = await tableColumns(store, 'main', 'food_items');
+  const records = await tableColumns(store, 'main', 'consumption_records');
+  if (foods.has('expiry_estimated') && foods.has('nutrition_known') && records.has('nutrition_known')) return;
+  store.beginTransaction();
+  try {
+    if (!foods.has('expiry_estimated')) {
+      await store.executeSql('ALTER TABLE food_items ADD COLUMN expiry_estimated INTEGER DEFAULT 0');
+    }
+    if (!foods.has('nutrition_known')) {
+      await store.executeSql('ALTER TABLE food_items ADD COLUMN nutrition_known INTEGER DEFAULT -1');
+    }
+    if (!records.has('nutrition_known')) {
+      await store.executeSql('ALTER TABLE consumption_records ADD COLUMN nutrition_known INTEGER DEFAULT -1');
+    }
+    store.commit();
+  } catch (error) {
+    store.rollBack();
+    throw new Error('Could not upgrade intake fields: ' + error);
+  }
+}

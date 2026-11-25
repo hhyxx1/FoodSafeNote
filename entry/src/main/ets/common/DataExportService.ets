@@ -193,6 +193,8 @@ export class DataExportService {
           food.spec = item.spec;
           food.barcode = item.barcode;
           food.calories = item.calories;
+          food.nutritionKnown = item.nutritionKnown ?? item.calories > 0;
+          food.expiryEstimated = item.expiryEstimated === true;
           food.storageType = item.storageType;
           food.expiryDate = item.expiryDate;
           food.status = item.status;

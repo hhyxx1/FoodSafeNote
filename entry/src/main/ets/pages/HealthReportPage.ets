@@ -12,6 +12,7 @@ struct HealthReportPage {
   @State timeRange: string = 'week';
   @State caloriesByMember: DailyCalorie[] = [];
   @State wasteStats: WasteStat[] = [];
+  @State missingCalories: number = 0;
   @State records: ConsumptionRecord[] = [];
   @State totalCalories: number = 0;
   @State totalWaste: number = 0;
@@ -87,6 +88,8 @@ struct HealthReportPage {
 
       this.caloriesByMember = calories;
       this.records = records;
+      this.missingCalories = records.filter((record: ConsumptionRecord): boolean =>
+        record.type === 0 && !record.nutritionKnown).length;
       this.totalCalories = calories.reduce((total: number, row: DailyCalorie) => total + row.totalCalories, 0);
       this.totalEatCount = calories.reduce((total: number, row: DailyCalorie) => total + row.recordCount, 0);
       this.totalWaste = waste.reduce((total: number, row: WasteStat) => total + row.count, 0);
@@ -190,6 +193,10 @@ struct HealthReportPage {
             Text($r('app.string.ui_s_records_d', this.getRangeLabel(), this.records.length))
               .fontSize(14).fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.journal_hero_secondary')).width('100%')
+            if (this.missingCalories > 0) {
+              Text($r('app.string.intake_missing_calories', this.missingCalories))
+                .fontColor($r('app.color.journal_hero_secondary')).fontSize(13).width('100%')
+            }
             Row({ space: 10 }) {
               FoodJournalMetric({
                 label: $r('app.string.ui_total_intake_kcal'), amount: this.totalCalories.toFixed(0)
@@ -269,8 +276,11 @@ struct HealthReportPage {
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Column({ space: 2 }) {
-                    if (record.calories > 0) {
+                    if (record.nutritionKnown) {
                       Text(record.calories.toFixed(0) + ' kcal').fontSize(12).fontColor($r('app.color.status_warning'))
+                    } else if (record.type === 0) {
+                      Text($r('app.string.intake_missing_calorie_record'))
+                        .fontSize(12).fontColor($r('app.color.text_secondary'))
                     }
                     Text(this.formatRecordTime(record.createTime)).fontSize(13).fontColor($r('app.color.text_secondary'))
                   }

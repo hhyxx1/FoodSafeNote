@@ -1,3 +1,4 @@
+import { IntakeParams, IntakeSeed } from '../common/FoodIntake';
 import { cacheRemoteFoodPhoto, canReceiveRemoteFoodPhoto, removeRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
 import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { scanBarcode, scanCore, detectBarcode } from '@kit.ScanKit';
@@ -24,32 +25,12 @@ interface BarcodeVerifyResult {
 }
 
 // 路由参数接口
-interface CaloriePageParams {
-  barcode: string;
-  name: string;
-  category: string;
-  spec: string;
-  amount?: number;
-  amountUnit?: string;
-}
-
-interface ParsedAmountResult {
-  amount: number;
-  unit: string;
-}
-
 @Component
 struct BarcodeScanPage {
   @State barcodeInput: string = '';
   @State isMatching: boolean = false;
   @State batchScanMode: boolean = false;
   @State isScannerOpen: boolean = false;
-  @State showVerifyDialog: boolean = false;
-  @State matchedName: string = '';
-  @State matchedCategory: string = '';
-  @State matchedSpec: string = '';
-  @State currentBarcode: string = '';
-  @State matchSource: string = '';
   @State forceAlbumMode: boolean = false;
   @State showCollaborationButton: boolean = false;
   private isPageActive: boolean = true;
@@ -146,33 +127,6 @@ struct BarcodeScanPage {
     }
   }
 
-  private parseAmountFromSpec(spec: string): ParsedAmountResult {
-    const text: string = spec.trim();
-    if (text.length === 0) {
-      return { amount: 0, unit: 'g' };
-    }
-    const matchWithUnit: RegExpMatchArray | null = text.match(new RegExp('(\\d+(?:\\.\\d+)?)\\s*(g|G|克|kg|KG|千克|ml|mL|ML|毫升|l|L|升)'));
-    if (matchWithUnit !== null && matchWithUnit.length >= 3) {
-      const value: number = Number(matchWithUnit[1]) || 0;
-      const unitToken: string = matchWithUnit[2];
-      if (unitToken === 'kg' || unitToken === 'KG' || unitToken === '千克') {
-        return { amount: Math.round(value * 1000), unit: 'g' };
-      }
-      if (unitToken === 'l' || unitToken === 'L' || unitToken === '升') {
-        return { amount: Math.round(value * 1000), unit: 'ml' };
-      }
-      const unit: string = (unitToken.indexOf('ml') >= 0 || unitToken.indexOf('mL') >= 0 || unitToken.indexOf('毫升') >= 0)
-        ? 'ml' : 'g';
-      return { amount: value, unit: unit };
-    }
-
-    // 兜底：若规格仅数字，默认按g处理
-    const pureNumber: RegExpMatchArray | null = text.match(new RegExp('(\\d+(?:\\.\\d+)?)'));
-    if (pureNumber !== null && pureNumber.length > 1) {
-      return { amount: Number(pureNumber[1]) || 0, unit: 'g' };
-    }
-    return { amount: 0, unit: 'g' };
-  }
 
   private async scanImage(uri: string): Promise<void> {
     const inputImage: detectBarcode.InputImage = { uri: uri };
@@ -216,76 +170,25 @@ struct BarcodeScanPage {
     await this.startScanFromAlbum();
   }
 
-  // 条码匹配
   private handleBarcodeMatch(barcode: string): void {
     if (this.isMatching) return;
     this.isMatching = true;
-    this.currentBarcode = barcode;
     BarcodeService.getInstance().matchBarcodeInfo(barcode).then((result: BarcodeMatchResult) => {
-      this.isMatching = false;
-      if (!this.isPageActive) return;
-      if (result.matched) {
-        this.matchedName = result.name;
-        this.matchedCategory = result.category;
-        this.matchedSpec = result.spec;
-        this.matchSource = result.source;
-      } else {
-        this.matchedName = '';
-        this.matchedCategory = '';
-        this.matchedSpec = '';
-        this.matchSource = '';
-      }
-      this.showVerifyDialog = true;
+      this.openIntake(barcode, result);
     }).catch(() => {
+      this.openIntake(barcode);
+    }).finally(() => {
       this.isMatching = false;
-      if (!this.isPageActive) return;
-      this.matchedName = '';
-      this.matchedCategory = '';
-      this.matchedSpec = '';
-      this.matchSource = '';
-      this.showVerifyDialog = true;
     });
   }
 
-  // 确认后跳转热量页
-  private confirmAndProceed(): void {
-    if (this.matchedName.trim().length === 0) {
-      try {
-        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_product_name'), duration: 1500 });
-      } catch (e) {
-        // Toast 展示失败时忽略
-      }
-      return;
-    }
-    // 存入ProductDict
-    let source: string = 'manual';
-    if (this.matchSource === 'product_dict') {
-      source = 'edited';
-    } else if (this.matchSource === 'builtin') {
-      source = 'builtin';
-    }
-    BarcodeService.getInstance().saveToProductDict(
-      this.currentBarcode, this.matchedName.trim(),
-      this.matchedCategory, this.matchedSpec, 0, source
-    ).catch(() => {
-      // 产品字典写入失败不阻断跳转
-    });
-    this.showVerifyDialog = false;
-    const parsedAmount: ParsedAmountResult = this.parseAmountFromSpec(this.matchedSpec);
-    // 跳转到热量获取页
-    const params: CaloriePageParams = {
-      barcode: this.currentBarcode,
-      name: this.matchedName.trim(),
-      category: this.matchedCategory,
-      spec: this.matchedSpec,
-      amount: parsedAmount.amount,
-      amountUnit: parsedAmount.unit
+  private openIntake(barcode: string, result?: BarcodeMatchResult): void {
+    if (!this.isPageActive) return;
+    const seed: IntakeSeed = {
+      barcode: barcode, name: result?.name ?? '', category: result?.category, spec: result?.spec
     };
-    try {
-      AppNavigation.push('CalorieInputPage', params);
-    } catch (e) {
-      // 路由跳转失败时忽略
-    }
+    const params: IntakeParams = { mode: 'single', seeds: [seed] };
+    AppNavigation.replace('BatchAddPage', params);
   }
 
   build() {
@@ -396,132 +299,7 @@ struct BarcodeScanPage {
       .padding({ top: 56 + this.statusBarHeight })
 
       // 条码信息校验弹窗
-      if (this.showVerifyDialog) {
-        Column() {
-          // 遮罩
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor($r('app.color.overlay_background'))
-            .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
-            .onClick(() => {
-              this.showVerifyDialog = false;
-            })
-        }
-        .width('100%')
-        .height('100%')
-        .position({ x: 0, y: 0 })
 
-        Column({ space: 16 }) {
-          // 标题
-          Text(this.matchSource.length > 0 ? $r('app.string.ui_review_barcode_details_editable') : $r('app.string.ui_no_barcode_match_enter_product_details'))
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .width('100%')
-
-          // 条码（不可修改）
-          Column({ space: 4 }) {
-            Text($r('app.string.ui_barcode'))
-              .fontSize(13)
-              .fontColor($r('app.color.text_secondary'))
-            Text(this.currentBarcode)
-              .fontSize(15)
-              .fontColor($r('app.color.text_hint'))
-              .width('100%')
-              .height(40)
-              .padding({ left: 12 })
-              .backgroundColor($r('app.color.chip_background'))
-              .borderRadius(8)
-          }
-
-          // 商品名称（必填）
-          Column({ space: 4 }) {
-            Row() {
-              Text($r('app.string.ui_product_name'))
-                .fontSize(13)
-                .fontColor($r('app.color.text_secondary'))
-              Text(' *')
-                .fontSize(13)
-                .fontColor($r('app.color.status_danger'))
-            }
-            TextInput({ text: this.matchedName, placeholder: $r('app.string.ui_e_g_milk_plain_potato_chips') })
-              .width('100%')
-              .height(40)
-              .fontSize(14)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .onChange((value: string) => {
-                this.matchedName = value;
-              })
-          }
-
-          // 品类
-          Column({ space: 4 }) {
-            Text($r('app.string.ui_category_optional'))
-              .fontSize(13)
-              .fontColor($r('app.color.text_secondary'))
-            TextInput({ text: this.matchedCategory, placeholder: $r('app.string.ui_e_g_dairy_snacks') })
-              .width('100%')
-              .height(40)
-              .fontSize(14)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .onChange((value: string) => {
-                this.matchedCategory = value;
-              })
-          }
-
-          // 规格
-          Column({ space: 4 }) {
-            Text($r('app.string.ui_package_size_optional'))
-              .fontSize(13)
-              .fontColor($r('app.color.text_secondary'))
-            TextInput({ text: this.matchedSpec, placeholder: $r('app.string.ui_e_g_250_ml_100_g') })
-              .width('100%')
-              .height(40)
-              .fontSize(14)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .onChange((value: string) => {
-                this.matchedSpec = value;
-              })
-          }
-
-          Row({ space: 6 }) {
-            Image($r('app.media.icon_info')).width(14).height(14).draggable(false)
-            Text($r('app.string.ui_package_size_is_used_to_suggest_the_amount_to_add'))
-              .fontSize(12)
-              .fontColor($r('app.color.text_hint'))
-              .width('100%').layoutWeight(1)
-          }
-          .width('100%')
-
-          // 按钮
-          Row({ space: 12 }) {
-            Button($r('app.string.ui_cancel'))
-              .attributeModifier(FoodButtonStyle.neutral)
-              .layoutWeight(1)
-              .onClick(() => {
-                this.showVerifyDialog = false;
-              })
-            Button($r('app.string.ui_confirm'))
-              .attributeModifier(FoodButtonStyle.primary)
-              .layoutWeight(1)
-              .onClick(() => {
-                this.confirmAndProceed();
-              })
-          }
-          .width('100%')
-        }
-        .width('85%')
-        .constraintSize({ minWidth: 320, maxWidth: 560 })
-        .padding(20)
-        .backgroundColor($r('app.color.card_background'))
-        .borderRadius(16)
-        .transition(FoodMotion.panel())
-        .position({ x: '7.5%', y: '20%' })
-      }
     }
     .width('100%')
     .height('100%')

@@ -1,3 +1,4 @@
+import { IntakeParams } from '../common/FoodIntake';
 import { localizedFoodLabel } from '../common/Constants';
 import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodMotion } from '../common/FoodInterface';
 import { DatabaseHelper } from '../common/DatabaseHelper';
@@ -26,6 +27,8 @@ export struct InventoryView {
   @State selectedItem: FoodItem | null = null;
   @State members: FamilyMember[] = [];
   // 用@State存储计数，直接在UI中引用，避免通过@Builder参数传递断开绑定
+  @State pendingDateCount: number = 0;
+  @State eatCalorieInput: string = '';
   @State normalCount: number = 0;
   @State nearExpiryCount: number = 0;
   @State expiredCount: number = 0;
@@ -59,8 +62,11 @@ export struct InventoryView {
     let normal: number = 0;
     let near: number = 0;
     let expired: number = 0;
+    let pendingDate: number = 0;
     for (let i = 0; i < this.foodItems.length; i++) {
-      if (this.foodItems[i].isExpired()) {
+      if (this.foodItems[i].expiryDate <= 0) {
+        pendingDate++;
+      } else if (this.foodItems[i].isExpired()) {
         expired++;
       } else if (this.foodItems[i].isNearExpiry()) {
         near++;
@@ -69,6 +75,7 @@ export struct InventoryView {
       }
     }
     this.normalCount = normal;
+    this.pendingDateCount = pendingDate;
     this.nearExpiryCount = near;
     this.expiredCount = expired;
   }
@@ -88,10 +95,12 @@ export struct InventoryView {
       for (let i = 0; i < normal.length; i++) { merged.push(normal[i]); }
       for (let i = 0; i < expired.length; i++) { merged.push(expired[i]); }
       this.filteredItems = merged;
+    } else if (this.filterType === 'pendingDate') {
+      this.filteredItems = this.foodItems.filter((item: FoodItem): boolean => item.expiryDate <= 0);
     } else if (this.filterType === 'normal') {
       const result: FoodItem[] = [];
       for (let i = 0; i < this.foodItems.length; i++) {
-        if (!this.foodItems[i].isExpired() && !this.foodItems[i].isNearExpiry()) result.push(this.foodItems[i]);
+        if (this.foodItems[i].expiryDate > 0 && !this.foodItems[i].isExpired() && !this.foodItems[i].isNearExpiry()) result.push(this.foodItems[i]);
       }
       this.filteredItems = result;
     } else if (this.filterType === 'nearExpiry') {
@@ -111,6 +120,9 @@ export struct InventoryView {
 
   private getExpiryText(item: FoodItem): ResourceStr {
     if (item.expiryDate <= 0) return $r('app.string.ui_expiry_date_not_set');
+    if (item.expiryEstimated) {
+      return $r('app.string.intake_estimated_date', new Date(item.expiryDate).toLocaleDateString());
+    }
     const days: number = item.getRemainingDays();
     if (days < 0) return $r('app.string.ui_expired_d_days_ago', Math.abs(days));
     if (days === 0) return $r('app.string.watch_expire_today');
@@ -118,10 +130,18 @@ export struct InventoryView {
   }
 
   private handleEat(item: FoodItem, memberName: string): void {
-    DatabaseHelper.getInstance().consumeFood(item.id, memberName, item.calories, item.name).then(() => {
+    const text = this.eatCalorieInput.trim();
+    const calories = item.nutritionKnown ? item.calories : Number(text);
+    if (!Number.isFinite(calories) || calories < 0) {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_valid_energy_value') });
+      return;
+    }
+    DatabaseHelper.getInstance().consumeFood(item.id, memberName, calories, item.name,
+      item.nutritionKnown || text.length > 0).then(() => {
       this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_recorded_as_eaten_by_s', memberName), duration: 1500 });
       this.showActionPanel = false;
       this.loadFoodItems();
+      AppNavigation.notifyDataChanged();
     }).catch(() => {
       this.getUIContext().getPromptAction().showToast({
         message: $r('app.string.ui_could_not_save_the_record_refresh_your_inventory_and_try_again'),
@@ -135,6 +155,7 @@ export struct InventoryView {
       this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_discard_recorded'), duration: 1500 });
       this.showActionPanel = false;
       this.loadFoodItems();
+      AppNavigation.notifyDataChanged();
     }).catch(() => {
       this.getUIContext().getPromptAction().showToast({
         message: $r('app.string.ui_could_not_save_the_record_refresh_your_inventory_and_try_again'),
@@ -151,6 +172,11 @@ export struct InventoryView {
       return false;
     }
     return reason !== EXPIRED_WASTE_REASON;
+  }
+
+  private openIntake(mode: string): void {
+    const params: IntakeParams = { mode: mode };
+    AppNavigation.push('BatchAddPage', params);
   }
 
   private selectInventoryFilter(filter: string): void {
@@ -175,21 +201,19 @@ export struct InventoryView {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
-          Button() {
-            Row({ space: 6 }) {
-              SymbolGlyph($r('sys.symbol.plus'))
-                .fontSize(17).fontColor([$r('app.color.button_primary_text')])
-              Text($r('app.string.ui_add_food'))
-                .fontSize(14).fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.button_primary_text'))
-            }
-          }
-          .attributeModifier(FoodButtonStyle.compactPrimary)
-          .accessibilityText($r('app.string.ui_add_food'))
-          .onClick(() => { AppNavigation.push('EntrySelectionPage'); })
         }
         .width('100%')
         .padding({ left: 20, right: 20, top: 14 })
+
+        Row({ space: 8 }) {
+          Button($r('app.string.ui_scan_to_add')).attributeModifier(FoodButtonStyle.compactPrimary)
+            .layoutWeight(1).onClick(() => { this.openIntake('scan'); })
+          Button($r('app.string.ui_add_manually')).attributeModifier(FoodButtonStyle.compactSecondary)
+            .layoutWeight(1).onClick(() => { this.openIntake('single'); })
+          Button($r('app.string.intake_other_methods')).attributeModifier(FoodButtonStyle.text)
+            .onClick(() => { AppNavigation.push('EntrySelectionPage'); })
+        }
+        .width('100%').padding({ left: 20, right: 20 })
 
         Row({ space: 2 }) {
           this.inventoryFilter($r('app.string.ui_all'), this.foodItems.length, 'all')
@@ -199,6 +223,14 @@ export struct InventoryView {
         }
         .width('100%')
         .padding({ left: 20, right: 20 })
+
+        if (this.pendingDateCount > 0 || this.filterType === 'pendingDate') {
+          Button($r('app.string.intake_pending_count', this.pendingDateCount))
+            .attributeModifier(this.filterType === 'pendingDate' ? FoodButtonStyle.compactSecondary :
+              FoodButtonStyle.compactNeutral)
+            .accessibilitySelected(this.filterType === 'pendingDate')
+            .onClick(() => { this.selectInventoryFilter(this.filterType === 'pendingDate' ? 'all' : 'pendingDate'); })
+        }
 
         if (this.isLoading) {
           LoadingProgress()
@@ -243,6 +275,11 @@ export struct InventoryView {
               .fontSize(16).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
 
             if (this.selectedItem !== null && !this.selectedItem.isExpired()) {
+              if (!this.selectedItem.nutritionKnown && this.members.length > 0) {
+                TextInput({ text: this.eatCalorieInput, placeholder: $r('app.string.intake_eat_calories_optional') })
+                  .type(InputType.NUMBER_DECIMAL).width('100%')
+                  .onChange((value: string) => { this.eatCalorieInput = value; })
+              }
               Text($r('app.string.ui_who_ate_this')).fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
               Flex({ wrap: FlexWrap.Wrap }) {
                 ForEach(this.members, (member: FamilyMember) => {
@@ -348,14 +385,16 @@ export struct InventoryView {
               .margin({ right: 8 })
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-          if (item.calories > 0) {
+          if (item.nutritionKnown) {
             Text($r('app.string.ui_this_item_s_kcal', item.calories.toFixed(0)))
               .fontSize(13).fontColor($r('app.color.text_secondary'))
           }
         }
         .width('100%')
 
-        Text(this.getExpiryText(item)).fontSize(13).fontColor(item.getStatusColor())
+        if (item.expiryDate > 0) {
+          Text(this.getExpiryText(item)).fontSize(13).fontColor(item.getStatusColor())
+        }
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
@@ -382,6 +421,7 @@ export struct InventoryView {
     })
     .gesture(LongPressGesture({ repeat: false }).onAction(() => {
       this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, () => {
+        this.eatCalorieInput = '';
         this.selectedItem = item;
         this.showActionPanel = true;
       });

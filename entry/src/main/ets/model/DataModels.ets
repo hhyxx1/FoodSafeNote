@@ -6,9 +6,11 @@ export class FoodItem {
   spec: string = '';
   barcode: string = '';
   calories: number = 0;
+  nutritionKnown: boolean = false;
   storageType: string = 'FRIDGE';
   isOpened: boolean = false;
   expiryDate: number = 0;
+  expiryEstimated: boolean = false;
   status: number = 0;
   createTime: number = 0;
   consumedBy: string = '';
@@ -36,20 +38,21 @@ export class FoodItem {
   getStatusText(): ResourceStr {
     if (this.status === 1) return $r('app.string.status_consumed');
     if (this.status === 2) return $r('app.string.status_wasted');
+    if (this.expiryDate <= 0) return $r('app.string.intake_pending_date');
     if (this.isExpired()) return $r('app.string.status_expired');
     if (this.isNearExpiry()) return $r('app.string.status_near_expiry');
     return $r('app.string.status_normal');
   }
 
   getStatusColor(): ResourceColor {
-    if (this.status !== 0) return $r('app.color.text_secondary');
+    if (this.status !== 0 || this.expiryDate <= 0) return $r('app.color.text_secondary');
     if (this.isExpired()) return $r('app.color.status_danger');
     if (this.isNearExpiry()) return $r('app.color.status_warning');
     return $r('app.color.status_success');
   }
 
   getStatusBgColor(): ResourceColor {
-    if (this.status !== 0) return $r('app.color.chip_background');
+    if (this.status !== 0 || this.expiryDate <= 0) return $r('app.color.chip_background');
     if (this.isExpired()) return $r('app.color.button_danger_bg');
     if (this.isNearExpiry()) return $r('app.color.chip_warning_bg');
     return $r('app.color.chip_success_bg');
@@ -71,6 +74,7 @@ export class ConsumptionRecord {
   memberName: string = '';
   type: number = 0;
   calories: number = 0;
+  nutritionKnown: boolean = false;
   wasteReason: string = '';
   createTime: number = 0;
 }

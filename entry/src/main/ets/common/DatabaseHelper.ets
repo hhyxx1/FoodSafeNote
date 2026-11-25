@@ -2,7 +2,7 @@ import { relationalStore } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
 import { FoodDeviceSync } from './FoodDeviceSync';
-import { migrateLegacyFoodDatabase } from './FoodDatabaseMigration';
+import { migrateLegacyFoodDatabase, migrateIntakeColumns } from './FoodDatabaseMigration';
 import { FoodItem, FamilyMember, ConsumptionRecord, DailyCalorie, FoodStats,
   ProductDict, OcrRecord, WasteStat, BuiltinBarcode } from '../model/DataModels';
 
@@ -30,7 +30,9 @@ const SQL_CREATE_FOOD: string =
   'consumed_by TEXT DEFAULT "",' +
   'waste_reason TEXT DEFAULT "",' +
   'consume_time INTEGER DEFAULT 0,' +
-  'is_opened INTEGER DEFAULT 0)';
+  'is_opened INTEGER DEFAULT 0,' +
+  'expiry_estimated INTEGER DEFAULT 0,' +
+  'nutrition_known INTEGER DEFAULT -1)';
 
 const SQL_CREATE_MEMBER: string =
   'CREATE TABLE IF NOT EXISTS family_members (' +
@@ -49,7 +51,8 @@ const SQL_CREATE_CONSUMPTION: string =
   'type INTEGER DEFAULT 0,' +
   'calories REAL DEFAULT 0,' +
   'waste_reason TEXT DEFAULT "",' +
-  'create_time INTEGER DEFAULT 0)';
+  'create_time INTEGER DEFAULT 0,' +
+  'nutrition_known INTEGER DEFAULT -1)';
 
 const SQL_CREATE_PRODUCT_DICT: string =
   'CREATE TABLE IF NOT EXISTS product_dict (' +
@@ -140,6 +143,7 @@ export class DatabaseHelper {
       await this.rdbStore.executeSql(SQL_CREATE_BUILTIN_INDEX);
       await this.rdbStore.executeSql(SQL_CREATE_OCR_RECORD);
       await migrateLegacyFoodDatabase(this.rdbStore, context);
+      await migrateIntakeColumns(this.rdbStore);
       await this.ensureDefaultMember();
     } catch (error) {
       const failedStore = this.rdbStore;
@@ -185,9 +189,8 @@ export class DatabaseHelper {
 
   // ============ 食品项 CRUD ============
 
-  async insertFoodItem(item: FoodItem): Promise<number> {
-    if (this.rdbStore === null) return -1;
-    const valueBucket: relationalStore.ValuesBucket = {
+  private newFoodValues(item: FoodItem): relationalStore.ValuesBucket {
+    return {
       'sync_key': util.generateRandomUUID(),
       'name': item.name,
       'category': item.category,
@@ -201,15 +204,72 @@ export class DatabaseHelper {
       'consumed_by': item.consumedBy,
       'waste_reason': item.wasteReason,
       'consume_time': item.consumeTime,
-      'is_opened': item.isOpened ? 1 : 0
+      'is_opened': item.isOpened ? 1 : 0,
+      'expiry_estimated': item.expiryEstimated ? 1 : 0,
+      'nutrition_known': item.nutritionKnown || item.calories > 0 ? 1 : 0
     };
+  }
+
+  async insertFoodItem(item: FoodItem): Promise<number> {
+    if (this.rdbStore === null) return -1;
     try {
-      const rowId: number = await this.rdbStore.insert(FOOD_TABLE, valueBucket);
+      const id = await this.rdbStore.insert(FOOD_TABLE, this.newFoodValues(item));
       this.deviceSync.markChanged(FOOD_TABLE);
-      return rowId;
-    } catch (e) {
-      console.error('insertFoodItem 插入食品数据失败: ' + e);
+      return id;
+    } catch (error) {
+      console.error('Could not insert food: ' + error);
       return -1;
+    }
+  }
+
+  async insertIntake(items: FoodItem[]): Promise<number[]> {
+    const store = this.getStore();
+    if (store === null || items.length === 0) throw new Error('No items to save');
+    const transaction = await store.createTransaction();
+    const ids: number[] = [];
+    try {
+      for (const item of items) {
+        const id = await transaction.insert(FOOD_TABLE, this.newFoodValues(item));
+        if (id <= 0) throw new Error('Could not insert intake item');
+        ids.push(id);
+      }
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw new Error('Could not save intake: ' + error);
+    }
+    this.deviceSync.markChanged(FOOD_TABLE);
+    return ids;
+  }
+
+  async undoIntake(ids: number[]): Promise<void> {
+    const store = this.getStore();
+    if (store === null || ids.length === 0) throw new Error('No intake to undo');
+    const transaction = await store.createTransaction();
+    try {
+      for (const id of ids) {
+        const row = new relationalStore.RdbPredicates(FOOD_TABLE).equalTo('id', id).equalTo('status', 0);
+        if (await transaction.delete(row) !== 1) throw new Error('An intake item was already processed');
+      }
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw new Error('Could not undo intake: ' + error);
+    }
+    this.deviceSync.markChanged(FOOD_TABLE);
+  }
+
+  async getRecentFoods(limit: number = 8): Promise<FoodItem[]> {
+    const store = this.getStore();
+    if (store === null) return [];
+    const rows = await store.querySql(
+      "SELECT * FROM food_items WHERE id IN (SELECT max(id) FROM food_items GROUP BY " +
+      "CASE WHEN barcode <> '' THEN 'barcode:' || barcode ELSE 'name:' || lower(trim(name)) END) " +
+      'ORDER BY create_time DESC, id DESC LIMIT ?', [limit]);
+    try {
+      return this.parseFoodItems(rows);
+    } finally {
+      rows.close();
     }
   }
 
@@ -223,6 +283,8 @@ export class DatabaseHelper {
       'calories': item.calories,
       'storage_type': item.storageType,
       'expiry_date': item.expiryDate,
+      'expiry_estimated': item.expiryEstimated ? 1 : 0,
+      'nutrition_known': item.nutritionKnown || item.calories > 0 ? 1 : 0,
       'is_opened': item.isOpened ? 1 : 0
     };
     const predicates = new relationalStore.RdbPredicates(FOOD_TABLE);
@@ -310,8 +372,9 @@ export class DatabaseHelper {
     return item;
   }
 
-  async consumeFood(id: number, memberName: string, calories: number, foodName: string): Promise<void> {
-    await this.recordFoodDisposition(id, foodName, calories, 1, memberName, '');
+  async consumeFood(id: number, memberName: string, calories: number, foodName: string,
+    nutritionKnown: boolean = calories > 0): Promise<void> {
+    await this.recordFoodDisposition(id, foodName, calories, 1, memberName, '', nutritionKnown);
   }
 
   async wasteFood(id: number, reason: string, calories: number, foodName: string): Promise<void> {
@@ -319,7 +382,7 @@ export class DatabaseHelper {
   }
 
   private async recordFoodDisposition(id: number, foodName: string, calories: number,
-    status: number, memberName: string, reason: string): Promise<void> {
+    status: number, memberName: string, reason: string, nutritionKnown: boolean = calories > 0): Promise<void> {
     const store = this.getStore();
     if (store === null) {
       throw new Error('数据库尚未就绪');
@@ -334,6 +397,10 @@ export class DatabaseHelper {
       'waste_reason': reason,
       'consume_time': timestamp
     };
+    if (status === 1) {
+      values['calories'] = calories;
+      values['nutrition_known'] = nutritionKnown ? 1 : 0;
+    }
     const record: relationalStore.ValuesBucket = {
       'sync_key': foodKey,
       'food_sync_key': foodKey,
@@ -341,6 +408,7 @@ export class DatabaseHelper {
       'member_name': memberName,
       'type': status === 1 ? 0 : 1,
       'calories': calories,
+      'nutrition_known': nutritionKnown ? 1 : 0,
       'waste_reason': reason,
       'create_time': timestamp
     };
@@ -446,6 +514,9 @@ export class DatabaseHelper {
       item.calories = resultSet.getDouble(resultSet.getColumnIndex('calories'));
       item.storageType = resultSet.getString(resultSet.getColumnIndex('storage_type'));
       item.expiryDate = resultSet.getLong(resultSet.getColumnIndex('expiry_date'));
+      item.expiryEstimated = resultSet.getLong(resultSet.getColumnIndex('expiry_estimated')) === 1;
+      const known = resultSet.getLong(resultSet.getColumnIndex('nutrition_known'));
+      item.nutritionKnown = known === 1 || (known < 0 && item.calories > 0);
       item.status = resultSet.getLong(resultSet.getColumnIndex('status'));
       item.createTime = resultSet.getLong(resultSet.getColumnIndex('create_time'));
       item.consumedBy = resultSet.getString(resultSet.getColumnIndex('consumed_by'));
@@ -689,6 +760,7 @@ export class DatabaseHelper {
         'member_name': record.memberName,
         'type': record.type,
         'calories': record.calories,
+        'nutrition_known': record.nutritionKnown || record.calories > 0 ? 1 : 0,
         'waste_reason': record.wasteReason,
         'create_time': record.createTime > 0 ? record.createTime : Date.now()
       };
@@ -712,6 +784,8 @@ export class DatabaseHelper {
         record.memberName = resultSet.getString(resultSet.getColumnIndex('member_name'));
         record.type = resultSet.getLong(resultSet.getColumnIndex('type'));
         record.calories = resultSet.getDouble(resultSet.getColumnIndex('calories'));
+        const known = resultSet.getLong(resultSet.getColumnIndex('nutrition_known'));
+        record.nutritionKnown = known === 1 || (known < 0 && record.calories > 0);
         record.wasteReason = resultSet.getString(resultSet.getColumnIndex('waste_reason'));
         record.createTime = resultSet.getLong(resultSet.getColumnIndex('create_time'));
         records.push(record);

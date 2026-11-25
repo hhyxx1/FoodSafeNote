@@ -1,3 +1,4 @@
+import { IntakeParams } from '../common/FoodIntake';
 import { HdsNavDestination } from '@kit.UIDesignKit';
 import { AppNavigation } from '../common/AppNavigation';
 import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodMenuRow, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
@@ -14,7 +15,7 @@ struct EntrySelectionPage {
             SymbolGlyph($r('sys.symbol.barcode_viewfinder'))
               .fontSize(32).fontColor([$r('app.color.journal_hero_text')])
             Column({ space: 5 }) {
-              Text($r('app.string.ui_scan_a_barcode'))
+              Text($r('app.string.intake_barcode_scan_other'))
                 .fontSize(20).fontWeight(FontWeight.Bold).fontColor($r('app.color.journal_hero_text'))
               Text($r('app.string.add_scan_hint'))
                 .fontSize(14).fontColor($r('app.color.journal_hero_secondary'))
@@ -39,7 +40,10 @@ struct EntrySelectionPage {
                 symbol: $r('sys.symbol.square_and_pencil'),
                 title: $r('app.string.add_manual_title'),
                 subtitle: $r('app.string.add_manual_hint'),
-                onOpen: () => { AppNavigation.push('AddFoodPage'); }
+                onOpen: () => {
+                  const params: IntakeParams = { mode: 'single' };
+                  AppNavigation.push('BatchAddPage', params);
+                }
               })
               Divider().color($r('app.color.divider')).margin({ left: 66, right: 14 })
               FoodMenuRow({

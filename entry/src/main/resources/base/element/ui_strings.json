@@ -218,7 +218,7 @@
     },
     {
       "name": "ui_product_dictionary",
-      "value": "产品字典"
+      "value": "产品数据库"
     },
     {
       "name": "ui_choose_how_to_add_food",
@@ -294,7 +294,7 @@
     },
     {
       "name": "ui_dictionary",
-      "value": "字典"
+      "value": "产品数据库"
     },
     {
       "name": "ui_search_food_names",
@@ -342,15 +342,15 @@
     },
     {
       "name": "ui_no_dictionary_entries",
-      "value": "暂无产品字典数据"
+      "value": "暂无产品数据库数据"
     },
     {
       "name": "ui_export_dictionary",
-      "value": "导出字典"
+      "value": "导出产品数据库"
     },
     {
       "name": "ui_import_dictionary",
-      "value": "导入字典"
+      "value": "导入产品数据库"
     },
     {
       "name": "ui_product_name_2",
@@ -426,7 +426,7 @@
     },
     {
       "name": "ui_product_dictionary_2",
-      "value": "产品字典"
+      "value": "产品数据库"
     },
     {
       "name": "ui_health_report_2",
@@ -1090,7 +1090,7 @@
     },
     {
       "name": "ui_product_dictionary_exported",
-      "value": "产品字典导出成功"
+      "value": "产品数据库导出成功"
     },
     {
       "name": "ui_exports_are_saved_as_json_files_in_app_storage",
@@ -1098,11 +1098,11 @@
     },
     {
       "name": "ui_export_foods_members_and_dictionary",
-      "value": "全量导出（食品+成员+字典）"
+      "value": "全量导出（食品+成员+产品数据库）"
     },
     {
       "name": "ui_export_product_dictionary_only",
-      "value": "产品字典单独导出"
+      "value": "产品数据库单独导出"
     },
     {
       "name": "ui_import_full_backup_from_app_storage",
@@ -1386,11 +1386,11 @@
     },
     {
       "name": "ui_dictionary_exported",
-      "value": "字典导出成功"
+      "value": "产品数据库导出成功"
     },
     {
       "name": "ui_dictionary_imported_d_added_d_skipped",
-      "value": "字典导入成功（%d 条，跳过 %d 条）"
+      "value": "产品数据库导入成功（%d 条，跳过 %d 条）"
     },
     {
       "name": "ui_enter_a_product_name_2",
@@ -1666,7 +1666,7 @@
     },
     {
       "name": "ui_product_dictionary_imported",
-      "value": "字典导入成功"
+      "value": "产品数据库导入成功"
     },
     {
       "name": "ui_import_failed_invalid_data_format",
@@ -1754,7 +1754,7 @@
     },
     {
       "name": "food_sync_syncing",
-      "value": "正在同步库存、成员、消费记录和字典"
+      "value": "正在同步库存、成员、消费记录和产品数据库"
     },
     {
       "name": "food_sync_synced",
@@ -1783,6 +1783,40 @@
     {
       "name": "food_could_not_process_remote_photo",
       "value": "无法处理其他设备传来的照片，请重试"
-    }
+    },
+    {"name": "intake_name_needed", "value": "请输入食品名称"},
+    {"name": "intake_quantity_value", "value": "%d 件"},
+    {"name": "intake_done", "value": "完成"},
+    {"name": "intake_name", "value": "食品名称"},
+    {"name": "intake_quantity", "value": "数量"},
+    {"name": "intake_expiry", "value": "到期日期"},
+    {"name": "intake_pending_date", "value": "待补日期"},
+    {"name": "intake_estimated", "value": "估算"},
+    {"name": "intake_date_select", "value": "选择日期"},
+    {"name": "intake_later", "value": "稍后补"},
+    {"name": "intake_use_estimate", "value": "使用估算日期"},
+    {"name": "intake_more", "value": "更多信息"},
+    {"name": "intake_category", "value": "选择分类"},
+    {"name": "intake_spec", "value": "规格（选填）"},
+    {"name": "intake_calories_per_unit", "value": "每件热量（kcal，选填）"},
+    {"name": "intake_split", "value": "拆出 1 件设不同日期"},
+    {"name": "intake_undo_failed", "value": "无法撤销，库存可能已有变动"},
+    {"name": "intake_batch_location", "value": "统一设置存放位置"},
+    {"name": "intake_continue", "value": "继续添加"},
+    {"name": "intake_undo", "value": "撤销这次入库"},
+    {"name": "intake_quick_add", "value": "快速添加"},
+    {"name": "intake_recent", "value": "最近添加"},
+    {"name": "intake_other_methods", "value": "更多方式"},
+    {"name": "intake_pending_count", "value": "待补日期 · %d"},
+    {"name": "intake_read_nutrition", "value": "拍营养标签计算热量"},
+    {"name": "intake_missing_calories", "value": "%d 条已食用记录缺少热量，未计入合计"},
+    {"name": "intake_missing_calorie_record", "value": "热量未填写"},
+    {"name": "intake_eat_calories_optional", "value": "本次热量（kcal，可留空）"},
+    {"name": "intake_estimated_date", "value": "估算 · %s"},
+    {"name": "intake_barcode_scan_other", "value": "跨设备扫码"},
+    {"name": "intake_camera_unavailable", "value": "无法使用相机，请检查相机权限或选择手动录入"},
+    {"name": "intake_scan_count", "value": "已扫 %d 件"},
+    {"name": "intake_scan_aim", "value": "将条码对准取景框"},
+    {"name": "intake_scan_next", "value": "扫下一件"}
   ]
 }
