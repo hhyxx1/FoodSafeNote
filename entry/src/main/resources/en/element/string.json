@@ -1,0 +1,1944 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FoodSafeNote - smart food safety management"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "FoodSafeNote main page"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "FoodSafeNote"
+    },
+    {
+      "name": "camera_reason",
+      "value": "Used to scan barcodes and capture nutrition labels"
+    },
+    {
+      "name": "distributed_reason",
+      "value": "Used to sync food inventory across your devices"
+    },
+    {
+      "name": "internet_reason",
+      "value": "Used to load the online privacy policy page"
+    },
+    {
+      "name": "watch_inventory_title",
+      "value": "Inventory"
+    },
+    {
+      "name": "watch_normal",
+      "value": "Normal"
+    },
+    {
+      "name": "watch_near_expiry",
+      "value": "Near Exp"
+    },
+    {
+      "name": "watch_expired",
+      "value": "Expired"
+    },
+    {
+      "name": "watch_tap_to_list",
+      "value": "Tap to view list >"
+    },
+    {
+      "name": "watch_back_overview",
+      "value": "< Back to overview"
+    },
+    {
+      "name": "watch_empty_inventory",
+      "value": "No inventory"
+    },
+    {
+      "name": "watch_add_on_phone",
+      "value": "Add foods on phone"
+    },
+    {
+      "name": "watch_today",
+      "value": "Today"
+    },
+    {
+      "name": "watch_week",
+      "value": "Week"
+    },
+    {
+      "name": "watch_no_intake_records",
+      "value": "No intake records"
+    },
+    {
+      "name": "watch_back",
+      "value": "< Back"
+    },
+    {
+      "name": "watch_not_set",
+      "value": "Not set"
+    },
+    {
+      "name": "watch_expired_prefix",
+      "value": "Expired "
+    },
+    {
+      "name": "watch_remaining_prefix",
+      "value": "Remaining "
+    },
+    {
+      "name": "watch_days_suffix",
+      "value": " days"
+    },
+    {
+      "name": "watch_expire_today",
+      "value": "Expires today"
+    },
+    {
+      "name": "watch_loading",
+      "value": "Loading..."
+    },
+    {
+      "name": "status_normal",
+      "value": "Normal"
+    },
+    {
+      "name": "status_near_expiry",
+      "value": "Near expiry"
+    },
+    {
+      "name": "status_expired",
+      "value": "Expired"
+    },
+    {
+      "name": "status_consumed",
+      "value": "Consumed"
+    },
+    {
+      "name": "status_wasted",
+      "value": "Discarded"
+    },
+    {
+      "name": "privacy_dialog_title",
+      "value": "Privacy and personal information"
+    },
+    {
+      "name": "privacy_dialog_content",
+      "value": "Welcome to FoodSafeNote. When you use food management, barcode scanning, or device sync, we process the information needed for those features. Please read the Privacy Policy before continuing."
+    },
+    {
+      "name": "privacy_dialog_view_full",
+      "value": "Read the full Privacy Policy (Chinese)"
+    },
+    {
+      "name": "privacy_dialog_agreement_tip",
+      "value": "By selecting Agree and continue, you confirm that you have read and accepted the Privacy Policy."
+    },
+    {
+      "name": "privacy_dialog_reject",
+      "value": "Decline and exit"
+    },
+    {
+      "name": "privacy_dialog_accept",
+      "value": "Agree and continue"
+    },
+    {
+      "name": "privacy_dialog_content_watch",
+      "value": "We process information needed for food management, barcode scanning, and device sync. Please read the Privacy Policy first."
+    },
+    {
+      "name": "privacy_dialog_accept_watch",
+      "value": "Agree"
+    },
+    {
+      "name": "privacy_dialog_reject_watch",
+      "value": "Decline"
+    },
+    {
+      "name": "privacy_policy_page_title",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "ui_food_name",
+      "value": "Food name"
+    },
+    {
+      "name": "ui_e_g_milk_lettuce_apples",
+      "value": "e.g. milk, lettuce, apples"
+    },
+    {
+      "name": "ui_enter_a_food_name",
+      "value": "Enter a food name"
+    },
+    {
+      "name": "ui_barcode_optional",
+      "value": "Barcode (optional)"
+    },
+    {
+      "name": "ui_e_g_6901234567890",
+      "value": "e.g. 6901234567890"
+    },
+    {
+      "name": "ui_food_category",
+      "value": "Food category"
+    },
+    {
+      "name": "ui_e_g_250_ml_500_g_1_bag",
+      "value": "e.g. 250 mL, 500 g, 1 bag"
+    },
+    {
+      "name": "ui_storage_method",
+      "value": "Storage method"
+    },
+    {
+      "name": "ui_opened",
+      "value": "Opened"
+    },
+    {
+      "name": "ui_production_date",
+      "value": "Production date"
+    },
+    {
+      "name": "ui_shelf_life",
+      "value": "Shelf life"
+    },
+    {
+      "name": "ui_expiry_date_calculated_automatically",
+      "value": "Expiry date (calculated automatically)"
+    },
+    {
+      "name": "ui_start_scanning",
+      "value": "Start scanning"
+    },
+    {
+      "name": "ui_point_the_camera_at_a_barcode",
+      "value": "Point the camera at a barcode"
+    },
+    {
+      "name": "ui_scan_a_photo",
+      "value": "Scan a photo"
+    },
+    {
+      "name": "ui_batch_scanning",
+      "value": "Batch scanning"
+    },
+    {
+      "name": "ui_add_in_bulk",
+      "value": "Add in bulk"
+    },
+    {
+      "name": "ui_enter_a_barcode_e_g_6901234567890",
+      "value": "Enter a barcode (e.g. 6901234567890)"
+    },
+    {
+      "name": "ui_match",
+      "value": "Match"
+    },
+    {
+      "name": "ui_looking_up_barcode",
+      "value": "Looking up barcode…"
+    },
+    {
+      "name": "ui_barcode",
+      "value": "Barcode"
+    },
+    {
+      "name": "ui_product_name",
+      "value": "Product name"
+    },
+    {
+      "name": "ui_category_optional",
+      "value": "Category (optional)"
+    },
+    {
+      "name": "ui_package_size_optional",
+      "value": "Package size (optional)"
+    },
+    {
+      "name": "ui_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "ui_confirm",
+      "value": "Confirm"
+    },
+    {
+      "name": "ui_scan_a_barcode",
+      "value": "Scan a barcode"
+    },
+    {
+      "name": "ui_scan_to_add",
+      "value": "Scan to add"
+    },
+    {
+      "name": "ui_add_manually",
+      "value": "Add manually"
+    },
+    {
+      "name": "ui_tap_the_button_above_to_add_food",
+      "value": "Tap the button above to add food"
+    },
+    {
+      "name": "ui_scan_multiple_barcodes_in_a_row",
+      "value": "Scan multiple barcodes in a row"
+    },
+    {
+      "name": "ui_edit",
+      "value": "Edit"
+    },
+    {
+      "name": "ui_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "ui_back_to_list",
+      "value": "Back to list"
+    },
+    {
+      "name": "ui_package_size_optional_2",
+      "value": "Package size (optional)"
+    },
+    {
+      "name": "ui_refrigerated",
+      "value": "Refrigerated"
+    },
+    {
+      "name": "ui_frozen",
+      "value": "Frozen"
+    },
+    {
+      "name": "ui_room_temperature",
+      "value": "Room temperature"
+    },
+    {
+      "name": "ui_review_details",
+      "value": "Review details"
+    },
+    {
+      "name": "ui_edit_food_details",
+      "value": "Edit food details"
+    },
+    {
+      "name": "ui_add_in_bulk_2",
+      "value": "Add in bulk"
+    },
+    {
+      "name": "ui_food_information",
+      "value": "Food information"
+    },
+    {
+      "name": "ui_next_set_shelf_life",
+      "value": "Next: set shelf life"
+    },
+    {
+      "name": "ui_calorie_information",
+      "value": "Calorie information"
+    },
+    {
+      "name": "ui_tap_to_allow_clipboard_access",
+      "value": "Tap to allow clipboard access"
+    },
+    {
+      "name": "ui_access_granted",
+      "value": "Access granted"
+    },
+    {
+      "name": "ui_enter_a_shopping_list_separated_by_commas_or_line_breaks",
+      "value": "Enter a shopping list, separated by commas or line breaks"
+    },
+    {
+      "name": "ui_e_g_milk_bread_apples_eggs",
+      "value": "e.g. milk, bread, apples, eggs"
+    },
+    {
+      "name": "ui_parse",
+      "value": "Parse"
+    },
+    {
+      "name": "ui_import_from_clipboard",
+      "value": "Import from clipboard"
+    },
+    {
+      "name": "ui_import_from_clipboard_2",
+      "value": "Import from clipboard"
+    },
+    {
+      "name": "ui_export_data",
+      "value": "Export data"
+    },
+    {
+      "name": "ui_no_backup_files",
+      "value": "No backup files"
+    },
+    {
+      "name": "ui_backup_and_restore",
+      "value": "Backup and restore"
+    },
+    {
+      "name": "ui_product_dictionary",
+      "value": "Product dictionary"
+    },
+    {
+      "name": "ui_choose_how_to_add_food",
+      "value": "Choose how to add food"
+    },
+    {
+      "name": "ui_could_not_save_the_record_refresh_your_inventory_and_try_again",
+      "value": "Could not save the record. Refresh your inventory and try again."
+    },
+    {
+      "name": "ui_delete_this_item",
+      "value": "Delete this item"
+    },
+    {
+      "name": "ui_loading",
+      "value": "Loading…"
+    },
+    {
+      "name": "ui_food_item_not_found",
+      "value": "Food item not found"
+    },
+    {
+      "name": "ui_food_details",
+      "value": "Food details"
+    },
+    {
+      "name": "ui_mark_as_eaten",
+      "value": "Mark as eaten"
+    },
+    {
+      "name": "ui_discard",
+      "value": "Discard"
+    },
+    {
+      "name": "ui_who_ate_this",
+      "value": "Who ate this?"
+    },
+    {
+      "name": "ui_choose_a_reason",
+      "value": "Choose a reason"
+    },
+    {
+      "name": "ui_search",
+      "value": "Search"
+    },
+    {
+      "name": "ui_discarded_food",
+      "value": "Discarded food"
+    },
+    {
+      "name": "ui_calorie_intake_by_member",
+      "value": "Calorie intake by member"
+    },
+    {
+      "name": "ui_food_waste_analysis",
+      "value": "Food waste analysis"
+    },
+    {
+      "name": "ui_health_report",
+      "value": "Health report"
+    },
+    {
+      "name": "ui_inventory",
+      "value": "Inventory"
+    },
+    {
+      "name": "ui_health",
+      "value": "Health"
+    },
+    {
+      "name": "ui_profile",
+      "value": "Profile"
+    },
+    {
+      "name": "ui_dictionary",
+      "value": "Dictionary"
+    },
+    {
+      "name": "ui_search_food_names",
+      "value": "Search food names"
+    },
+    {
+      "name": "ui_no_ocr_records",
+      "value": "No OCR records"
+    },
+    {
+      "name": "ui_enter_calories",
+      "value": "Enter calories"
+    },
+    {
+      "name": "ui_save",
+      "value": "Save"
+    },
+    {
+      "name": "ui_ocr_history",
+      "value": "OCR history"
+    },
+    {
+      "name": "ui_change",
+      "value": "Change"
+    },
+    {
+      "name": "ui_detected_food_name_editable",
+      "value": "Detected food name (editable)"
+    },
+    {
+      "name": "ui_storage_conditions",
+      "value": "Storage conditions"
+    },
+    {
+      "name": "ui_next_review_and_add",
+      "value": "Next: review and add"
+    },
+    {
+      "name": "ui_add_from_a_photo",
+      "value": "Add from a photo"
+    },
+    {
+      "name": "ui_search_by_name_or_barcode",
+      "value": "Search by name or barcode"
+    },
+    {
+      "name": "ui_no_dictionary_entries",
+      "value": "No dictionary entries"
+    },
+    {
+      "name": "ui_export_dictionary",
+      "value": "Export dictionary"
+    },
+    {
+      "name": "ui_import_dictionary",
+      "value": "Import dictionary"
+    },
+    {
+      "name": "ui_product_name_2",
+      "value": "Product name *"
+    },
+    {
+      "name": "ui_category",
+      "value": "Category"
+    },
+    {
+      "name": "ui_package_size",
+      "value": "Package size"
+    },
+    {
+      "name": "ui_back",
+      "value": "Back"
+    },
+    {
+      "name": "ui_health_dashboard",
+      "value": "Health dashboard"
+    },
+    {
+      "name": "ui_detailed_report",
+      "value": "Detailed report"
+    },
+    {
+      "name": "ui_intake_by_family_member",
+      "value": "Intake by family member"
+    },
+    {
+      "name": "ui_waste_statistics",
+      "value": "Waste statistics"
+    },
+    {
+      "name": "ui_consumption_history",
+      "value": "Consumption history"
+    },
+    {
+      "name": "ui_no_records",
+      "value": "No records"
+    },
+    {
+      "name": "ui_food_inventory",
+      "value": "Food inventory"
+    },
+    {
+      "name": "ui_reason_for_discarding",
+      "value": "Reason for discarding"
+    },
+    {
+      "name": "ui_your_inventory_is_empty",
+      "value": "Your inventory is empty"
+    },
+    {
+      "name": "ui_tap_to_add_food",
+      "value": "Tap + to add food"
+    },
+    {
+      "name": "ui_family_members",
+      "value": "Family members"
+    },
+    {
+      "name": "ui_add",
+      "value": "Add"
+    },
+    {
+      "name": "ui_add_a_family_member_to_get_started",
+      "value": "Add a family member to get started"
+    },
+    {
+      "name": "ui_features",
+      "value": "Features"
+    },
+    {
+      "name": "ui_product_dictionary_2",
+      "value": "Product dictionary"
+    },
+    {
+      "name": "ui_health_report_2",
+      "value": "Health report"
+    },
+    {
+      "name": "ui_view_calorie_and_food_waste_reports",
+      "value": "View calorie and food waste reports"
+    },
+    {
+      "name": "ui_backup",
+      "value": "Backup"
+    },
+    {
+      "name": "ui_export_import_or_restore_data",
+      "value": "Export, import, or restore data"
+    },
+    {
+      "name": "ui_ocr_history_2",
+      "value": "OCR history"
+    },
+    {
+      "name": "ui_view_nutrition_label_scan_history",
+      "value": "View nutrition label scan history"
+    },
+    {
+      "name": "ui_statistics",
+      "value": "Statistics"
+    },
+    {
+      "name": "ui_total_added",
+      "value": "Total added"
+    },
+    {
+      "name": "ui_in_stock",
+      "value": "In stock"
+    },
+    {
+      "name": "ui_consumed",
+      "value": "Consumed"
+    },
+    {
+      "name": "ui_discarded",
+      "value": "Discarded"
+    },
+    {
+      "name": "ui_built_in_barcode_database",
+      "value": "Built-in barcode database"
+    },
+    {
+      "name": "ui_about",
+      "value": "About"
+    },
+    {
+      "name": "ui_today_s_intake_by_member",
+      "value": "Today's intake by member"
+    },
+    {
+      "name": "ui_no_intake_records_today",
+      "value": "No intake records today"
+    },
+    {
+      "name": "ui_today_s_total_intake",
+      "value": "Today's total intake"
+    },
+    {
+      "name": "ui_no_food_items",
+      "value": "No food items"
+    },
+    {
+      "name": "ui_no_data",
+      "value": "No data"
+    },
+    {
+      "name": "add_scan_hint",
+      "value": "Scan a barcode to look up product details"
+    },
+    {
+      "name": "add_photo_hint",
+      "value": "Take a photo of your food, such as fresh produce"
+    },
+    {
+      "name": "add_manual_title",
+      "value": "Add manually"
+    },
+    {
+      "name": "add_manual_hint",
+      "value": "Enter details for food without a barcode"
+    },
+    {
+      "name": "add_batch_hint",
+      "value": "Scan or photograph several items, then review and add them together"
+    },
+    {
+      "name": "add_clipboard_hint",
+      "value": "Turn a shopping list from your clipboard into draft food entries"
+    },
+    {
+      "name": "inventory_count",
+      "value": "Items: %d"
+    },
+    {
+      "name": "inventory_all_count",
+      "value": "All %d"
+    },
+    {
+      "name": "inventory_normal_count",
+      "value": "Fresh %d"
+    },
+    {
+      "name": "inventory_near_expiry_count",
+      "value": "Expiring soon %d"
+    },
+    {
+      "name": "inventory_expired_count",
+      "value": "Expired %d"
+    },
+    {
+      "name": "about_app_name",
+      "value": "App name"
+    },
+    {
+      "name": "about_app_name_value",
+      "value": "FoodSafeNote"
+    },
+    {
+      "name": "about_storage",
+      "value": "Data storage"
+    },
+    {
+      "name": "about_storage_value",
+      "value": "Works offline with on-device storage"
+    },
+    {
+      "name": "about_design",
+      "value": "Design principles"
+    },
+    {
+      "name": "about_design_value",
+      "value": "Simple tools, inclusive design, and privacy"
+    },
+    {
+      "name": "about_version",
+      "value": "Version"
+    },
+    {
+      "name": "ui_add_food",
+      "value": "Add food"
+    },
+    {
+      "name": "ui_add_to_inventory",
+      "value": "Add to inventory"
+    },
+    {
+      "name": "ui_review_photo_entry",
+      "value": "Review photo entry"
+    },
+    {
+      "name": "ui_edit_food",
+      "value": "Edit food"
+    },
+    {
+      "name": "ui_enter_a_food_name_2",
+      "value": "Enter a food name."
+    },
+    {
+      "name": "ui_enter_a_valid_shelf_life",
+      "value": "Enter a valid shelf life."
+    },
+    {
+      "name": "ui_changes_saved",
+      "value": "Changes saved."
+    },
+    {
+      "name": "ui_added_to_inventory",
+      "value": "Added to inventory."
+    },
+    {
+      "name": "ui_could_not_save_try_again",
+      "value": "Could not save. Try again."
+    },
+    {
+      "name": "ui_basic_information",
+      "value": "Basic information"
+    },
+    {
+      "name": "ui_photo_taken_add_any_missing_details_to_save_the_item",
+      "value": "Photo taken. Add any missing details to save the item."
+    },
+    {
+      "name": "ui_you_can_enter_details_now_and_take_a_photo_later",
+      "value": "You can enter details now and take a photo later."
+    },
+    {
+      "name": "ui_package_details_optional",
+      "value": "Package details (optional)"
+    },
+    {
+      "name": "ui_storage_details",
+      "value": "Storage details"
+    },
+    {
+      "name": "ui_suggested_freshness_editable",
+      "value": "Suggested freshness (editable)"
+    },
+    {
+      "name": "ui_fresh",
+      "value": "Fresh"
+    },
+    {
+      "name": "ui_fair",
+      "value": "Fair"
+    },
+    {
+      "name": "ui_poor",
+      "value": "Poor"
+    },
+    {
+      "name": "ui_production_date_and_shelf_life_are_known",
+      "value": "Production date and shelf life are known"
+    },
+    {
+      "name": "ui_enter_the_production_date_and_shelf_life_to_calculate_the_expiry_date",
+      "value": "Enter the production date and shelf life to calculate the expiry date."
+    },
+    {
+      "name": "ui_collapse",
+      "value": "Collapse"
+    },
+    {
+      "name": "ui_select_date",
+      "value": "Select date"
+    },
+    {
+      "name": "ui_e_g_7_6_1",
+      "value": "e.g. 7 / 6 / 1"
+    },
+    {
+      "name": "ui_months",
+      "value": "Months"
+    },
+    {
+      "name": "ui_years",
+      "value": "Years"
+    },
+    {
+      "name": "ui_based_on_production_date",
+      "value": "Based on production date"
+    },
+    {
+      "name": "ui_based_on_category_and_storage",
+      "value": "Based on category and storage"
+    },
+    {
+      "name": "ui_nutrition",
+      "value": "Nutrition"
+    },
+    {
+      "name": "ui_total_calories_kcal_optional",
+      "value": "Total calories (kcal, optional)"
+    },
+    {
+      "name": "ui_enter_total_calories_kcal",
+      "value": "Enter total calories (kcal)"
+    },
+    {
+      "name": "ui_enter_the_label_value_and_quantity_under_calorie_information_then_return_to_confirm_the_total",
+      "value": "Enter the label value and quantity under Calorie information, then return to confirm the total."
+    },
+    {
+      "name": "ui_save_changes",
+      "value": "Save changes"
+    },
+    {
+      "name": "ui_scan_received",
+      "value": "Scan received."
+    },
+    {
+      "name": "ui_no_barcode_was_found_in_the_result_from_your_phone",
+      "value": "No barcode was found in the result from your phone."
+    },
+    {
+      "name": "ui_no_scan_result_received",
+      "value": "No scan result received."
+    },
+    {
+      "name": "ui_no_barcode_detected_try_again",
+      "value": "No barcode detected. Try again."
+    },
+    {
+      "name": "ui_no_barcode_found_in_the_image",
+      "value": "No barcode found in the image."
+    },
+    {
+      "name": "ui_could_not_scan_the_photo_enter_the_barcode_manually",
+      "value": "Could not scan the photo. Enter the barcode manually."
+    },
+    {
+      "name": "ui_start_a_cross_device_scan_from_a_tablet_or_2_in_1_device",
+      "value": "Start a cross-device scan from a tablet or 2-in-1 device."
+    },
+    {
+      "name": "ui_choose_a_connected_phone_signed_in_to_the_same_account",
+      "value": "Choose a connected phone signed in to the same account."
+    },
+    {
+      "name": "ui_enter_a_product_name",
+      "value": "Enter a product name."
+    },
+    {
+      "name": "ui_no_camera_found_scan_a_photo_or_use_a_connected_device",
+      "value": "No camera found. Scan a photo or use a connected device."
+    },
+    {
+      "name": "ui_scan_using_your_phone",
+      "value": "Scan using your phone"
+    },
+    {
+      "name": "ui_or_enter_the_barcode_manually",
+      "value": "Or enter the barcode manually"
+    },
+    {
+      "name": "ui_turn_on_to_scan_multiple_codes_use_add_in_bulk_for_more_control",
+      "value": "Turn on to scan multiple codes. Use Add in bulk for more control."
+    },
+    {
+      "name": "ui_review_barcode_details_editable",
+      "value": "Review barcode details (editable)"
+    },
+    {
+      "name": "ui_no_barcode_match_enter_product_details",
+      "value": "No barcode match. Enter product details."
+    },
+    {
+      "name": "ui_e_g_milk_plain_potato_chips",
+      "value": "e.g. milk, plain potato chips"
+    },
+    {
+      "name": "ui_e_g_dairy_snacks",
+      "value": "e.g. dairy, snacks"
+    },
+    {
+      "name": "ui_e_g_250_ml_100_g",
+      "value": "e.g. 250 mL, 100 g"
+    },
+    {
+      "name": "ui_package_size_is_used_to_suggest_the_amount_to_add",
+      "value": "Package size is used to suggest the amount to add."
+    },
+    {
+      "name": "ui_scan_canceled",
+      "value": "Scan canceled."
+    },
+    {
+      "name": "ui_barcode_scanning_is_unavailable",
+      "value": "Barcode scanning is unavailable."
+    },
+    {
+      "name": "ui_match_found_s",
+      "value": "Match found: %s"
+    },
+    {
+      "name": "ui_no_match_found_enter_a_name_manually",
+      "value": "No match found. Enter a name manually."
+    },
+    {
+      "name": "ui_item_d_needs_a_name_tap_edit",
+      "value": "Item %d needs a name. Tap Edit."
+    },
+    {
+      "name": "ui_add_a_food_item_first",
+      "value": "Add a food item first."
+    },
+    {
+      "name": "ui_added_d_items",
+      "value": "Added %d items"
+    },
+    {
+      "name": "ui_add_all_items",
+      "value": "Add all items"
+    },
+    {
+      "name": "ui_d_added_d_reviewed",
+      "value": "%d added, %d reviewed"
+    },
+    {
+      "name": "ui_untitled_tap_to_edit",
+      "value": "(Untitled, tap to edit)"
+    },
+    {
+      "name": "ui_e_g_milk_apples",
+      "value": "e.g. milk, apples"
+    },
+    {
+      "name": "ui_e_g_250_ml_500_g",
+      "value": "e.g. 250 mL, 500 g"
+    },
+    {
+      "name": "ui_energy_per_100_g_optional",
+      "value": "Energy per 100 g (optional)"
+    },
+    {
+      "name": "ui_kilojoules_kj",
+      "value": "Kilojoules (kJ)"
+    },
+    {
+      "name": "ui_kilocalories_kcal",
+      "value": "Kilocalories (kcal)"
+    },
+    {
+      "name": "ui_value_from_the_nutrition_label",
+      "value": "Value from the nutrition label"
+    },
+    {
+      "name": "ui_this_device_does_not_support_text_recognition",
+      "value": "This device does not support text recognition."
+    },
+    {
+      "name": "ui_could_not_read_the_image_try_again",
+      "value": "Could not read the image. Try again."
+    },
+    {
+      "name": "ui_could_not_scan_the_nutrition_label_try_again",
+      "value": "Could not scan the nutrition label. Try again."
+    },
+    {
+      "name": "ui_no_text_detected_try_again",
+      "value": "No text detected. Try again."
+    },
+    {
+      "name": "ui_scan_received_review_the_result",
+      "value": "Scan received. Review the result."
+    },
+    {
+      "name": "ui_energy_details_are_incomplete_enter_the_unit_and_basis_manually",
+      "value": "Energy details are incomplete. Enter the unit and basis manually."
+    },
+    {
+      "name": "ui_could_not_process_the_photo_from_your_phone",
+      "value": "Could not process the photo from your phone."
+    },
+    {
+      "name": "ui_enter_a_valid_energy_value",
+      "value": "Enter a valid energy value."
+    },
+    {
+      "name": "ui_scan_applied_enter_the_amount_to_add",
+      "value": "Scan applied. Enter the amount to add."
+    },
+    {
+      "name": "ui_enter_the_nutrition_label_value_first",
+      "value": "Enter the nutrition label value first."
+    },
+    {
+      "name": "ui_enter_the_amount_to_add_to_calculate_calories",
+      "value": "Enter the amount to add to calculate calories."
+    },
+    {
+      "name": "ui_enter_the_number_of_servings_to_calculate_calories",
+      "value": "Enter the number of servings to calculate calories."
+    },
+    {
+      "name": "ui_complete_the_quantity_information",
+      "value": "Complete the quantity information."
+    },
+    {
+      "name": "ui_original_label_saved_enter_the_serving_size_to_calculate_a_standardized_value",
+      "value": "Original label saved. Enter the serving size to calculate a standardized value."
+    },
+    {
+      "name": "ui_name",
+      "value": "Name"
+    },
+    {
+      "name": "ui_category_2",
+      "value": "Category"
+    },
+    {
+      "name": "ui_energy_value_on_the_package",
+      "value": "Energy value on the package"
+    },
+    {
+      "name": "ui_kilojoules_kj_common_on_labels",
+      "value": "Kilojoules (kJ, common on labels)"
+    },
+    {
+      "name": "ui_per_100_units",
+      "value": "Per 100 units"
+    },
+    {
+      "name": "ui_per_serving",
+      "value": "Per serving"
+    },
+    {
+      "name": "ui_enter_energy_value",
+      "value": "Enter energy value"
+    },
+    {
+      "name": "ui_amount_to_add",
+      "value": "Amount to add *"
+    },
+    {
+      "name": "ui_enter_volume_ml",
+      "value": "Enter volume (mL)"
+    },
+    {
+      "name": "ui_enter_weight_g",
+      "value": "Enter weight (g)"
+    },
+    {
+      "name": "ui_serving_information",
+      "value": "Serving information"
+    },
+    {
+      "name": "ui_number_of_servings_e_g_1",
+      "value": "Number of servings (e.g. 1)"
+    },
+    {
+      "name": "ui_servings",
+      "value": "Servings"
+    },
+    {
+      "name": "ui_weight_or_volume_per_serving",
+      "value": "Weight or volume per serving"
+    },
+    {
+      "name": "ui_scan_a_nutrition_label_ocr",
+      "value": "Scan a nutrition label (OCR)"
+    },
+    {
+      "name": "ui_scan_a_photo_from_your_phone",
+      "value": "Scan a photo from your phone"
+    },
+    {
+      "name": "ui_add_calories_to_include_this_food_in_health_reports",
+      "value": "Add calories to include this food in health reports."
+    },
+    {
+      "name": "ui_strict_mode_saves_only_the_original_label_value_until_a_serving_size_is_entered",
+      "value": "Strict mode saves only the original label value until a serving size is entered."
+    },
+    {
+      "name": "ui_how_to_find_calories",
+      "value": "How to find calories"
+    },
+    {
+      "name": "ui_check_the_nutrition_label_on_the_package",
+      "value": "• Check the nutrition label on the package."
+    },
+    {
+      "name": "ui_save_the_original_label_value_unit_and_basis_to_avoid_converting_twice",
+      "value": "• Save the original label value, unit, and basis to avoid converting twice."
+    },
+    {
+      "name": "ui_strict_mode_requires_the_serving_size_to_calculate_a_standardized_value",
+      "value": "• Strict mode requires the serving size to calculate a standardized value."
+    },
+    {
+      "name": "ui_review_scanned_nutrition_information",
+      "value": "Review scanned nutrition information"
+    },
+    {
+      "name": "ui_check_the_scanned_value_unit_and_basis_100_g_100_ml_or_per_serving",
+      "value": "Check the scanned value, unit, and basis (100 g, 100 mL, or per serving)."
+    },
+    {
+      "name": "ui_energy",
+      "value": "Energy"
+    },
+    {
+      "name": "ui_enter_the_scanned_value",
+      "value": "Enter the scanned value"
+    },
+    {
+      "name": "ui_unit_for_the_100_unit_basis",
+      "value": "Unit for the 100-unit basis"
+    },
+    {
+      "name": "ui_weight_or_volume_per_serving_editable",
+      "value": "Weight or volume per serving (editable)"
+    },
+    {
+      "name": "ui_clipboard_access_was_not_granted",
+      "value": "Clipboard access was not granted."
+    },
+    {
+      "name": "ui_could_not_read_the_clipboard",
+      "value": "Could not read the clipboard."
+    },
+    {
+      "name": "ui_the_clipboard_is_empty_or_unreadable",
+      "value": "The clipboard is empty or unreadable."
+    },
+    {
+      "name": "ui_the_clipboard_is_empty",
+      "value": "The clipboard is empty."
+    },
+    {
+      "name": "ui_no_food_name_could_be_identified",
+      "value": "No food name could be identified."
+    },
+    {
+      "name": "ui_check_the_shopping_list",
+      "value": "Check the shopping list"
+    },
+    {
+      "name": "ui_this_text_may_not_be_a_shopping_list_create_draft_entries_anyway",
+      "value": "This text may not be a shopping list. Create draft entries anyway?"
+    },
+    {
+      "name": "ui_create_drafts_anyway",
+      "value": "Create drafts anyway"
+    },
+    {
+      "name": "ui_select_at_least_one_item",
+      "value": "Select at least one item."
+    },
+    {
+      "name": "ui_this_entry_is_not_selected",
+      "value": "This entry is not selected."
+    },
+    {
+      "name": "ui_continue_d",
+      "value": "Continue (%d)"
+    },
+    {
+      "name": "ui_draft_entries_d",
+      "value": "Draft entries (%d)"
+    },
+    {
+      "name": "ui_select_parse_to_create_draft_food_entries",
+      "value": "Select Parse to create draft food entries."
+    },
+    {
+      "name": "ui_for_reference_only",
+      "value": "For reference only"
+    },
+    {
+      "name": "ui_add_calories_shelf_life_and_any_missing_details",
+      "value": "Add calories, shelf life, and any missing details."
+    },
+    {
+      "name": "ui_add_to_inventory_2",
+      "value": "Add to inventory"
+    },
+    {
+      "name": "ui_full_backup_exported",
+      "value": "Full backup exported."
+    },
+    {
+      "name": "ui_export_failed",
+      "value": "Export failed."
+    },
+    {
+      "name": "ui_full_backup_imported",
+      "value": "Full backup imported."
+    },
+    {
+      "name": "ui_import_failed_the_file_is_missing_or_has_an_invalid_format",
+      "value": "Import failed. The file is missing or has an invalid format."
+    },
+    {
+      "name": "ui_product_dictionary_exported",
+      "value": "Product dictionary exported."
+    },
+    {
+      "name": "ui_exports_are_saved_as_json_files_in_app_storage",
+      "value": "Exports are saved as JSON files in app storage."
+    },
+    {
+      "name": "ui_export_foods_members_and_dictionary",
+      "value": "Export foods, members, and dictionary"
+    },
+    {
+      "name": "ui_export_product_dictionary_only",
+      "value": "Export product dictionary only"
+    },
+    {
+      "name": "ui_import_full_backup_from_app_storage",
+      "value": "Import full backup from app storage"
+    },
+    {
+      "name": "ui_to_import_rename_the_backup_to_import_data_json_and_place_it_in_app_storage",
+      "value": "To import, rename the backup to import_data.json and place it in app storage."
+    },
+    {
+      "name": "ui_last_export_s",
+      "value": "Last export: %s"
+    },
+    {
+      "name": "ui_data_and_backups",
+      "value": "Data and backups"
+    },
+    {
+      "name": "ui_your_data_is_stored_on_your_device",
+      "value": "• Your data is stored on your device."
+    },
+    {
+      "name": "ui_exported_files_are_saved_in_app_storage",
+      "value": "• Exported files are saved in app storage."
+    },
+    {
+      "name": "ui_uninstalling_the_app_deletes_its_local_data",
+      "value": "• Uninstalling the app deletes its local data."
+    },
+    {
+      "name": "ui_export_backups_regularly_to_keep_important_data_safe",
+      "value": "• Export backups regularly to keep important data safe."
+    },
+    {
+      "name": "ui_backup_files",
+      "value": "Backup files"
+    },
+    {
+      "name": "ui_recorded_as_eaten_by_s",
+      "value": "Recorded as eaten by %s"
+    },
+    {
+      "name": "ui_discard_recorded",
+      "value": "Discard recorded."
+    },
+    {
+      "name": "ui_confirm_deletion",
+      "value": "Confirm deletion"
+    },
+    {
+      "name": "ui_delete_s_this_cannot_be_undone",
+      "value": "Delete %s? This cannot be undone."
+    },
+    {
+      "name": "ui_deleted",
+      "value": "Deleted."
+    },
+    {
+      "name": "ui_expiry_date",
+      "value": "Expiry date"
+    },
+    {
+      "name": "ui_expiry_status",
+      "value": "Expiry status"
+    },
+    {
+      "name": "ui_calories_for_this_item",
+      "value": "Calories for this item"
+    },
+    {
+      "name": "ui_not_recorded",
+      "value": "Not recorded"
+    },
+    {
+      "name": "ui_added_on",
+      "value": "Added on"
+    },
+    {
+      "name": "ui_unknown",
+      "value": "Unknown"
+    },
+    {
+      "name": "ui_eaten_by",
+      "value": "Eaten by"
+    },
+    {
+      "name": "ui_eaten_on",
+      "value": "Eaten on"
+    },
+    {
+      "name": "ui_discarded_on",
+      "value": "Discarded on"
+    },
+    {
+      "name": "ui_expired_do_not_eat",
+      "value": "Expired. Do not eat."
+    },
+    {
+      "name": "ui_add_a_family_member_in_profile_first",
+      "value": "Add a family member in Profile first."
+    },
+    {
+      "name": "ui_7_days",
+      "value": "7 days"
+    },
+    {
+      "name": "ui_30_days",
+      "value": "30 days"
+    },
+    {
+      "name": "ui_90_days",
+      "value": "90 days"
+    },
+    {
+      "name": "ui_six_months",
+      "value": "Six months"
+    },
+    {
+      "name": "ui_one_year",
+      "value": "One year"
+    },
+    {
+      "name": "ui_all",
+      "value": "All"
+    },
+    {
+      "name": "ui_custom",
+      "value": "Custom"
+    },
+    {
+      "name": "ui_from_s",
+      "value": "From: %s"
+    },
+    {
+      "name": "ui_to_s",
+      "value": "To: %s"
+    },
+    {
+      "name": "ui_total_intake_kcal",
+      "value": "Total intake (kcal)"
+    },
+    {
+      "name": "ui_times_eaten",
+      "value": "Times eaten"
+    },
+    {
+      "name": "ui_detailed_records_d",
+      "value": "Detailed records (%d)"
+    },
+    {
+      "name": "ui_no_records_for_this_date_range",
+      "value": "No records for this date range"
+    },
+    {
+      "name": "ui_updated",
+      "value": "Updated."
+    },
+    {
+      "name": "ui_15_days",
+      "value": "15 days"
+    },
+    {
+      "name": "ui_review_and_edit_previous_nutrition_label_scans",
+      "value": "Review and edit previous nutrition label scans."
+    },
+    {
+      "name": "ui_records_appear_here_after_you_scan_food_and_enter_calories",
+      "value": "Records appear here after you scan food and enter calories."
+    },
+    {
+      "name": "ui_edit_calories",
+      "value": "Edit calories"
+    },
+    {
+      "name": "ui_confirmed_calories_kcal",
+      "value": "Confirmed calories (kcal)"
+    },
+    {
+      "name": "ui_barcode_s",
+      "value": "Barcode: %s"
+    },
+    {
+      "name": "ui_detected_value",
+      "value": "Detected value"
+    },
+    {
+      "name": "ui_none",
+      "value": "None"
+    },
+    {
+      "name": "ui_confirmed_value",
+      "value": "Confirmed value"
+    },
+    {
+      "name": "ui_take_a_photo_to_start",
+      "value": "Take a photo to start"
+    },
+    {
+      "name": "ui_no_camera_is_available_add_the_item_manually",
+      "value": "No camera is available. Add the item manually."
+    },
+    {
+      "name": "ui_photo_taken_and_suggestions_generated",
+      "value": "Photo taken and suggestions generated."
+    },
+    {
+      "name": "ui_could_not_take_a_photo_try_again",
+      "value": "Could not take a photo. Try again."
+    },
+    {
+      "name": "ui_scanning_the_photo",
+      "value": "Scanning the photo…"
+    },
+    {
+      "name": "ui_automatic_recognition_is_unavailable_enter_the_details_manually",
+      "value": "Automatic recognition is unavailable. Enter the details manually."
+    },
+    {
+      "name": "ui_could_not_read_the_image_enter_the_details_manually",
+      "value": "Could not read the image. Enter the details manually."
+    },
+    {
+      "name": "ui_processing_the_photo_from_your_phone",
+      "value": "Processing the photo from your phone…"
+    },
+    {
+      "name": "ui_photo_received_and_suggestions_generated",
+      "value": "Photo received and suggestions generated."
+    },
+    {
+      "name": "ui_could_not_process_the_photo_from_your_phone_try_again",
+      "value": "Could not process the photo from your phone. Try again."
+    },
+    {
+      "name": "ui_text_suggestions_received",
+      "value": "Text suggestions received."
+    },
+    {
+      "name": "ui_no_usable_text_found_review_the_food_details_manually",
+      "value": "No usable text found. Review the food details manually."
+    },
+    {
+      "name": "ui_detected_s_editable",
+      "value": "Detected: %s (editable)"
+    },
+    {
+      "name": "ui_text_detected_and_suggestions_generated_you_can_edit_them",
+      "value": "Text detected and suggestions generated. You can edit them."
+    },
+    {
+      "name": "ui_take_a_photo_to_get_suggestions_for_category_freshness_and_shelf_life",
+      "value": "Take a photo to get suggestions for category, freshness, and shelf life."
+    },
+    {
+      "name": "ui_retake_photo",
+      "value": "Retake photo"
+    },
+    {
+      "name": "ui_take_a_food_photo",
+      "value": "Take a food photo"
+    },
+    {
+      "name": "ui_scan_result",
+      "value": "Scan result"
+    },
+    {
+      "name": "ui_freshness",
+      "value": "Freshness"
+    },
+    {
+      "name": "ui_estimated_expiry_s",
+      "value": "Estimated expiry: %s"
+    },
+    {
+      "name": "ui_skip_photo_and_add_manually",
+      "value": "Skip photo and add manually"
+    },
+    {
+      "name": "ui_delete_the_saved_details_for_s",
+      "value": "Delete the saved details for %s?"
+    },
+    {
+      "name": "ui_dictionary_exported",
+      "value": "Dictionary exported."
+    },
+    {
+      "name": "ui_dictionary_imported_d_added_d_skipped",
+      "value": "Dictionary imported (%d added, %d skipped)."
+    },
+    {
+      "name": "ui_enter_a_product_name_2",
+      "value": "Enter a product name."
+    },
+    {
+      "name": "ui_works_offline_with_on_device_storage",
+      "value": "Works offline with on-device storage."
+    },
+    {
+      "name": "ui_scanning_a_barcode_when_adding_food_saves_the_product_information",
+      "value": "Scanning a barcode when adding food saves the product information."
+    },
+    {
+      "name": "ui_edit_product_details",
+      "value": "Edit product details"
+    },
+    {
+      "name": "ui_barcode_editable_or_removable",
+      "value": "Barcode (editable or removable)"
+    },
+    {
+      "name": "ui_leave_blank_to_remove_barcode",
+      "value": "Leave blank to remove barcode"
+    },
+    {
+      "name": "ui_category_optional_2",
+      "value": "Category (optional)"
+    },
+    {
+      "name": "ui_standardized_calories_kcal_per_100_units",
+      "value": "Standardized calories (kcal per 100 units)"
+    },
+    {
+      "name": "ui_no_original_nutrition_label_value_saved",
+      "value": "No original nutrition label value saved"
+    },
+    {
+      "name": "ui_standardized",
+      "value": "Standardized"
+    },
+    {
+      "name": "ui_details_needed",
+      "value": "Details needed"
+    },
+    {
+      "name": "ui_last_7_days",
+      "value": "Last 7 days"
+    },
+    {
+      "name": "ui_last_30_days",
+      "value": "Last 30 days"
+    },
+    {
+      "name": "ui_start_s",
+      "value": "Start: %s"
+    },
+    {
+      "name": "ui_end_s",
+      "value": "End: %s"
+    },
+    {
+      "name": "ui_intake_kcal",
+      "value": "Intake (kcal)"
+    },
+    {
+      "name": "ui_discarded_items",
+      "value": "Discarded items"
+    },
+    {
+      "name": "ui_enter_a_family_member_name",
+      "value": "Enter a family member name."
+    },
+    {
+      "name": "ui_added",
+      "value": "Added."
+    },
+    {
+      "name": "ui_keep_at_least_one_family_member",
+      "value": "Keep at least one family member."
+    },
+    {
+      "name": "ui_remove_s_from_your_family",
+      "value": "Remove %s from your family?"
+    },
+    {
+      "name": "ui_enter_a_name_e_g_dad",
+      "value": "Enter a name, e.g. Dad"
+    },
+    {
+      "name": "ui_works_offline_with_on_device_storage_2",
+      "value": "Works offline with on-device storage."
+    },
+    {
+      "name": "ui_about_d_kcal_converted",
+      "value": "About %d kcal (converted)"
+    },
+    {
+      "name": "ui_from_saved_details_standardized",
+      "value": "From saved details (standardized)"
+    },
+    {
+      "name": "ui_from_saved_details_incomplete",
+      "value": "From saved details (incomplete)"
+    },
+    {
+      "name": "ui_from_a_reviewed_nutrition_label_scan",
+      "value": "From a reviewed nutrition label scan"
+    },
+    {
+      "name": "ui_per_100_s",
+      "value": "Per 100 %s"
+    },
+    {
+      "name": "ui_per_100_g",
+      "value": "Per 100 g"
+    },
+    {
+      "name": "ui_about_s_kcal_one_conversion",
+      "value": "About %s kcal (one conversion)"
+    },
+    {
+      "name": "ui_about_s_kcal_for_this_amount",
+      "value": "About %s kcal for this amount"
+    },
+    {
+      "name": "ui_expiry_date_not_set",
+      "value": "Expiry date not set"
+    },
+    {
+      "name": "ui_expired_d_days_ago",
+      "value": "Expired %d days ago"
+    },
+    {
+      "name": "ui_expires_in_d_days",
+      "value": "Expires in %d days"
+    },
+    {
+      "name": "ui_last_90_days",
+      "value": "Last 90 days"
+    },
+    {
+      "name": "ui_last_six_months",
+      "value": "Last six months"
+    },
+    {
+      "name": "ui_last_year",
+      "value": "Last year"
+    },
+    {
+      "name": "ui_all_records",
+      "value": "All records"
+    },
+    {
+      "name": "ui_s_records_d",
+      "value": "%s · Records: %d"
+    },
+    {
+      "name": "ui_times_eaten_d",
+      "value": "Times eaten: %d"
+    },
+    {
+      "name": "ui_eaten_by_s",
+      "value": "Eaten by %s"
+    },
+    {
+      "name": "ui_discarded_s",
+      "value": "Discarded: %s"
+    },
+    {
+      "name": "ui_records_d",
+      "value": "Records: %d"
+    },
+    {
+      "name": "ui_s_about_d_days_left",
+      "value": "%s (about %d days left)"
+    },
+    {
+      "name": "ui_per_100_ml",
+      "value": "Per 100 mL"
+    },
+    {
+      "name": "ui_no_standardized_calorie_value_yet",
+      "value": "No standardized calorie value yet"
+    },
+    {
+      "name": "ui_original_s_s_s",
+      "value": "Original: %s %s / %s"
+    },
+    {
+      "name": "ui_this_item_s_kcal",
+      "value": "This item: %s kcal"
+    },
+    {
+      "name": "ui_saved_entries_d",
+      "value": "Saved entries: %d"
+    },
+    {
+      "name": "ui_loaded_d",
+      "value": "Loaded: %d"
+    },
+    {
+      "name": "ui_vegetables",
+      "value": "Vegetables"
+    },
+    {
+      "name": "ui_fruit",
+      "value": "Fruit"
+    },
+    {
+      "name": "ui_meat",
+      "value": "Meat"
+    },
+    {
+      "name": "ui_seafood",
+      "value": "Seafood"
+    },
+    {
+      "name": "ui_dairy",
+      "value": "Dairy"
+    },
+    {
+      "name": "ui_snacks",
+      "value": "Snacks"
+    },
+    {
+      "name": "ui_drinks",
+      "value": "Drinks"
+    },
+    {
+      "name": "ui_seasonings",
+      "value": "Seasonings"
+    },
+    {
+      "name": "ui_staples",
+      "value": "Staples"
+    },
+    {
+      "name": "ui_prepared_food",
+      "value": "Prepared food"
+    },
+    {
+      "name": "ui_other",
+      "value": "Other"
+    },
+    {
+      "name": "ui_expired_or_spoiled",
+      "value": "Expired or spoiled"
+    },
+    {
+      "name": "ui_leftovers",
+      "value": "Leftovers"
+    },
+    {
+      "name": "ui_manual_entry",
+      "value": "Manual entry"
+    },
+    {
+      "name": "ui_nutrition_label_scan",
+      "value": "Nutrition label scan"
+    },
+    {
+      "name": "ui_edited_and_confirmed",
+      "value": "Edited and confirmed"
+    },
+    {
+      "name": "ui_built_in_database",
+      "value": "Built-in database"
+    },
+    {
+      "name": "ui_invalid_file_missing_product_dictionary",
+      "value": "Invalid file: missing product dictionary"
+    },
+    {
+      "name": "ui_product_dictionary_imported",
+      "value": "Product dictionary imported"
+    },
+    {
+      "name": "ui_import_failed_invalid_data_format",
+      "value": "Import failed: invalid data format"
+    },
+    {
+      "name": "ui_invalid_file_format",
+      "value": "Invalid file format"
+    },
+    {
+      "name": "ui_import_complete_d_added_d_skipped",
+      "value": "Import complete (%d added, %d skipped)"
+    },
+    {
+      "name": "ui_choose_where_to_save_backup",
+      "value": "Choose where to save your JSON backup."
+    },
+    {
+      "name": "ui_import_full_backup_file",
+      "value": "Choose a full backup file"
+    },
+    {
+      "name": "ui_keep_exported_backups_in_a_safe_place",
+      "value": "Keep your exported backup files in a safe place."
+    },
+    {
+      "name": "ui_privacy_policy_load_failed",
+      "value": "Could not load the privacy policy. Check your connection and try again."
+    },
+    {
+      "name": "ui_retry_action",
+      "value": "Retry"
+    },
+    {
+      "name": "ui_import_backup_adds_records",
+      "value": "Backup records will be added to this device. Importing the same file again may create duplicates."
+    },
+    {
+      "name": "inventory_empty_description",
+      "value": "Add food and its expiry date to track it here."
+    },
+    {
+      "name": "inventory_filtered_empty",
+      "value": "No items match this filter"
+    },
+    {
+      "name": "entry_other_methods",
+      "value": "Other ways to add food"
+    },
+    {
+      "name": "profile_records_and_tools",
+      "value": "Records and tools"
+    },
+    {
+      "name": "food_form_select_category",
+      "value": "Choose a category"
+    },
+    {
+      "name": "food_form_more_details",
+      "value": "More details"
+    },
+    {
+      "name": "food_form_more_details_hint",
+      "value": "Barcode, package size and calories (optional)"
+    },
+    {
+      "name": "backup_restore_heading",
+      "value": "Restore from backup"
+    },
+    {
+      "name": "backup_restore_description",
+      "value": "Choose a previously exported full backup to import its records."
+    },
+    {
+      "name": "food_sync_title",
+      "value": "Device sync"
+    },
+    {
+      "name": "food_sync_permission",
+      "value": "Tap to allow sync. Local data is still available."
+    },
+    {
+      "name": "food_sync_waiting",
+      "value": "Waiting for devices on the same HUAWEI ID. Tap to retry."
+    },
+    {
+      "name": "food_sync_syncing",
+      "value": "Syncing inventory, members, consumption records, and dictionary"
+    },
+    {
+      "name": "food_sync_synced",
+      "value": "Last sync complete. Tap to sync again."
+    },
+    {
+      "name": "food_sync_failed",
+      "value": "Sync incomplete. Tap to retry."
+    },
+    {
+      "name": "food_sync_unavailable",
+      "value": "Device sync is unavailable on this device"
+    },
+    {
+      "name": "food_data_open_failed",
+      "value": "Could not open food data. Reopen the app to try again."
+    },
+    {
+      "name": "food_scan_remote_photo",
+      "value": "Scan a barcode from another device"
+    },
+    {
+      "name": "food_pick_remote_photo",
+      "value": "Take or pick a photo on another device"
+    },
+    {
+      "name": "food_could_not_process_remote_photo",
+      "value": "Could not process the photo from the other device. Try again."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { localizedFoodLabel } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { DailyCalorie, WasteStat } from '../model/DataModels';
 
@@ -49,7 +50,7 @@ export struct TvHealthView {
 
   build() {
     Column() {
-      Text('健康看板')
+      Text($r('app.string.ui_health_dashboard'))
         .fontSize(27)
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_primary'))
@@ -60,14 +61,14 @@ export struct TvHealthView {
       Row({ space: 30 }) {
         // 左侧 - 成员摄入（可聚焦每个成员行）
         Column({ space: 16 }) {
-          Text('今日成员摄入')
+          Text($r('app.string.ui_today_s_intake_by_member'))
             .fontSize(24)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
 
           if (this.dailyCalories.length === 0) {
-            Text('今日暂无摄入记录')
+            Text($r('app.string.ui_no_intake_records_today'))
               .fontSize(21)
               .fontColor($r('app.color.text_hint'))
               .margin({ top: 30 })
@@ -87,7 +88,7 @@ export struct TvHealthView {
                   Text(item.memberName)
                     .fontSize(24)
                     .fontColor($r('app.color.text_primary'))
-                  Text(item.recordCount + ' 次进食')
+                  Text($r('app.string.ui_times_eaten_d', item.recordCount))
                     .fontSize(18)
                     .fontColor($r('app.color.text_hint'))
                 }
@@ -129,7 +130,7 @@ export struct TvHealthView {
         Column({ space: 20 }) {
           // 总摄入
           Column({ space: 8 }) {
-            Text('今日总摄入')
+            Text($r('app.string.ui_today_s_total_intake'))
               .fontSize(21)
               .fontColor($r('app.color.text_secondary'))
             Text(this.totalCalories.toFixed(0))
@@ -149,18 +150,18 @@ export struct TvHealthView {
 
           // 浪费统计
           Column({ space: 8 }) {
-            Text('浪费统计')
+            Text($r('app.string.ui_waste_statistics'))
               .fontSize(21)
               .fontColor($r('app.color.text_secondary'))
-            Text(this.totalWaste.toString() + ' 件')
+            Text($r('app.string.inventory_count', this.totalWaste))
               .fontSize(36)
               .fontWeight(FontWeight.Bold)
               .fontColor('#FF6B00')
             if (this.wasteStats.length > 0) {
               ForEach(this.wasteStats, (stat: WasteStat) => {
                 Row() {
-                  Text(stat.category).fontSize(18).fontColor($r('app.color.text_primary')).layoutWeight(1)
-                  Text(stat.count + ' 件').fontSize(18).fontColor('#FF6B00')
+                  Text(localizedFoodLabel(stat.category)).fontSize(18).fontColor($r('app.color.text_primary')).layoutWeight(1)
+                  Text($r('app.string.inventory_count', stat.count)).fontSize(18).fontColor('#FF6B00')
                 }
                 .width('100%')
                 .padding({ top: 4, bottom: 4 })

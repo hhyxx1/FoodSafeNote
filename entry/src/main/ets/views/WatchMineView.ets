@@ -24,7 +24,7 @@ export struct WatchMineView {
 
   build() {
     Column() {
-      Text('产品字典')
+      Text($r('app.string.ui_product_dictionary'))
         .fontSize(12)
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_primary'))
@@ -33,7 +33,7 @@ export struct WatchMineView {
         .padding({ top: 4, bottom: 2 })
 
       if (this.dictList.length === 0) {
-        Text('暂无数据')
+        Text($r('app.string.ui_no_data'))
           .fontSize(11)
           .fontColor($r('app.color.text_hint'))
           .width('100%')
@@ -59,6 +59,7 @@ export struct WatchMineView {
             }
           }, (item: ProductDict) => item.id.toString())
         }
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
         .layoutWeight(1)
       }
     }

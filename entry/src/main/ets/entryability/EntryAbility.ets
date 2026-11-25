@@ -56,10 +56,12 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    DatabaseHelper.getInstance().deviceSync.onForeground(true);
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
   }
 
   onBackground(): void {
+    DatabaseHelper.getInstance().deviceSync.onForeground(false);
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
   }
 }

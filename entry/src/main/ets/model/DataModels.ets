@@ -33,26 +33,26 @@ export class FoodItem {
     return remainingDays >= 0 && remainingDays <= 3;
   }
 
-  getStatusText(): string {
-    if (this.status === 1) return '已食用';
-    if (this.status === 2) return '已丢弃';
-    if (this.isExpired()) return '已过期';
-    if (this.isNearExpiry()) return '临期';
-    return '正常';
+  getStatusText(): ResourceStr {
+    if (this.status === 1) return $r('app.string.status_consumed');
+    if (this.status === 2) return $r('app.string.status_wasted');
+    if (this.isExpired()) return $r('app.string.status_expired');
+    if (this.isNearExpiry()) return $r('app.string.status_near_expiry');
+    return $r('app.string.status_normal');
   }
 
-  getStatusColor(): string {
-    if (this.status === 1) return '#999999';
-    if (this.status === 2) return '#999999';
-    if (this.isExpired()) return '#FF3B30';
-    if (this.isNearExpiry()) return '#FF9500';
-    return '#34C759';
+  getStatusColor(): ResourceColor {
+    if (this.status !== 0) return $r('app.color.text_secondary');
+    if (this.isExpired()) return $r('app.color.status_danger');
+    if (this.isNearExpiry()) return $r('app.color.status_warning');
+    return $r('app.color.status_success');
   }
 
-  getStatusBgColor(): string {
-    if (this.isExpired()) return '#FFEDE9';
-    if (this.isNearExpiry()) return '#FFF3E0';
-    return '#E8F5E9';
+  getStatusBgColor(): ResourceColor {
+    if (this.status !== 0) return $r('app.color.chip_background');
+    if (this.isExpired()) return $r('app.color.button_danger_bg');
+    if (this.isNearExpiry()) return $r('app.color.chip_warning_bg');
+    return $r('app.color.chip_success_bg');
   }
 }
 

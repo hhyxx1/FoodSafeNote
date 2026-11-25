@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { localizedFoodLabel } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
 import { formatTimestamp, getStorageTypeName } from '../common/Constants';
@@ -11,37 +11,42 @@ interface TvFoodParams {
 @Component
 struct TvFoodDetailPage {
   @State foodItem: FoodItem | null = null;
+  @State isLoading: boolean = true;
   @State backFocused: boolean = false;
   private foodId: number = 0;
 
   aboutToAppear(): void {
-    const params: TvFoodParams = router.getParams() as TvFoodParams;
+    const params: TvFoodParams = this.getUIContext().getRouter().getParams() as TvFoodParams;
     if (params !== null && params !== undefined) {
       this.foodId = params.foodId;
       this.loadData();
+    } else {
+      this.isLoading = false;
     }
   }
 
   private loadData(): void {
     DatabaseHelper.getInstance().getFoodItemById(this.foodId).then((item: FoodItem | null) => {
       this.foodItem = item;
+    }).finally(() => {
+      this.isLoading = false;
     });
   }
 
-  private getExpiryText(): string {
+  private getExpiryText(): ResourceStr {
     if (this.foodItem === null) return '';
-    if (this.foodItem.expiryDate <= 0) return '未设置保质期';
+    if (this.foodItem.expiryDate <= 0) return $r('app.string.ui_expiry_date_not_set');
     const days: number = this.foodItem.getRemainingDays();
-    if (days < 0) return '已过期 ' + Math.abs(days) + ' 天';
-    if (days === 0) return '今天到期';
-    return '剩余 ' + days + ' 天';
+    if (days < 0) return $r('app.string.ui_expired_d_days_ago', Math.abs(days));
+    if (days === 0) return $r('app.string.watch_expire_today');
+    return $r('app.string.ui_expires_in_d_days', days);
   }
 
   build() {
     Column() {
       // 顶部导航
       Row() {
-        Button('返回')
+        Button($r('app.string.ui_back'))
           .height(60)
           .fontSize(21)
           .fontColor(this.backFocused ? Color.White : '#007DFF')
@@ -51,13 +56,13 @@ struct TvFoodDetailPage {
           .defaultFocus(true)
           .onFocus(() => { this.backFocused = true; })
           .onBlur(() => { this.backFocused = false; })
-          .onClick(() => { router.back(); })
+          .onClick(() => { this.getUIContext().getRouter().back(); })
           .onKeyEvent((event: KeyEvent) => {
             if (event.type === KeyType.Up && event.keyCode === 2054) {
-              router.back();
+              this.getUIContext().getRouter().back();
             }
           })
-        Text('食品详情')
+        Text($r('app.string.ui_food_details'))
           .fontSize(27)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
@@ -91,7 +96,7 @@ struct TvFoodDetailPage {
             if (this.foodItem.category.length > 0 || this.foodItem.spec.length > 0) {
               Row({ space: 16 }) {
                 if (this.foodItem.category.length > 0) {
-                  Text(this.foodItem.category)
+                  Text(localizedFoodLabel(this.foodItem.category))
                     .fontSize(21)
                     .fontColor($r('app.color.text_secondary'))
                     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
@@ -112,16 +117,16 @@ struct TvFoodDetailPage {
             Divider().color($r('app.color.divider'))
 
             if (this.foodItem.barcode.length > 0) {
-              this.buildRow('条码', this.foodItem.barcode)
+              this.buildRow($r('app.string.ui_barcode'), this.foodItem.barcode)
             }
-            this.buildRow('存储方式', getStorageTypeName(this.foodItem.storageType))
-            this.buildRow('到期日期',
-              this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : '未设置')
-            this.buildRow('保质期状态', this.getExpiryText())
-            this.buildRow('本次热量',
-              this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal' : '未记录')
-            this.buildRow('入库时间',
-              this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : '未知')
+            this.buildRow($r('app.string.ui_storage_method'), getStorageTypeName(this.foodItem.storageType))
+            this.buildRow($r('app.string.ui_expiry_date'),
+              this.foodItem.expiryDate > 0 ? formatTimestamp(this.foodItem.expiryDate) : $r('app.string.watch_not_set'))
+            this.buildRow($r('app.string.ui_expiry_status'), this.getExpiryText())
+            this.buildRow($r('app.string.ui_calories_for_this_item'),
+              this.foodItem.calories > 0 ? this.foodItem.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded'))
+            this.buildRow($r('app.string.ui_added_on'),
+              this.foodItem.createTime > 0 ? formatTimestamp(this.foodItem.createTime) : $r('app.string.ui_unknown'))
           }
           .width('70%')
           .padding(40)
@@ -135,7 +140,7 @@ struct TvFoodDetailPage {
         .alignItems(HorizontalAlign.Center)
       } else {
         Column() {
-          Text('加载中...')
+          Text(this.isLoading ? $r('app.string.ui_loading') : $r('app.string.ui_food_item_not_found'))
             .fontSize(24)
             .fontColor($r('app.color.text_hint'))
         }
@@ -149,7 +154,7 @@ struct TvFoodDetailPage {
   }
 
   @Builder
-  buildRow(label: string, value: string) {
+  buildRow(label: ResourceStr, value: ResourceStr) {
     Row() {
       Text(label)
         .fontSize(21)

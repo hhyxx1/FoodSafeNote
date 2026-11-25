@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { localizedFoodLabel } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
 import { getStorageTypeName } from '../common/Constants';
@@ -56,24 +56,24 @@ export struct TvInventoryView {
     }
   }
 
-  private getExpiryText(item: FoodItem): string {
-    if (item.expiryDate <= 0) return '未设置保质期';
+  private getExpiryText(item: FoodItem): ResourceStr {
+    if (item.expiryDate <= 0) return $r('app.string.ui_expiry_date_not_set');
     const days: number = item.getRemainingDays();
-    if (days < 0) return '已过期 ' + Math.abs(days) + ' 天';
-    if (days === 0) return '今天到期';
-    return '剩余 ' + days + ' 天';
+    if (days < 0) return $r('app.string.ui_expired_d_days_ago', Math.abs(days));
+    if (days === 0) return $r('app.string.watch_expire_today');
+    return $r('app.string.ui_expires_in_d_days', days);
   }
 
   build() {
     Column() {
       // 标题栏
       Row() {
-        Text('食品库存')
+        Text($r('app.string.ui_food_inventory'))
           .fontSize(27)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
         Blank()
-        Text(this.foodItems.length + ' 件')
+        Text($r('app.string.inventory_count', this.foodItems.length))
           .fontSize(21)
           .fontColor($r('app.color.text_hint'))
       }
@@ -82,10 +82,10 @@ export struct TvInventoryView {
 
       // 筛选栏 - 可聚焦按钮，遥控器左右切换
       Row({ space: 20 }) {
-        this.buildTvFilter('全部', 'all', 0)
-        this.buildTvFilter('正常', 'normal', 1)
-        this.buildTvFilter('临期', 'nearExpiry', 2)
-        this.buildTvFilter('过期', 'expired', 3)
+        this.buildTvFilter($r('app.string.ui_all'), 'all', 0)
+        this.buildTvFilter($r('app.string.status_normal'), 'normal', 1)
+        this.buildTvFilter($r('app.string.status_near_expiry'), 'nearExpiry', 2)
+        this.buildTvFilter($r('app.string.watch_expired_prefix'), 'expired', 3)
       }
       .width('100%')
       .padding({ left: 56, right: 56, bottom: 22 })
@@ -93,7 +93,7 @@ export struct TvInventoryView {
       // 3列网格 - 可聚焦卡片
       if (this.filteredItems.length === 0) {
         Column() {
-          Text('暂无食品').fontSize(24).fontColor($r('app.color.text_hint'))
+          Text($r('app.string.ui_no_food_items')).fontSize(24).fontColor($r('app.color.text_hint'))
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
@@ -102,7 +102,7 @@ export struct TvInventoryView {
             GridItem() {
               Column({ space: 8 }) {
                 Row() {
-                  Circle().width(12).height(12).fill(item.getStatusColor())
+                  Row().width(12).height(12).borderRadius(6).backgroundColor(item.getStatusColor())
                   Text(item.getStatusText())
                     .fontSize(18)
                     .fontColor(item.getStatusColor())
@@ -119,7 +119,7 @@ export struct TvInventoryView {
 
                 Row({ space: 16 }) {
                   if (item.category.length > 0) {
-                    Text(item.category).fontSize(18).fontColor($r('app.color.text_secondary'))
+                    Text(localizedFoodLabel(item.category)).fontSize(18).fontColor($r('app.color.text_secondary'))
                   }
                   Text(getStorageTypeName(item.storageType)).fontSize(18).fontColor($r('app.color.text_secondary'))
                 }
@@ -129,7 +129,7 @@ export struct TvInventoryView {
                   .fontColor(item.getStatusColor())
 
                 if (item.calories > 0) {
-                  Text('本次 ' + item.calories.toFixed(0) + ' kcal')
+                  Text($r('app.string.ui_this_item_s_kcal', item.calories.toFixed(0)))
                     .fontSize(18)
                     .fontColor('#FF6B00')
                 }
@@ -156,17 +156,18 @@ export struct TvInventoryView {
             })
             .onClick(() => {
               const params: TvFoodParams = { foodId: item.id };
-              router.pushUrl({ url: 'pages/TvFoodDetailPage', params: params });
+              this.getUIContext().getRouter().pushUrl({ url: 'pages/TvFoodDetailPage', params: params });
             })
             .onKeyEvent((event: KeyEvent) => {
               if (event.type === KeyType.Up && event.keyCode === 2054) {
                 // 确认键(Enter/OK)
                 const params: TvFoodParams = { foodId: item.id };
-                router.pushUrl({ url: 'pages/TvFoodDetailPage', params: params });
+                this.getUIContext().getRouter().pushUrl({ url: 'pages/TvFoodDetailPage', params: params });
               }
             })
           }, (item: FoodItem) => item.id.toString())
         }
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
         .columnsTemplate('1fr 1fr 1fr')
         .columnsGap(20)
         .rowsGap(20)
@@ -181,7 +182,7 @@ export struct TvInventoryView {
   }
 
   @Builder
-  buildTvFilter(label: string, type: string, tabIdx: number) {
+  buildTvFilter(label: ResourceStr, type: string, tabIdx: number) {
     Text(label)
       .fontSize(21)
       .fontColor(this.filterType === type ? Color.White : $r('app.color.text_secondary'))

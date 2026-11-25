@@ -1,3 +1,4 @@
+import { FoodButtonStyle } from '../common/FoodInterface';
 import { InventoryView } from '../views/InventoryView';
 import { HealthView } from '../views/HealthView';
 import { MineView } from '../views/MineView';
@@ -11,20 +12,39 @@ import { DatabaseHelper } from '../common/DatabaseHelper';
 import { BarcodeService } from '../common/BarcodeService';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { common, ConfigurationConstant, Want } from '@kit.AbilityKit';
-import { router } from '@kit.ArkUI';
+import { window } from '@kit.ArkUI';
+import { HdsNavigation, HdsTabs, hdsMaterial } from '@kit.UIDesignKit';
 import { AdaptiveColorHelper } from '../common/AdaptiveColorHelper';
+import { AppNavigation } from '../common/AppNavigation';
+
+interface PrivacyPolicyParam {
+  policyUrl: string;
+}
+
+interface PhoneEdgeTouch {
+  id: number;
+  x: number;
+  y: number;
+  tab: number;
+}
 
 @Entry
 @Component
 struct Index {
   @State currentIndex: number = 0;
+  @State phoneHighlightIndex: number = 0;
+  @State phoneTabWidths: number[] = [0, 0, 0];
+  @State phoneEdgeOffset: number = 0;
+  private phoneEdgeTouch: PhoneEdgeTouch | undefined = undefined;
   @State refreshKey: number = 0;
   @State @Watch('onWatchListOpenChanged') watchListOpen: boolean = false;
   @State showPrivacyConsentDialog: boolean = false;
   private watchTouchStartX: number = 0;
   private watchTouchStartY: number = 0;
   @StorageLink('appColorMode') appColorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
-  private tabsController: TabsController = new TabsController();
+  private tvTabsController: TabsController = new TabsController();
+  private pathStack: NavPathStack = new NavPathStack();
+  @StorageProp('dataChangeTick') @Watch('onDataChangeTick') dataChangeTick: number = 0;
   private currentDeviceType: string = deviceInfo.deviceType;
   private lastWatchListClosedAt: number = 0;
   private prevWatchListOpen: boolean = false;
@@ -38,6 +58,10 @@ struct Index {
   @State inventoryTabBgDark: string = '#2F4560';
   @State healthTabBgDark: string = '#4A3535';
   @State dictTabBgDark: string = '#3A4148';
+  private readonly phoneTabBarHeight: number = 60;
+  private readonly phoneTabSlideDuration: number = 220;
+  // 手势条（navigation indicator）高度，单位 vp；0 表示未知（胶囊退回默认间距）
+  @State naviIndicatorHeight: number = 0;
 
   private isDarkMode(): boolean {
     return this.appColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
@@ -98,10 +122,35 @@ struct Index {
   }
 
   aboutToAppear(): void {
-    const ctx: Context = getContext(this) as Context;
-    this.loadAdaptiveTabBackgrounds(ctx);
+    const ctx: Context = this.getUIContext().getHostContext() as Context;
+    AppNavigation.setStack(this.pathStack);
+    if (this.currentDeviceType === 'tv') {
+      this.loadAdaptiveTabBackgrounds(ctx);
+    }
+    this.initNaviIndicatorHeight(ctx);
     this.initPrivacyConsentState();
     this.tryInitDataAfterConsent(ctx);
+  }
+
+  // 跟随官方示例：取手势条高度与状态栏高度，供胶囊间距与二级页面标题栏避让使用
+  private initNaviIndicatorHeight(ctx: Context): void {
+    try {
+      window.getLastWindow(ctx).then((win: window.Window) => {
+        const area: window.AvoidArea =
+          win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+        const h: number = this.getUIContext().px2vp(area.bottomRect.height);
+        this.naviIndicatorHeight = h;
+        AppStorage.setOrCreate('naviIndicatorHeight', h);
+        const statusBarArea: window.AvoidArea =
+          win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+        const sh: number = this.getUIContext().px2vp(statusBarArea.topRect.height);
+        AppStorage.setOrCreate('statusBarHeight', sh);
+      }).catch(() => {
+        // 获取失败时保持 0，胶囊退回默认间距
+      });
+    } catch (err) {
+      // 获取失败时保持 0，胶囊退回默认间距
+    }
   }
 
   private initPrivacyConsentState(): void {
@@ -127,7 +176,7 @@ struct Index {
       AppStorage.setOrCreate<string>(this.watchPrivacyConsentKey, this.privacyPolicyVersion);
     }
     this.showPrivacyConsentDialog = false;
-    const ctx: Context = getContext(this) as Context;
+    const ctx: Context = this.getUIContext().getHostContext() as Context;
     this.tryInitDataAfterConsent(ctx);
   }
 
@@ -136,14 +185,15 @@ struct Index {
   }
 
   private openPrivacyPolicyPage(): void {
-    const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+    const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     const want: Want = {
       action: 'ohos.want.action.viewData',
       uri: this.privacyPolicyUrl
     };
     ctx.startAbility(want).catch(() => {
       // 兜底：若系统浏览器拉起失败，仍可在应用内加载同一份在线隐私协议
-      router.pushUrl({ url: 'pages/PrivacyPolicyPage', params: { policyUrl: this.privacyPolicyUrl } });
+      const navParam: PrivacyPolicyParam = { policyUrl: this.privacyPolicyUrl };
+      AppNavigation.push('PrivacyPolicyPage', navParam);
     });
   }
 
@@ -154,21 +204,26 @@ struct Index {
     this.hasInitializedData = true;
     DatabaseHelper.getInstance().initDB(ctx).then(() => {
       this.onDBReady(ctx);
-    }).catch(() => {
-      // initDB部分失败（如分布式表设置失败），但本地DB可能已就绪
-      this.onDBReady(ctx);
+    }).catch((error: Error) => {
+      this.hasInitializedData = false;
+      console.error('Could not initialize food data: ' + error.message);
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.food_data_open_failed') });
     });
   }
 
   private onDBReady(ctx: Context): void {
     // DB就绪后通知所有视图加载数据
     this.refreshKey = this.refreshKey + 1;
-    // 监听远端设备数据变更，自动刷新UI
-    DatabaseHelper.getInstance().setOnRemoteChangeCallback(() => {
-      this.refreshKey = this.refreshKey + 1;
-    });
+    const database = DatabaseHelper.getInstance();
+    const store = database.getStore();
+    if (store !== null) void database.deviceSync.initialize(store, ctx);
     // 异步初始化内置条码库（不阻塞UI）
     BarcodeService.getInstance().initBuiltinLibrary(ctx);
+  }
+
+  // 二级页面返回（含系统侧滑）后刷新数据，等价于原 onPageShow 的刷新逻辑
+  private onDataChangeTick(): void {
+    this.refreshKey = this.refreshKey + 1;
   }
 
   onPageShow(): void {
@@ -177,6 +232,9 @@ struct Index {
     }
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.refreshKey = this.refreshKey + 1;
+    } else {
+      const context = this.getUIContext().getHostContext();
+      if (context !== undefined) this.tryInitDataAfterConsent(context);
     }
   }
 
@@ -206,7 +264,7 @@ struct Index {
 
   private terminateApp(): void {
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       ctx.terminateSelf();
     } catch (e) {
       // ignore
@@ -220,8 +278,18 @@ struct Index {
       } else if (this.currentDeviceType === 'tv') {
         this.buildTvLayout()
       } else {
-        // phone / tablet / 2in1 均使用全功能布局
-        this.buildPhoneLayout()
+        // phone / tablet / 2in1 均使用全功能布局，HdsNavigation 承载二级页面路由
+        HdsNavigation(this.pathStack) {
+          this.buildPhoneLayout()
+        }
+        .hideTitleBar(true)
+        .mode(NavigationMode.Stack)
+        // 关闭 Navigation 底部自带的拖拽指示条（dragBar），避免遮挡内容
+        .enableDragBar(false)
+        // 跟随官方示例：内容延伸到底部手势条下方，消除手势条避让区露出的窗口底色（深色下为纯黑条）
+        .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+        // 统一底部导航条避让区域背景，避免与内容区出现色差
+        .backgroundColor($r('app.color.page_background'))
       }
 
       if (this.showPrivacyConsentDialog) {
@@ -232,32 +300,115 @@ struct Index {
     .height('100%')
   }
 
-  // 手机/平板布局
+  private getPhoneBarBottomMargin(): number {
+    return Math.max(this.naviIndicatorHeight, 16);
+  }
+
+  private getPhoneContentBottomInset(): number {
+    return this.phoneTabBarHeight + this.getPhoneBarBottomMargin() + 12;
+  }
+
+  private finishPhoneEdgeGesture(): void {
+    this.phoneEdgeTouch = undefined;
+    if (this.phoneEdgeOffset === 0) return;
+    this.getUIContext().animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
+      this.phoneEdgeOffset = 0;
+    });
+  }
+
+  private followPhoneEdgeGesture(event: TouchEvent): void {
+    const touch = event.touches[0];
+    if (event.type === TouchType.Up || event.type === TouchType.Cancel || event.touches.length !== 1 ||
+      touch === undefined) {
+      this.finishPhoneEdgeGesture();
+      return;
+    }
+    if (event.type === TouchType.Down) {
+      this.phoneEdgeTouch = this.currentIndex === 0 || this.currentIndex === 2
+        ? { id: touch.id, x: touch.windowX, y: touch.windowY, tab: this.currentIndex } : undefined;
+      return;
+    }
+    const start = this.phoneEdgeTouch;
+    if (event.type !== TouchType.Move || start === undefined || start.tab !== this.currentIndex ||
+      start.id !== touch.id) return;
+
+    const dx = touch.windowX - start.x;
+    const dy = touch.windowY - start.y;
+    const outward = start.tab === 0 ? dx : -dx;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) <= 8) return;
+    if (outward <= 0 || Math.abs(dx) < Math.abs(dy) * 1.3) {
+      this.finishPhoneEdgeGesture();
+      return;
+    }
+    const distance = Math.max(0, outward - 8);
+    const offset = 28 * distance / (distance + 45);
+    this.phoneEdgeOffset = start.tab === 0 ? offset : -offset;
+  }
+
+  // 手机/平板布局 - HdsTabs 悬浮沉浸光感导航
   @Builder
   buildPhoneLayout() {
-    Tabs({ barPosition: BarPosition.End, controller: this.tabsController }) {
+    HdsTabs({ barPosition: BarPosition.End }) {
       TabContent() {
-        InventoryView({ refreshKey: this.refreshKey })
+        Column() {
+          InventoryView({ refreshKey: this.refreshKey, tabBarInset: this.getPhoneContentBottomInset() })
+        }
+        .width('100%')
+        .height('100%')
+        .translate({ x: this.currentIndex === 0 ? this.phoneEdgeOffset : 0 })
       }
-      .tabBar(this.phoneTabBuilder('库存', 0, 'icon_inventory.svg'))
+      .tabBar(this.phoneTabBuilder($r('app.string.ui_inventory'), 0,
+        $r('sys.symbol.archivebox'), $r('sys.symbol.archivebox_fill')))
 
       TabContent() {
-        HealthView({ refreshKey: this.refreshKey })
+        Column() {
+          HealthView({ refreshKey: this.refreshKey, tabBarInset: this.getPhoneContentBottomInset() })
+        }
+        .width('100%')
+        .height('100%')
       }
-      .tabBar(this.phoneTabBuilder('健康', 1, 'icon_health.svg'))
+      .tabBar(this.phoneTabBuilder($r('app.string.ui_health'), 1,
+        $r('sys.symbol.heart'), $r('sys.symbol.heart_fill')))
 
       TabContent() {
-        MineView({ refreshKey: this.refreshKey })
+        Column() {
+          MineView({ refreshKey: this.refreshKey, tabBarInset: this.getPhoneContentBottomInset() })
+        }
+        .width('100%')
+        .height('100%')
+        .translate({ x: this.currentIndex === 2 ? this.phoneEdgeOffset : 0 })
       }
-      .tabBar(this.phoneTabBuilder('我的', 2, 'icon_dict.svg'))
+      .tabBar(this.phoneTabBuilder($r('app.string.ui_profile'), 2,
+        $r('sys.symbol.person'), $r('sys.symbol.person_fill')))
     }
-    .scrollable(false)
-    .barHeight(60)
-    .barBackgroundColor($r('app.color.tab_bar_background'))
-    .animation({ duration: 260, curve: Curve.EaseInOut })
-    .onChange((index: number) => {
-      this.currentIndex = index;
+    .scrollable(true)
+    .vertical(false)
+    .barOverlap(true)
+    .barHeight(this.phoneTabBarHeight)
+    .animationDuration(this.phoneTabSlideDuration)
+    .barFloatingStyle({
+      // 手势条存在时胶囊上抬到手势条正上方（跟随官方示例），否则用系统默认间距
+      barBottomMargin: this.getPhoneBarBottomMargin(),
+      adaptToHandedness: true,
+      // HdsTabs 默认底部渐变遮罩在深色下发黑；改为渐变到页面底色，与内容无缝衔接
+      gradientMask: {
+        maskColor: $r('app.color.page_background')
+      },
+      systemMaterialEffect: {
+        materialType: hdsMaterial.MaterialType.ADAPTIVE,
+        materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+      }
     })
+    .onAnimationStart((_index: number, targetIndex: number) => {
+      this.finishPhoneEdgeGesture();
+      this.phoneHighlightIndex = targetIndex;
+    })
+    .onChange((index: number) => {
+      this.finishPhoneEdgeGesture();
+      this.currentIndex = index;
+      this.phoneHighlightIndex = index;
+    })
+    .onTouch((event: TouchEvent) => { this.followPhoneEdgeGesture(event); })
   }
 
   // 手表布局 - 仅库存+健康两页，Swiper滑动切换
@@ -270,6 +421,7 @@ struct Index {
       }
       .indicator(false)
       .loop(false)
+      .effectMode(EdgeEffect.Spring)
       .disableSwipe(this.watchListOpen)
       .width('100%')
       .height('100%')
@@ -280,10 +432,10 @@ struct Index {
       // 指示点 - 仅总览时显示，列表展开或隐私弹窗时隐藏
       if (!this.watchListOpen && !this.showPrivacyConsentDialog) {
         Row({ space: 6 }) {
-          Circle().width(5).height(5)
-            .fill(this.currentIndex === 0 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
-          Circle().width(5).height(5)
-            .fill(this.currentIndex === 1 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
+          Row().width(5).height(5).borderRadius(2.5)
+            .backgroundColor(this.currentIndex === 0 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
+          Row().width(5).height(5).borderRadius(2.5)
+            .backgroundColor(this.currentIndex === 1 ? $r('app.color.accent_link') : $r('app.color.text_disabled'))
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
@@ -359,6 +511,7 @@ struct Index {
             .width('100%')
             .alignItems(HorizontalAlign.Center)
           }
+          .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           .width('100%')
           .layoutWeight(1)
           .scrollBar(BarState.Off)
@@ -369,7 +522,8 @@ struct Index {
               .height(34)
               .fontSize(10)
               .fontColor($r('app.color.button_danger_text'))
-              .backgroundColor($r('app.color.button_danger_bg'))
+              .backgroundColor($r('app.color.button_danger_bg_glass'))
+              .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
               .borderRadius(18)
               .onClick(() => {
                 this.rejectPrivacyPolicy();
@@ -380,7 +534,8 @@ struct Index {
               .height(34)
               .fontSize(10)
               .fontColor($r('app.color.button_secondary_text'))
-              .backgroundColor($r('app.color.button_secondary_bg'))
+              .backgroundColor($r('app.color.button_secondary_bg_glass'))
+              .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
               .borderRadius(18)
               .onClick(() => {
                 this.agreePrivacyPolicy();
@@ -424,23 +579,15 @@ struct Index {
 
           Row({ space: 12 }) {
             Button($r('app.string.privacy_dialog_reject'))
+              .attributeModifier(FoodButtonStyle.neutral)
               .layoutWeight(1)
-              .height(44)
-              .fontSize(14)
-              .fontColor($r('app.color.button_danger_text'))
-              .backgroundColor($r('app.color.button_danger_bg'))
-              .borderRadius(10)
               .onClick(() => {
                 this.rejectPrivacyPolicy();
               })
 
             Button($r('app.string.privacy_dialog_accept'))
+              .attributeModifier(FoodButtonStyle.primary)
               .layoutWeight(1)
-              .height(44)
-              .fontSize(14)
-              .fontColor($r('app.color.button_primary_text'))
-              .backgroundColor($r('app.color.button_primary_bg'))
-              .borderRadius(10)
               .onClick(() => {
                 this.agreePrivacyPolicy();
               })
@@ -462,21 +609,21 @@ struct Index {
   // 智慧屏布局 - 大Tab
   @Builder
   buildTvLayout() {
-    Tabs({ barPosition: BarPosition.End, controller: this.tabsController }) {
+    Tabs({ barPosition: BarPosition.End, controller: this.tvTabsController }) {
       TabContent() {
         TvInventoryView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('库存', 0, 'icon_inventory.svg'))
+      .tabBar(this.tvTabBuilder($r('app.string.ui_inventory'), 0, 'icon_inventory.svg'))
 
       TabContent() {
         TvHealthView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('健康', 1, 'icon_health.svg'))
+      .tabBar(this.tvTabBuilder($r('app.string.ui_health'), 1, 'icon_health.svg'))
 
       TabContent() {
         TvMineView({ refreshKey: this.refreshKey })
       }
-      .tabBar(this.tvTabBuilder('字典', 2, 'icon_dict.svg'))
+      .tabBar(this.tvTabBuilder($r('app.string.ui_dictionary'), 2, 'icon_dict.svg'))
     }
     .scrollable(false)
     .barHeight(80)
@@ -488,46 +635,55 @@ struct Index {
   }
 
   @Builder
-  phoneTabBuilder(title: string, targetIndex: number, iconRaw: string) {
-    Column({ space: 4 }) {
-      Image($rawfile(iconRaw))
-        .width(20)
-        .height(20)
-        .padding(7)
-        .width(34)
-        .height(34)
-        .backgroundColor(this.currentIndex === targetIndex ? this.getTabIconBg(iconRaw) : Color.Transparent)
-        .borderRadius(17)
+  phoneTabBuilder(title: ResourceStr, targetIndex: number, outline: Resource, filled: Resource) {
+    Column({ space: 2 }) {
+      Stack({ alignContent: Alignment.Center }) {
+        SymbolGlyph(outline)
+          .fontSize(22)
+          .fontColor([$r('app.color.tab_inactive')])
+
+        // 绿色实心图标只在滑动胶囊内部可见，反向平移让图标固定在页签中心。
+        Row() {
+          Stack({ alignContent: Alignment.Center }) {
+            SymbolGlyph(filled)
+              .fontSize(22)
+              .fontColor([$r('app.color.accent_link')])
+              .translate({ x: (targetIndex - this.phoneHighlightIndex) * this.phoneTabWidths[targetIndex] })
+              .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
+          }
+          .width(44)
+          .height(28)
+          .backgroundColor($r('app.color.button_secondary_bg'))
+          .borderRadius(14)
+          .clip(true)
+        }
+        .width('100%')
+        .height(28)
+        .justifyContent(FlexAlign.Center)
+        .translate({ x: ((this.phoneHighlightIndex - targetIndex) * 100).toString() + '%' })
+        .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
+        .hitTestBehavior(HitTestMode.None)
+      }
+      .width('100%')
+      .height(28)
+      .clip(true)
+      .onSizeChange((_oldSize: SizeOptions, newSize: SizeOptions) => {
+        this.phoneTabWidths[targetIndex] = Number(newSize.width);
+      })
+
       Text(title)
-        .fontSize(11)
-        .fontWeight(this.currentIndex === targetIndex ? FontWeight.Medium : FontWeight.Normal)
-        .fontColor(this.currentIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.phoneHighlightIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
+        .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)
-    .hoverEffect(HoverEffect.Highlight)
-    .onClick(() => {
-      this.currentIndex = targetIndex;
-      this.tabsController.changeIndex(targetIndex);
-    })
+    .accessibilitySelected(this.currentIndex === targetIndex)
   }
 
   @Builder
-  watchTabBuilder(title: string, targetIndex: number) {
-    Text(title)
-      .fontSize(14)
-      .fontWeight(this.currentIndex === targetIndex ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(this.currentIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
-      .textAlign(TextAlign.Center)
-      .width('100%').height('100%')
-      .onClick(() => {
-        this.currentIndex = targetIndex;
-        this.tabsController.changeIndex(targetIndex);
-      })
-  }
-
-  @Builder
-  tvTabBuilder(title: string, targetIndex: number, iconRaw: string) {
+  tvTabBuilder(title: ResourceStr, targetIndex: number, iconRaw: string) {
     Column({ space: 6 }) {
       Image($rawfile(iconRaw))
         .width(30)
@@ -547,7 +703,7 @@ struct Index {
     .hoverEffect(HoverEffect.Highlight)
     .onClick(() => {
       this.currentIndex = targetIndex;
-      this.tabsController.changeIndex(targetIndex);
+      this.tvTabsController.changeIndex(targetIndex);
     })
   }
 }

@@ -1,15 +1,20 @@
-import { router } from '@kit.ArkUI';
+import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodJournalMetric, FoodMotion } from '../common/FoodInterface';
+import { resolveLocalizedText } from '../common/Constants';
+import { localizedFoodLabel, localizedFoodLabelText } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
+import { AppNavigation } from '../common/AppNavigation';
 import { ConsumptionRecord, DailyCalorie, WasteStat } from '../model/DataModels';
 import { padZero } from '../common/Constants';
 
 @Component
 export struct HealthView {
   @Prop @Watch('onRefreshKeyChange') refreshKey: number = 0;
+  @Prop tabBarInset: number = 0;
   @State dailyCalories: DailyCalorie[] = [];
   @State todayRecords: ConsumptionRecord[] = [];
   @State wasteStats: WasteStat[] = [];
   @State isLoading: boolean = true;
+  private loadRequest: number = 0;
   @State viewMode: string = 'today';
   @State showDatePicker: boolean = false;
   @State customStart: Date = new Date();
@@ -52,31 +57,33 @@ export struct HealthView {
     return [startTime, endTime];
   }
 
-  private loadData(): void {
+  private async loadData(): Promise<void> {
+    const request: number = ++this.loadRequest;
     this.isLoading = true;
     const range: number[] = this.getTimeRange();
-    const startTime: number = range[0];
-    const endTime: number = range[1];
+    const db: DatabaseHelper = DatabaseHelper.getInstance();
+    try {
+      const data: [DailyCalorie[], ConsumptionRecord[], WasteStat[]] = await Promise.all([
+        db.getCaloriesByMemberForRange(range[0], range[1]),
+        db.getConsumptionsByRange(range[0], range[1]),
+        db.getWasteStatsByCategory(range[0], range[1])
+      ]);
+      if (request !== this.loadRequest) return;
+      const calories: DailyCalorie[] = data[0];
+      const records: ConsumptionRecord[] = data[1];
+      const waste: WasteStat[] = data[2];
 
-    DatabaseHelper.getInstance().getCaloriesByMemberForRange(startTime, endTime)
-      .then((calories: DailyCalorie[]) => {
-        this.dailyCalories = calories;
-      });
-    DatabaseHelper.getInstance().getConsumptionsByRange(startTime, endTime)
-      .then((records: ConsumptionRecord[]) => {
-        this.todayRecords = records;
-        this.isLoading = false;
-      });
-    DatabaseHelper.getInstance().getWasteStatsByCategory()
-      .then((stats: WasteStat[]) => {
-        this.wasteStats = stats;
-      });
+      this.dailyCalories = calories;
+      this.todayRecords = records;
+      this.wasteStats = waste;
+    } finally {
+      if (request === this.loadRequest) this.isLoading = false;
+    }
   }
 
   private getTodayString(): string {
     const now = new Date();
-    const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六'];
-    return now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 星期' + weekDays[now.getDay()];
+    return now.toLocaleDateString();
   }
 
   private formatRecordTime(timestamp: number): string {
@@ -102,67 +109,57 @@ export struct HealthView {
   }
 
   private formatDate(d: Date): string {
-    return d.getFullYear() + '-' + padZero(d.getMonth() + 1) + '-' + padZero(d.getDate());
+    return d.toLocaleDateString();
   }
 
   private getViewModeLabel(): string {
-    if (this.viewMode === 'today') return '今日';
-    if (this.viewMode === 'week') return '近7天';
-    if (this.viewMode === 'month') return '近30天';
+    if (this.viewMode === 'today') return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.watch_today').id);
+    if (this.viewMode === 'week') return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_last_7_days').id);
+    if (this.viewMode === 'month') return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_last_30_days').id);
     if (this.viewMode === 'custom') return this.formatDate(this.customStart) + ' ~ ' + this.formatDate(this.customEnd);
     return '';
   }
 
   build() {
-    Column() {
-      Row() {
-        Text('健康看板')
-          .fontSize(22).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-        Blank()
-        Button('详细报表')
-          .height(40).fontSize(12).fontColor($r('app.color.button_secondary_text'))
-          .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(16)
-            .hoverEffect(HoverEffect.Highlight)
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/HealthReportPage' });
-          })
+    Column({ space: 10 }) {
+      Row({ space: 10 }) {
+        Text($r('app.string.ui_health_dashboard'))
+          .fontSize(29).lineHeight(36).fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary')).layoutWeight(1)
+        Button($r('app.string.ui_detailed_report'))
+          .attributeModifier(FoodButtonStyle.compactSecondary)
+          .onClick(() => { AppNavigation.push('HealthReportPage'); })
       }
-      .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 8 })
+      .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 4 })
 
-      // 时间选择栏
-      Row({ space: 0 }) {
-        this.buildTimeBtn('今日', 'today')
-        this.buildTimeBtn('近7天', 'week')
-        this.buildTimeBtn('近30天', 'month')
-        this.buildTimeBtn('自定义', 'custom')
+      Column() {
+        Row({ space: 3 }) {
+          this.buildTimeBtn($r('app.string.watch_today'), 'today')
+          this.buildTimeBtn($r('app.string.ui_last_7_days'), 'week')
+          this.buildTimeBtn($r('app.string.ui_last_30_days'), 'month')
+          this.buildTimeBtn($r('app.string.ui_custom'), 'custom')
+        }
+        .padding(4).backgroundColor($r('app.color.chip_background')).borderRadius(26)
+        .width('100%')
       }
-      .width('100%').padding({ left: 16, right: 16, bottom: 4 })
+      .width('100%').padding({ left: 20, right: 20 })
 
       // 自定义日期选择区
-      if (this.viewMode === 'custom') {
+      if (this.viewMode === 'custom' && this.showDatePicker) {
         Column({ space: 6 }) {
           Row({ space: 8 }) {
-            Text('开始: ' + this.formatDate(this.customStart))
-              .fontSize(13).fontColor(this.pickingStart ? $r('app.color.button_secondary_text') : $r('app.color.button_neutral_text'))
-              .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-              .borderRadius(6)
-              .backgroundColor(this.pickingStart ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
+            Button($r('app.string.ui_start_s', this.formatDate(this.customStart)))
+              .attributeModifier(this.pickingStart ? FoodButtonStyle.compactSecondary : FoodButtonStyle.compactNeutral)
+              .layoutWeight(1)
+              .accessibilitySelected(this.pickingStart)
               .onClick(() => { this.pickingStart = true; })
-            Text('结束: ' + this.formatDate(this.customEnd))
-              .fontSize(13).fontColor(!this.pickingStart ? $r('app.color.button_secondary_text') : $r('app.color.button_neutral_text'))
-              .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-              .borderRadius(6)
-              .backgroundColor(!this.pickingStart ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
+            Button($r('app.string.ui_end_s', this.formatDate(this.customEnd)))
+              .attributeModifier(this.pickingStart ? FoodButtonStyle.compactNeutral : FoodButtonStyle.compactSecondary)
+              .layoutWeight(1)
+              .accessibilitySelected(!this.pickingStart)
               .onClick(() => { this.pickingStart = false; })
-            Button('查询')
-              .height(40).fontSize(12).fontColor(Color.White)
-              .backgroundColor($r('app.color.button_primary_bg')).borderRadius(6)
-              .onClick(() => {
-                this.showDatePicker = false;
-                this.loadData();
-              })
           }
-          .width('100%').justifyContent(FlexAlign.Center)
+          .width('100%')
 
           DatePicker({
             start: new Date('2020-01-01'),
@@ -171,55 +168,56 @@ export struct HealthView {
           })
             .width('100%')
             .height(120)
-            .onChange((value: DatePickerResult) => {
-              const year: number = value.year !== undefined ? value.year : new Date().getFullYear();
-              const month: number = value.month !== undefined ? value.month : new Date().getMonth();
-              const day: number = value.day !== undefined ? value.day : new Date().getDate();
-              const d = new Date();
-              d.setFullYear(year);
-              d.setMonth(month);
-              d.setDate(day);
+            .onDateChange((value: Date) => {
+              const selected = new Date(value.getFullYear(), value.getMonth(), value.getDate());
               if (this.pickingStart) {
-                this.customStart = d;
+                this.customStart = selected;
+                if (selected.getTime() > this.customEnd.getTime()) this.customEnd = selected;
               } else {
-                this.customEnd = d;
+                this.customEnd = selected;
+                if (selected.getTime() < this.customStart.getTime()) this.customStart = selected;
               }
             })
-        }
-        .width('100%').padding({ left: 16, right: 16, bottom: 4 })
-      }
 
-      // 范围说明
-      Text(this.getViewModeLabel() + ' · ' + this.todayRecords.length + '条记录')
-        .fontSize(12).fontColor($r('app.color.text_hint'))
-        .width('100%').padding({ left: 16, right: 16, bottom: 4 })
+          Button($r('app.string.ui_search'))
+            .attributeModifier(FoodButtonStyle.compactPrimary)
+            .width('100%')
+            .onClick(() => {
+              this.showDatePicker = false;
+              this.loadData();
+            })
+        }
+        .width('100%').padding(12)
+        .margin({ left: 20, right: 20 })
+        .backgroundColor($r('app.color.card_background')).borderRadius(16)
+        .transition(FoodMotion.reveal())
+      }
 
       Scroll() {
         Column({ space: 16 }) {
-          // 总览
-          Row({ space: 12 }) {
-            Column({ space: 4 }) {
-              Text(this.getTotalCalories().toFixed(0))
-                .fontSize(28).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_info'))
-              Text('摄入 (kcal)').fontSize(12).fontColor($r('app.color.text_secondary'))
+          Column({ space: 13 }) {
+            Text($r('app.string.ui_s_records_d', this.getViewModeLabel(), this.todayRecords.length))
+              .fontSize(14).fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.journal_hero_secondary')).width('100%')
+            Row({ space: 18 }) {
+              FoodJournalMetric({
+                label: $r('app.string.ui_intake_kcal'), amount: this.getTotalCalories().toFixed(0)
+              })
+              Column().width(1).height(44).backgroundColor($r('app.color.journal_hero_divider'))
+              FoodJournalMetric({
+                label: $r('app.string.ui_discarded_items'), amount: this.getTotalWasteCount().toString()
+              })
             }
-            .layoutWeight(1).padding(16).backgroundColor($r('app.color.card_background')).borderRadius(12)
-            .alignItems(HorizontalAlign.Center)
-            Column({ space: 4 }) {
-              Text(this.getTotalWasteCount().toString())
-                .fontSize(28).fontWeight(FontWeight.Bold).fontColor($r('app.color.status_warning'))
-              Text('浪费 (件)').fontSize(12).fontColor($r('app.color.text_secondary'))
-            }
-            .layoutWeight(1).padding(16).backgroundColor($r('app.color.card_background')).borderRadius(12)
-            .alignItems(HorizontalAlign.Center)
+            .width('100%')
           }
-          .width('100%').padding({ left: 16, right: 16 })
+          .width('100%').padding(20)
+          .backgroundColor($r('app.color.journal_hero_bg')).borderRadius(22)
 
           // 成员摄入
           if (this.dailyCalories.length > 0) {
             Column({ space: 12 }) {
-              Text('成员摄入详情')
-                .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
+              Text($r('app.string.ui_intake_by_family_member'))
+                .fontSize(17).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
               ForEach(this.dailyCalories, (item: DailyCalorie) => {
                 Row() {
                   Text(item.memberName.substring(0, 1))
@@ -228,7 +226,7 @@ export struct HealthView {
                     .backgroundColor($r('app.color.button_primary_bg'))
                   Column({ space: 4 }) {
                     Text(item.memberName).fontSize(15).fontColor($r('app.color.text_primary'))
-                    Text(item.recordCount + ' 次进食').fontSize(12).fontColor($r('app.color.text_hint'))
+                    Text($r('app.string.ui_times_eaten_d', item.recordCount)).fontSize(12).fontColor($r('app.color.text_hint'))
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start).padding({ left: 12 })
                   Text(item.totalCalories.toFixed(0) + ' kcal')
@@ -237,48 +235,50 @@ export struct HealthView {
                 .width('100%').padding({ top: 8, bottom: 8 })
               }, (item: DailyCalorie) => item.memberName)
             }
-            .width('100%').padding(16).margin({ left: 16, right: 16 })
+            .width('100%').padding(16)
             .backgroundColor($r('app.color.card_background')).borderRadius(16)
           }
 
           // 浪费统计
           if (this.wasteStats.length > 0) {
             Column({ space: 8 }) {
-              Text('浪费统计').fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
+              Text($r('app.string.ui_waste_statistics')).fontSize(17).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
               ForEach(this.wasteStats, (stat: WasteStat) => {
                 Row() {
-                  Text('🗑️').fontSize(14).width(24)
-                  Text(stat.category).fontSize(13).fontColor($r('app.color.text_primary')).layoutWeight(1)
-                  Text(stat.count + ' 件').fontSize(13).fontColor($r('app.color.status_warning'))
+                  Image($r('app.media.icon_trash')).width(14).height(14).draggable(false).margin({ right: 10 })
+                  Text(localizedFoodLabel(stat.category)).fontSize(13).fontColor($r('app.color.text_primary')).layoutWeight(1)
+                  Text($r('app.string.inventory_count', stat.count)).fontSize(13).fontColor($r('app.color.status_warning'))
                 }
                 .width('100%').padding({ top: 4, bottom: 4 })
               }, (stat: WasteStat) => stat.category)
             }
-            .width('100%').padding(16).margin({ left: 16, right: 16 })
+            .width('100%').padding(16)
             .backgroundColor($r('app.color.card_background')).borderRadius(16)
           }
 
           // 记录列表
           Column({ space: 12 }) {
-            Text('消耗记录')
-              .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
+            Text($r('app.string.ui_consumption_history'))
+              .fontSize(17).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
             if (this.todayRecords.length === 0) {
-              Column({ space: 8 }) {
-                Text('📊').fontSize(40)
-                Text('暂无记录').fontSize(14).fontColor($r('app.color.text_hint'))
+              Row({ space: 12 }) {
+                SymbolGlyph($r('sys.symbol.clock'))
+                  .fontSize(23).fontColor([$r('app.color.accent_link')])
+                Text($r('app.string.ui_no_records_for_this_date_range'))
+                  .fontSize(14).fontColor($r('app.color.text_secondary')).layoutWeight(1)
               }
-              .width('100%').padding({ top: 24, bottom: 24 })
-              .alignItems(HorizontalAlign.Center)
+              .width('100%').padding({ top: 9, bottom: 8 })
             } else {
               ForEach(this.todayRecords, (record: ConsumptionRecord) => {
                 Row() {
-                  Text(record.type === 0 ? '🍽️' : '🗑️').fontSize(20).width(32)
+                  Image(record.type === 0 ? $r('app.media.icon_eat') : $r('app.media.icon_trash'))
+                    .width(20).height(20).margin({ right: 12 }).draggable(false)
                   Column({ space: 2 }) {
                     Text(record.foodName).fontSize(14).fontColor($r('app.color.text_primary'))
                     if (record.type === 0) {
-                      Text(record.memberName + ' 食用').fontSize(12).fontColor($r('app.color.text_secondary'))
+                      Text($r('app.string.ui_eaten_by_s', record.memberName)).fontSize(12).fontColor($r('app.color.text_secondary'))
                     } else {
-                      Text('丢弃: ' + record.wasteReason).fontSize(12).fontColor($r('app.color.status_danger'))
+                      Text($r('app.string.ui_discarded_s', localizedFoodLabelText(this.getUIContext().getHostContext(), record.wasteReason))).fontSize(12).fontColor($r('app.color.status_danger'))
                     }
                   }
                   .layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -296,31 +296,34 @@ export struct HealthView {
               }, (record: ConsumptionRecord) => record.id.toString())
             }
           }
-          .width('100%').padding(16).margin({ left: 16, right: 16, bottom: 16 })
+          .width('100%').padding(16).margin({ bottom: 8 })
           .backgroundColor($r('app.color.card_background')).borderRadius(16)
         }
+        .padding({ left: 20, right: 20, top: 4, bottom: this.tabBarInset })
       }
-      .layoutWeight(1).scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
+      .layoutWeight(1).align(Alignment.Top).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
-      .animation({ duration: 260, curve: Curve.EaseInOut })
   }
 
   @Builder
-  buildTimeBtn(label: string, mode: string) {
-    Text(label)
-      .fontSize(13)
-      .fontColor(this.viewMode === mode ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
-      .textAlign(TextAlign.Center)
-      .layoutWeight(1).height(40)
-      .backgroundColor(this.viewMode === mode ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
-      .borderRadius(8)
-      .hoverEffect(HoverEffect.Highlight)
+  buildTimeBtn(label: ResourceStr, mode: string) {
+    Button(label)
+      .type(ButtonType.Capsule)
+      .fontSize(13).fontWeight(FontWeight.Medium)
+      .fontColor(this.viewMode === mode ? $r('app.color.accent_link') : $r('app.color.text_secondary'))
+      .layoutWeight(1).height(44)
+      .padding({ left: 3, right: 3 })
+      .backgroundColor(this.viewMode === mode ? $r('app.color.card_background') : Color.Transparent)
+      .accessibilitySelected(this.viewMode === mode)
+      .clickEffect(FOOD_PRESS_EFFECT)
       .onClick(() => {
-        this.viewMode = mode;
-        if (mode !== 'custom') {
-          this.loadData();
-        }
+        this.getUIContext().animateTo({ duration: 170, curve: Curve.EaseOut }, () => {
+          this.viewMode = mode;
+          this.showDatePicker = mode === 'custom';
+        });
+        this.loadData();
       })
   }
 }

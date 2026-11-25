@@ -1,3 +1,4 @@
+import { localizedFoodLabel } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { ProductDict } from '../model/DataModels';
 import { getSourceName } from '../common/Constants';
@@ -30,19 +31,19 @@ export struct TvMineView {
     Column() {
       // 标题
       Row() {
-        Text('产品字典')
+        Text($r('app.string.ui_product_dictionary'))
           .fontSize(27)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
         Blank()
-        Text(this.totalCount + ' 条记录')
+        Text($r('app.string.ui_records_d', this.totalCount))
           .fontSize(21)
           .fontColor($r('app.color.text_hint'))
       }
       .width('100%')
       .padding({ left: 56, right: 56, top: 22, bottom: 22 })
 
-      Text('数据仅本地存储，离线可用')
+      Text($r('app.string.ui_works_offline_with_on_device_storage_2'))
         .fontSize(18)
         .fontColor($r('app.color.text_hint'))
         .width('100%')
@@ -51,7 +52,7 @@ export struct TvMineView {
       // 只读列表（可聚焦行）
       if (this.dictList.length === 0) {
         Column() {
-          Text('暂无产品字典数据')
+          Text($r('app.string.ui_no_dictionary_entries'))
             .fontSize(24)
             .fontColor($r('app.color.text_hint'))
         }
@@ -68,12 +69,12 @@ export struct TvMineView {
                     .fontColor($r('app.color.text_primary'))
                   Row({ space: 20 }) {
                     if (item.barcode.length > 0) {
-                      Text('条码: ' + item.barcode)
+                      Text($r('app.string.ui_barcode_s', item.barcode))
                         .fontSize(18)
                         .fontColor($r('app.color.text_hint'))
                     }
                     if (item.category.length > 0) {
-                      Text(item.category)
+                      Text(localizedFoodLabel(item.category))
                         .fontSize(18)
                         .fontColor($r('app.color.text_hint'))
                     }
@@ -90,7 +91,7 @@ export struct TvMineView {
                 .layoutWeight(1)
                 .alignItems(HorizontalAlign.Start)
 
-                Text(item.calories > 0 ? item.calories.toFixed(0) + ' kcal' : '未记录')
+                Text(item.calories > 0 ? item.calories.toFixed(0) + ' kcal' : $r('app.string.ui_not_recorded'))
                   .fontSize(24)
                   .fontColor(item.calories > 0 ? '#FF6B00' : $r('app.color.text_disabled'))
               }
@@ -114,6 +115,7 @@ export struct TvMineView {
             })
           }, (item: ProductDict) => item.id.toString())
         }
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
         .layoutWeight(1)
         .padding({ left: 56, right: 56, bottom: 22 })
       }

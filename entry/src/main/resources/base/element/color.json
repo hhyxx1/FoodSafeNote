@@ -2,11 +2,11 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#FFFFFF"
+      "value": "#F7F6F0"
     },
     {
       "name": "page_background",
-      "value": "#F5F5F5"
+      "value": "#F7F6F0"
     },
     {
       "name": "card_background",
@@ -14,31 +14,31 @@
     },
     {
       "name": "text_primary",
-      "value": "#1F2937"
+      "value": "#18261F"
     },
     {
       "name": "text_secondary",
-      "value": "#334155"
+      "value": "#36483D"
     },
     {
       "name": "text_hint",
-      "value": "#475569"
+      "value": "#4A5B50"
     },
     {
       "name": "text_disabled",
-      "value": "#64748B"
+      "value": "#58695E"
     },
     {
       "name": "divider",
-      "value": "#F0F0F0"
+      "value": "#DFE5DC"
     },
     {
       "name": "input_background",
-      "value": "#F5F5F5"
+      "value": "#EFF2EB"
     },
     {
       "name": "chip_background",
-      "value": "#F0F0F0"
+      "value": "#EBEFE8"
     },
     {
       "name": "tab_bar_background",
@@ -46,15 +46,15 @@
     },
     {
       "name": "tab_inactive",
-      "value": "#475569"
+      "value": "#48594F"
     },
     {
       "name": "accent_link",
-      "value": "#0B57D0"
+      "value": "#17543D"
     },
     {
       "name": "button_primary_bg",
-      "value": "#005FCC"
+      "value": "#17543D"
     },
     {
       "name": "button_primary_text",
@@ -62,31 +62,31 @@
     },
     {
       "name": "button_secondary_bg",
-      "value": "#E6F0FF"
+      "value": "#DFEEE3"
     },
     {
       "name": "button_secondary_text",
-      "value": "#0B57D0"
+      "value": "#184B35"
     },
     {
       "name": "button_neutral_bg",
-      "value": "#F0F2F5"
+      "value": "#EBEFE8"
     },
     {
       "name": "button_neutral_text",
-      "value": "#334155"
+      "value": "#36483D"
     },
     {
       "name": "button_danger_bg",
-      "value": "#FFE8E6"
+      "value": "#F9E9E6"
     },
     {
       "name": "button_danger_text",
-      "value": "#B42318"
+      "value": "#8E3029"
     },
     {
       "name": "button_success_bg",
-      "value": "#1E8E3E"
+      "value": "#17543D"
     },
     {
       "name": "button_success_text",
@@ -94,47 +94,91 @@
     },
     {
       "name": "button_warning_bg",
-      "value": "#B06000"
+      "value": "#85430D"
     },
     {
       "name": "button_warning_text",
       "value": "#FFFFFF"
     },
     {
+      "name": "button_primary_bg_glass",
+      "value": "#17543D"
+    },
+    {
+      "name": "button_secondary_bg_glass",
+      "value": "#DFEEE3"
+    },
+    {
+      "name": "button_neutral_bg_glass",
+      "value": "#EBEFE8"
+    },
+    {
+      "name": "button_danger_bg_glass",
+      "value": "#F9E9E6"
+    },
+    {
+      "name": "button_success_bg_glass",
+      "value": "#17543D"
+    },
+    {
+      "name": "button_warning_bg_glass",
+      "value": "#85430D"
+    },
+    {
       "name": "chip_success_bg",
-      "value": "#E8F5E9"
+      "value": "#DFEEE3"
     },
     {
       "name": "chip_success_text",
-      "value": "#1E8E3E"
+      "value": "#184B35"
     },
     {
       "name": "chip_warning_bg",
-      "value": "#FFF3E0"
+      "value": "#FAEEDB"
     },
     {
       "name": "chip_warning_text",
-      "value": "#B06000"
+      "value": "#71400D"
     },
     {
       "name": "status_info",
-      "value": "#0B57D0"
+      "value": "#17543D"
     },
     {
       "name": "status_success",
-      "value": "#1E8E3E"
+      "value": "#205E40"
     },
     {
       "name": "status_warning",
-      "value": "#B06000"
+      "value": "#7A4310"
     },
     {
       "name": "status_danger",
-      "value": "#B42318"
+      "value": "#97382D"
     },
     {
       "name": "overlay_background",
-      "value": "#80000000"
+      "value": "#730F2117"
+    },
+    {
+      "name": "journal_hero_bg",
+      "value": "#164535"
+    },
+    {
+      "name": "journal_hero_text",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "journal_hero_secondary",
+      "value": "#D5EBDE"
+    },
+    {
+      "name": "journal_hero_divider",
+      "value": "#659180"
+    },
+    {
+      "name": "field_outline",
+      "value": "#87988C"
     }
   ]
 }

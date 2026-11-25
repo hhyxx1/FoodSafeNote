@@ -193,10 +193,18 @@ export class AdaptiveColorHelper {
     return darkRatio >= lightRatio ? dark : light;
   }
 
-  private static async extractDominantColor(ctx: Context, iconRawfileName: string): Promise<RgbColor> {
-    const rawDescriptor: resourceManager.RawFileDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
-    const imgSource: image.ImageSource = image.createImageSource(rawDescriptor);
+  private static async extractDominantColor(ctx: Context, iconRawfileName: string): Promise<RgbColor | undefined> {
+    let rawDescriptor: resourceManager.RawFileDescriptor;
     try {
+      rawDescriptor = ctx.resourceManager.getRawFdSync(iconRawfileName);
+    } catch (e) {
+      // Let callers use their existing light/dark fallback when the rawfile cannot be opened.
+      return undefined;
+    }
+
+    let imgSource: image.ImageSource | undefined = undefined;
+    try {
+      imgSource = image.createImageSource(rawDescriptor);
       const pixelMap: image.PixelMap = await imgSource.createPixelMap({
         editable: false,
         desiredPixelFormat: image.PixelMapFormat.BGRA_8888,
@@ -240,9 +248,18 @@ export class AdaptiveColorHelper {
         pixelMap.release();
       }
     } finally {
-      imgSource.release();
-      // 关闭 getRawFdSync 打开的 raw fd，避免 fd 泄漏
-      ctx.resourceManager.closeRawFdSync(iconRawfileName);
+      try {
+        if (imgSource !== undefined) {
+          imgSource.release();
+        }
+      } finally {
+        // 即使释放图像源失败，也尝试关闭原始资源文件。
+        try {
+          ctx.resourceManager.closeRawFdSync(iconRawfileName);
+        } catch (e) {
+          // 关闭 raw fd 失败，忽略
+        }
+      }
     }
   }
 
@@ -256,7 +273,10 @@ export class AdaptiveColorHelper {
       return AdaptiveColorHelper.cardCache.get(cacheKey) as string;
     }
     try {
-      const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      const dominant: RgbColor | undefined = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      if (dominant === undefined) {
+        return darkMode ? '#2A3340' : '#EDF3FB';
+      }
       const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
       const softened: RgbColor = darkMode
         ? AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.30, 0.34)
@@ -283,7 +303,10 @@ export class AdaptiveColorHelper {
       return AdaptiveColorHelper.accentCache.get(cacheKey) as string;
     }
     try {
-      const dominant: RgbColor = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      const dominant: RgbColor | undefined = await AdaptiveColorHelper.extractDominantColor(ctx, iconRawfileName);
+      if (dominant === undefined) {
+        return darkMode ? '#2F4560' : '#E8F0FE';
+      }
       const hsv: HsvColor = AdaptiveColorHelper.rgbToHsv(dominant);
       const accent: RgbColor = darkMode
         ? AdaptiveColorHelper.hsvToRgb(hsv.hue, 0.34, 0.46)

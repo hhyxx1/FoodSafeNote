@@ -1,4 +1,7 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { cacheRemoteFoodPhoto, canReceiveRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
+import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
+import { resolveLocalizedText } from '../common/Constants';
+import { localizedFoodLabel } from '../common/Constants';
 import { cameraPicker, camera } from '@kit.CameraKit';
 import { textRecognition } from '@kit.CoreVisionKit';
 import { image } from '@kit.ImageKit';
@@ -7,9 +10,11 @@ import { FOOD_CATEGORIES, StorageType, getBaseDays, padZero } from '../common/Co
 import {
   createCollaborationServiceMenuItems,
   CollaborationServiceStateDialog,
-  CollaborationServiceFilter
+  CollaborationServiceFilter,
+  CollaborationDeviceFilterType
 } from '@kit.ServiceCollaborationKit';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { HdsNavDestination } from '@kit.UIDesignKit';
+import { AppNavigation } from '../common/AppNavigation';
 
 interface AddFoodParams {
   barcode: string;
@@ -30,7 +35,6 @@ interface FoodKeywordItem {
   category: string;
 }
 
-@Entry
 @Component
 struct PhotoEntryPage {
   @State photoUri: string = '';
@@ -38,29 +42,44 @@ struct PhotoEntryPage {
   @State recognizedCategory: string = '其他';
   @State freshnessLevel: string = 'fresh';
   @State storageType: string = StorageType.FRIDGE;
-  @State recognitionHint: string = '等待拍照识别';
+  @State recognitionHint: ResourceStr = $r('app.string.ui_take_a_photo_to_start');
   @State estimatedExpiryText: string = '';
-  @State showCollaborationButton: boolean = true;
+  @State showCollaborationButton: boolean = false;
+
+  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+
+  @State isCapturingPhoto: boolean = false;
+  private isPageActive: boolean = true;
+  private scroller: Scroller = new Scroller();
 
   aboutToAppear(): void {
-    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
+    this.showCollaborationButton = canReceiveRemoteFoodPhoto();
   }
 
   @Builder
   collaborationMenu() {
     Menu() {
-      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.TAKE_PHOTO,
+        CollaborationServiceFilter.IMAGE_PICKER], 1, [CollaborationDeviceFilterType.PHONE,
+        CollaborationDeviceFilterType.TABLET, CollaborationDeviceFilterType.PC_2IN1]);
     }
   }
 
   private async takeFoodPhoto(): Promise<void> {
     if (!canIUse('SystemCapability.Multimedia.Camera.Core')) {
-      promptAction.showToast({ message: '当前设备无可用摄像头，请改用手动入库', duration: 2000 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_camera_is_available_add_the_item_manually'), duration: 2000 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
+    if (this.isCapturingPhoto) return;
+    this.isCapturingPhoto = true;
     try {
-      const ctx: Context = getContext(this) as Context;
+      const ctx: Context = this.getUIContext().getHostContext() as Context;
       const captureUri: string = ctx.cacheDir + '/photo_entry_' + Date.now().toString() + '.jpg';
       const profile: cameraPicker.PickerProfile = {
         cameraPosition: camera.CameraPosition.CAMERA_POSITION_BACK,
@@ -73,25 +92,30 @@ struct PhotoEntryPage {
       if (result.resultUri !== undefined && result.resultUri.length > 0) {
         this.photoUri = result.resultUri;
         await this.analyzePhotoAndSuggest();
-        promptAction.showToast({ message: '拍照成功，已生成入库建议', duration: 1500 });
       }
     } catch (error) {
-      promptAction.showToast({ message: '拍照失败，请重试', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_take_a_photo_try_again'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
+    } finally {
+      this.isCapturingPhoto = false;
     }
   }
 
   private async analyzePhotoAndSuggest(): Promise<void> {
-    this.recognitionHint = '正在识别图片内容...';
+    this.recognitionHint = $r('app.string.ui_scanning_the_photo');
 
     if (!canIUse('SystemCapability.AI.OCR.TextRecognition')) {
-      this.recognitionHint = '当前设备不支持自动识别，可手动调整';
+      this.recognitionHint = $r('app.string.ui_automatic_recognition_is_unavailable_enter_the_details_manually');
       this.updateEstimatedExpiry();
       return;
     }
 
     const pixelMap: image.PixelMap | null = await this.getPixelMapFromUri(this.photoUri);
     if (pixelMap === null) {
-      this.recognitionHint = '图片读取失败，请手动填写';
+      this.recognitionHint = $r('app.string.ui_could_not_read_the_image_enter_the_details_manually');
       this.updateEstimatedExpiry();
       return;
     }
@@ -103,6 +127,7 @@ struct PhotoEntryPage {
       pixelMap.release();
     }
 
+    if (!this.isPageActive) return;
     this.applySuggestionsFromText(recognizedText);
     this.updateEstimatedExpiry();
   }
@@ -119,56 +144,31 @@ struct PhotoEntryPage {
     }
   }
 
-  private decodeBufferToText(buffer: ArrayBuffer): string {
-    const bytes: Uint8Array = new Uint8Array(buffer);
-    let text: string = '';
-    for (let i = 0; i < bytes.length; i++) {
-      text = text + String.fromCharCode(bytes[i]);
+  private async onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): Promise<void> {
+    if (!this.isPageActive || stateCode !== 0 || bufferType !== 'general.image' || !buffer || buffer.byteLength === 0 ||
+      this.isCapturingPhoto) {
+      return;
     }
-    return text;
-  }
 
-  private handleCollaborationImage(buffer: ArrayBuffer): void {
-    this.recognitionHint = '正在处理协同图片...';
-    const imgSource: image.ImageSource = image.createImageSource(buffer);
-    imgSource.createPixelMap().then(async (pixelMap: image.PixelMap): Promise<void> => {
-      let recognizedText: string = '';
-      try {
-        recognizedText = await this.recognizeTextFromPixelMap(pixelMap);
-      } finally {
-        pixelMap.release();
-        imgSource.release();
+    this.isCapturingPhoto = true;
+    try {
+      const context = this.getUIContext().getHostContext();
+      if (context === undefined) return;
+      this.photoUri = cacheRemoteFoodPhoto(context, buffer);
+      await this.analyzePhotoAndSuggest();
+    } catch (error) {
+      if (this.isPageActive) {
+        this.recognitionHint = $r('app.string.food_could_not_process_remote_photo');
       }
-      this.applySuggestionsFromText(recognizedText);
-      this.updateEstimatedExpiry();
-      promptAction.showToast({ message: '已接收协同图片并生成建议', duration: 1800 });
-    }).catch(() => {
-      imgSource.release();
-      this.recognitionHint = '协同图片解析失败，请重试';
-      promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
-    });
-  }
-
-  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
-    if (stateCode !== 0) {
-      return;
-    }
-    if (bufferType === 'general.image') {
-      this.handleCollaborationImage(buffer);
-      return;
-    }
-    const payload: string = this.decodeBufferToText(buffer);
-    if (payload.trim().length > 0) {
-      this.applySuggestionsFromText(payload);
-      this.updateEstimatedExpiry();
-      promptAction.showToast({ message: '已接收协同文本建议', duration: 1600 });
+    } finally {
+      this.isCapturingPhoto = false;
     }
   }
 
   private applySuggestionsFromText(text: string): void {
     const raw: string = text.trim();
     if (raw.length === 0) {
-      this.recognitionHint = '未识别到有效文本，请手动确认食品信息';
+      this.recognitionHint = $r('app.string.ui_no_usable_text_found_review_the_food_details_manually');
       this.recognizedName = this.recognizedName.length > 0 ? this.recognizedName : '';
       this.recognizedCategory = this.recognizedCategory.length > 0 ? this.recognizedCategory : '其他';
       this.freshnessLevel = 'fresh';
@@ -201,7 +201,7 @@ struct PhotoEntryPage {
         this.recognizedName = item.name;
         this.recognizedCategory = item.category;
         this.freshnessLevel = this.inferFreshness(raw);
-        this.recognitionHint = '已自动识别：' + item.name + '（可手动修改）';
+        this.recognitionHint = $r('app.string.ui_detected_s_editable', item.name);
         return;
       }
     }
@@ -210,7 +210,7 @@ struct PhotoEntryPage {
     this.recognizedName = firstLine.length > 12 ? firstLine.substring(0, 12) : firstLine;
     this.recognizedCategory = '其他';
     this.freshnessLevel = this.inferFreshness(raw);
-    this.recognitionHint = '已提取图片文本并生成建议（可手动修改）';
+    this.recognitionHint = $r('app.string.ui_text_detected_and_suggestions_generated_you_can_edit_them');
   }
 
   private inferFreshness(text: string): string {
@@ -262,14 +262,11 @@ struct PhotoEntryPage {
     }
     const days: number = Math.max(1, Math.round(baseDays * this.getStorageFactor() * this.getFreshnessFactor()));
     const expiry: Date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-    this.estimatedExpiryText = this.formatDate(expiry) + '（预计剩余 ' + days.toString() + ' 天）';
+    this.estimatedExpiryText = resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_s_about_d_days_left').id, this.formatDate(expiry), days);
   }
 
   private formatDate(date: Date): string {
-    const year: number = date.getFullYear();
-    const month: number = date.getMonth() + 1;
-    const day: number = date.getDate();
-    return year.toString() + '-' + padZero(month) + '-' + padZero(day);
+    return date.toLocaleDateString();
   }
 
   private async getPixelMapFromUri(uri: string): Promise<image.PixelMap | null> {
@@ -324,76 +321,63 @@ struct PhotoEntryPage {
       storageType: this.storageType,
       freshnessLevel: this.freshnessLevel
     };
-    router.pushUrl({ url: 'pages/AddFoodPage', params: params });
+    try {
+      AppNavigation.push('AddFoodPage', params);
+    } catch (e) {
+      // 路由跳转失败时忽略
+    }
   }
 
   build() {
+    HdsNavDestination() {
     Column() {
-      CollaborationServiceStateDialog({
-        onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
-          this.onCollaborationState(stateCode, bufferType, buffer);
-        }
-      })
-
-      Row() {
-        Button('返回')
-          .height(40)
-          .fontSize(14)
-          .fontColor($r('app.color.accent_link'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => {
-            router.back();
-          })
-        Text('拍照入库')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-        Text('').width(56)
+      if (this.showCollaborationButton) {
+        CollaborationServiceStateDialog({
+          onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+            this.onCollaborationState(stateCode, bufferType, buffer);
+          }
+        })
       }
-      .width('100%')
-      .padding({ left: 8, right: 8, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
 
-      Scroll() {
+      Scroll(this.scroller) {
         Column({ space: 12 }) {
-          Text('拍照后自动识别食品类别与新鲜程度，并给出保质期建议')
-            .fontSize(14)
-            .fontColor($r('app.color.text_hint'))
-            .textAlign(TextAlign.Center)
-
-          Button(this.photoUri.length > 0 ? '重新拍照识别' : '拍摄食品照片')
-            .width('100%')
-            .height(48)
-            .fontSize(16)
-            .fontColor($r('app.color.button_primary_text'))
-            .backgroundColor($r('app.color.button_primary_bg'))
-            .borderRadius(12)
-            .onClick(() => {
-              this.takeFoodPhoto();
-            })
+          Column({ space: 10 }) {
+            if (this.photoUri.length > 0) {
+              Image(this.photoUri)
+                .width('100%').height(150).borderRadius(14).draggable(false).objectFit(ImageFit.Cover)
+                .transition(FoodMotion.reveal())
+            } else {
+              SymbolGlyph($r('sys.symbol.camera'))
+                .fontSize(30).fontColor([$r('app.color.journal_hero_text')])
+            }
+            Text($r('app.string.ui_take_a_photo_to_get_suggestions_for_category_freshness_and_shelf_life'))
+              .fontSize(14).fontColor($r('app.color.journal_hero_secondary')).width('100%')
+            Button(this.photoUri.length > 0 ? $r('app.string.ui_retake_photo') : $r('app.string.ui_take_a_food_photo'))
+              .attributeModifier(this.photoUri.length > 0 ? FoodButtonStyle.secondary : FoodButtonStyle.primary)
+              .width('100%')
+              .enabled(!this.isCapturingPhoto)
+              .onClick(() => { this.takeFoodPhoto(); })
+          }
+          .width('100%').alignItems(HorizontalAlign.Start).padding(16)
+          .backgroundColor($r('app.color.journal_hero_bg')).borderRadius(22)
 
           if (this.showCollaborationButton) {
-            Button('手机协同传图识别')
+            Button($r('app.string.food_pick_remote_photo'))
+              .attributeModifier(FoodButtonStyle.secondary)
               .width('100%')
-              .height(40)
-              .fontSize(14)
-              .fontColor($r('app.color.button_secondary_text'))
-              .backgroundColor($r('app.color.button_secondary_bg'))
-              .borderRadius(12)
+              .enabled(!this.isCapturingPhoto)
               .bindMenu(this.collaborationMenu)
           }
 
           Column({ space: 8 }) {
-            Text('识别结果')
-              .fontSize(14)
+            Text($r('app.string.ui_scan_result'))
+              .fontSize(18).fontWeight(FontWeight.Bold)
               .fontColor($r('app.color.text_primary'))
             Text(this.recognitionHint)
-              .fontSize(12)
+              .fontSize(14)
               .fontColor($r('app.color.text_hint'))
 
-            TextInput({ text: this.recognizedName, placeholder: '食品名称（自动识别，可修改）' })
+            TextInput({ text: this.recognizedName, placeholder: $r('app.string.ui_detected_food_name_editable') })
               .width('100%')
               .height(44)
               .fontSize(15)
@@ -405,7 +389,7 @@ struct PhotoEntryPage {
 
             Flex({ wrap: FlexWrap.Wrap }) {
               ForEach(FOOD_CATEGORIES, (category: string) => {
-                Text(category)
+                Text(localizedFoodLabel(category))
                   .fontSize(12)
                   .fontColor(this.recognizedCategory === category ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
                   .padding({ left: 12, right: 12, top: 6, bottom: 6 })
@@ -423,70 +407,79 @@ struct PhotoEntryPage {
           .width('100%')
           .padding(12)
           .backgroundColor($r('app.color.card_background'))
-          .borderRadius(10)
+          .borderRadius(18)
 
           Column({ space: 8 }) {
-            Text('新鲜程度')
+            Text($r('app.string.ui_freshness'))
               .fontSize(14)
               .fontColor($r('app.color.text_primary'))
             Row({ space: 8 }) {
-              this.buildTag('新鲜', 'fresh')
-              this.buildTag('一般', 'normal')
-              this.buildTag('偏差', 'stale')
+              this.buildTag($r('app.string.ui_fresh'), 'fresh')
+              this.buildTag($r('app.string.ui_fair'), 'normal')
+              this.buildTag($r('app.string.ui_poor'), 'stale')
             }
 
-            Text('存储环境')
+            Text($r('app.string.ui_storage_conditions'))
               .fontSize(14)
               .fontColor($r('app.color.text_primary'))
             Row({ space: 8 }) {
-              this.buildStorageTag('冷藏', StorageType.FRIDGE)
-              this.buildStorageTag('冷冻', StorageType.FREEZER)
-              this.buildStorageTag('常温', StorageType.ROOM)
+              this.buildStorageTag($r('app.string.ui_refrigerated'), StorageType.FRIDGE)
+              this.buildStorageTag($r('app.string.ui_frozen'), StorageType.FREEZER)
+              this.buildStorageTag($r('app.string.ui_room_temperature'), StorageType.ROOM)
             }
 
-            Text('预计到期：' + (this.estimatedExpiryText.length > 0 ? this.estimatedExpiryText : '待识别后生成'))
+            Text($r('app.string.ui_estimated_expiry_s', this.estimatedExpiryText.length > 0 ? this.estimatedExpiryText : '—'))
               .fontSize(13)
               .fontColor($r('app.color.accent_link'))
           }
           .width('100%')
           .padding(12)
           .backgroundColor($r('app.color.card_background'))
-          .borderRadius(10)
+          .borderRadius(18)
 
-          Button('下一步：确认并入库')
+          Button($r('app.string.ui_next_review_and_add'))
+            .attributeModifier(FoodButtonStyle.primary)
             .width('100%')
-            .height(48)
-            .fontSize(16)
-            .fontColor(this.recognizedName.trim().length > 0 ? $r('app.color.button_secondary_text') : $r('app.color.text_disabled'))
-            .backgroundColor(this.recognizedName.trim().length > 0 ? $r('app.color.button_secondary_bg') : $r('app.color.button_neutral_bg'))
-            .borderRadius(12)
-            .enabled(this.recognizedName.trim().length > 0)
+            .enabled(!this.isCapturingPhoto && this.recognizedName.trim().length > 0)
             .onClick(() => {
               this.goToAddFood();
             })
 
-          Button('不拍照，直接手动入库')
+          Button($r('app.string.ui_skip_photo_and_add_manually'))
+            .attributeModifier(FoodButtonStyle.text)
             .width('100%')
-            .height(44)
-            .fontSize(14)
-            .fontColor($r('app.color.text_hint'))
-            .backgroundColor(Color.Transparent)
             .onClick(() => {
-              router.pushUrl({ url: 'pages/AddFoodPage' });
+              AppNavigation.push('AddFoodPage');
             })
         }
-        .padding({ left: 20, right: 20, top: 16, bottom: 24 })
+        // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
+        .padding({ left: 20, right: 20, top: 56 + this.statusBarHeight, bottom: 24 })
       }
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .layoutWeight(1)
       .scrollBar(BarState.Off)
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: $r('app.string.ui_add_from_a_photo') }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .bindToScrollable([this.scroller])
+    .onShown(() => { this.isPageActive = true; })
+    .onHidden(() => {
+      this.isPageActive = false;
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
-  buildTag(label: string, value: string) {
+  buildTag(label: ResourceStr, value: string) {
     Text(label)
       .fontSize(12)
       .fontColor(this.freshnessLevel === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
@@ -503,7 +496,7 @@ struct PhotoEntryPage {
   }
 
   @Builder
-  buildStorageTag(label: string, value: string) {
+  buildStorageTag(label: ResourceStr, value: string) {
     Text(label)
       .fontSize(12)
       .fontColor(this.storageType === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
@@ -518,4 +511,10 @@ struct PhotoEntryPage {
         this.updateEstimatedExpiry();
       })
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 PhotoEntryPage）
+@Builder
+export function PhotoEntryPageBuilder() {
+  PhotoEntryPage()
 }

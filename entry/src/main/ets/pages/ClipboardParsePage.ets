@@ -1,5 +1,8 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { FoodButtonStyle, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
+import { promptAction } from '@kit.ArkUI';
 import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
+import { HdsNavDestination, HdsNavigationBadgeIconOptions, TextStyleMode } from '@kit.UIDesignKit';
+import { AppNavigation } from '../common/AppNavigation';
 
 interface AddFoodParams {
   barcode: string;
@@ -19,20 +22,26 @@ interface ParsedFoodEntry {
   confidence: number;
 }
 
-@Entry
 @Component
 struct ClipboardParsePage {
+  @StorageProp('dataChangeTick') @Watch('onDataChangeTick') dataChangeTick: number = 0;
   @State clipboardText: string = '';
   @State parsedItems: ParsedFoodEntry[] = [];
   @State manualInput: string = '';
   @State isGenerating: boolean = false;
   @State pasteAuthorized: boolean = false;
 
+  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+
+  private scroller: Scroller = new Scroller();
+
   aboutToAppear(): void {
     // 剪贴板读取改为用户点击安全控件触发
   }
 
-  onPageShow(): void {
+  // 页面返回（含系统侧滑）后消费已完成卡片，等价于原 onPageShow
+  private onDataChangeTick(): void {
     this.consumeCompletedClipboardCard();
   }
 
@@ -59,7 +68,11 @@ struct ClipboardParsePage {
 
   private handlePasteButtonResult(result: PasteButtonOnClickResult): void {
     if (result !== PasteButtonOnClickResult.SUCCESS) {
-      promptAction.showToast({ message: '未完成授权，无法读取剪贴板', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_clipboard_access_was_not_granted'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     this.pasteAuthorized = true;
@@ -69,13 +82,14 @@ struct ClipboardParsePage {
   private readClipboard(): void {
     try {
       const sysBoard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      // 此方法仅在 PasteButton 授权成功后调用，使用系统提供的临时剪贴板读取权限。
       sysBoard.getData((err: BusinessError, data: pasteboard.PasteData) => {
         if (err) {
-          promptAction.showToast({ message: '读取剪贴板失败', duration: 1500 });
+          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_read_the_clipboard'), duration: 1500 });
           return;
         }
         if (!data || typeof data.getPrimaryText !== 'function') {
-          promptAction.showToast({ message: '剪贴板为空或不可读', duration: 1500 });
+          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_the_clipboard_is_empty_or_unreadable'), duration: 1500 });
           return;
         }
         let text: string = '';
@@ -86,14 +100,18 @@ struct ClipboardParsePage {
           text = '';
         }
         if (!text || text.length === 0) {
-          promptAction.showToast({ message: '剪贴板为空', duration: 1500 });
+          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_the_clipboard_is_empty'), duration: 1500 });
           return;
         }
         this.clipboardText = text;
         this.generateCards(text, true);
       });
     } catch (e) {
-      promptAction.showToast({ message: '读取剪贴板失败', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_read_the_clipboard'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
     }
   }
 
@@ -160,17 +178,21 @@ struct ClipboardParsePage {
     const confidence: number = this.calculateParseConfidence(text, items);
     if (items.length === 0) {
       this.isGenerating = false;
-      promptAction.showToast({ message: '未识别到可用的食品名称', duration: 1800 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_food_name_could_be_identified'), duration: 1800 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
     if (!skipConfidenceCheck && confidence < 0.8) {
-      promptAction.showDialog({
-        title: '解析置信度较低',
-        message: '当前文本不太像购物清单，是否仍生成待入库卡片？',
+      this.getUIContext().getPromptAction().showDialog({
+        title: $r('app.string.ui_check_the_shopping_list'),
+        message: $r('app.string.ui_this_text_may_not_be_a_shopping_list_create_draft_entries_anyway'),
         buttons: [
-          { text: '取消', color: '#999999' },
-          { text: '继续生成', color: '#007DFF' }
+          { text: $r('app.string.ui_cancel'), color: '#999999' },
+          { text: $r('app.string.ui_create_drafts_anyway'), color: '#007DFF' }
         ]
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
@@ -183,15 +205,16 @@ struct ClipboardParsePage {
       return;
     }
 
-    this.parsedItems = items;
+    this.parsedItems = this.parsedItems.concat(items);
+    if (skipConfidenceCheck) this.manualInput = '';
     this.isGenerating = false;
   }
 
   private addManualItems(): void {
     const text: string = this.manualInput.trim();
     if (text.length === 0) return;
+    if (this.isGenerating) return;
     this.generateCards(text, true);
-    this.manualInput = '';
   }
 
   private continueEntry(): void {
@@ -203,7 +226,11 @@ struct ClipboardParsePage {
       }
     }
     if (selectedIndex < 0) {
-      promptAction.showToast({ message: '请至少选择一项', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_select_at_least_one_item'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
@@ -214,7 +241,11 @@ struct ClipboardParsePage {
     if (index < 0 || index >= this.parsedItems.length) return;
     const item: ParsedFoodEntry = this.parsedItems[index];
     if (!item.selected) {
-      promptAction.showToast({ message: '该卡片未选中', duration: 1200 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_this_entry_is_not_selected'), duration: 1200 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
@@ -228,7 +259,11 @@ struct ClipboardParsePage {
       fromClipboardParse: true,
       clipboardSourceIndex: index
     };
-    router.pushUrl({ url: 'pages/AddFoodPage', params: params });
+    try {
+      AppNavigation.push('AddFoodPage', params);
+    } catch (e) {
+      // 路由跳转失败时忽略
+    }
   }
 
   private getSelectedCount(): number {
@@ -253,31 +288,22 @@ struct ClipboardParsePage {
     this.parsedItems = newList;
   }
 
-  build() {
-    Column() {
-      // 导航栏
-      Row() {
-        Button('返回')
-          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { router.back(); })
-        Text('剪贴板解析')
-          .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-          .layoutWeight(1).textAlign(TextAlign.Center)
-        Button('继续录入 (' + this.getSelectedCount() + ')')
-          .height(40).fontSize(14).fontColor($r('app.color.button_primary_text'))
-          .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
-          .enabled(!this.isGenerating && this.getSelectedCount() > 0)
-          .onClick(() => { this.continueEntry(); })
-      }
-      .width('100%').padding({ left: 8, right: 8, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
+  // 标题栏右侧菜单：继续录入（等价于原标题栏按钮；未选择项时由 continueEntry 内部提示兜底）
+  private getMenuItems(): Array<HdsNavigationBadgeIconOptions> {
+    const item: HdsNavigationBadgeIconOptions = {
+      content: { type: TextStyleMode.NORMAL, componentId: 'continue-clipboard-entry', isEnabled: this.getSelectedCount() > 0, label: $r('app.string.ui_continue_d', this.getSelectedCount()), action: () => { this.continueEntry(); } }
+    };
+    return [item];
+  }
 
-      Scroll() {
+  build() {
+    HdsNavDestination() {
+    Column() {
+      Scroll(this.scroller) {
         Column({ space: 16 }) {
           // 安全粘贴控件
           Column({ space: 8 }) {
-            Text('从系统剪贴板读取（需点击授权）')
+            Text($r('app.string.ui_tap_to_allow_clipboard_access'))
               .fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
             Row() {
               PasteButton()
@@ -286,7 +312,7 @@ struct ClipboardParsePage {
                   this.handlePasteButtonResult(result);
                 })
               if (this.pasteAuthorized) {
-                Text('已授权').fontSize(12).fontColor($r('app.color.status_success')).padding({ left: 8 })
+                Text($r('app.string.ui_access_granted')).fontSize(12).fontColor($r('app.color.status_success')).padding({ left: 8 })
               }
             }
             .width('100%')
@@ -296,15 +322,14 @@ struct ClipboardParsePage {
 
           // 手动输入区
           Column({ space: 8 }) {
-            Text('输入购物清单（用逗号、顿号或换行分隔）')
+            Text($r('app.string.ui_enter_a_shopping_list_separated_by_commas_or_line_breaks'))
               .fontSize(14).fontColor($r('app.color.text_primary')).width('100%')
             Row({ space: 8 }) {
-              TextInput({ text: this.manualInput, placeholder: '如：牛奶、面包、苹果、鸡蛋' })
+              TextInput({ text: this.manualInput, placeholder: $r('app.string.ui_e_g_milk_bread_apples_eggs') })
                 .layoutWeight(1).height(40).fontSize(14).borderRadius(8)
                 .onChange((value: string) => { this.manualInput = value; })
-              Button('解析')
-                .height(40).fontSize(14).fontColor($r('app.color.button_primary_text'))
-                .backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
+              Button($r('app.string.ui_parse'))
+                .attributeModifier(FoodButtonStyle.compactPrimary)
                 .onClick(() => { this.addManualItems(); })
             }
           }
@@ -314,10 +339,10 @@ struct ClipboardParsePage {
           // 剪贴板内容（如有）
           if (this.clipboardText.length > 0) {
             Column({ space: 8 }) {
-              Text('从剪贴板识别')
+              Text($r('app.string.ui_import_from_clipboard'))
                 .fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
               Text(this.clipboardText)
-                .fontSize(12).fontColor($r('app.color.text_hint'))
+                .fontSize(13).fontColor($r('app.color.text_hint'))
                 .width('100%').maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .width('100%').padding(16).margin({ left: 16, right: 16 })
@@ -326,13 +351,13 @@ struct ClipboardParsePage {
 
           // 解析结果列表
           Column({ space: 8 }) {
-            Text('待入库卡片 (' + this.parsedItems.length + ')')
+            Text($r('app.string.ui_draft_entries_d', this.parsedItems.length))
               .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
 
             if (this.parsedItems.length === 0) {
               Column({ space: 8 }) {
-                Text('📋').fontSize(40)
-                Text('手动触发后生成待入库卡片').fontSize(13).fontColor($r('app.color.text_hint'))
+                Image($r('app.media.icon_clipboard')).width(40).height(40).draggable(false)
+                Text($r('app.string.ui_select_parse_to_create_draft_food_entries')).fontSize(13).fontColor($r('app.color.text_hint'))
               }
               .width('100%').padding({ top: 24, bottom: 24 }).alignItems(HorizontalAlign.Center)
             } else {
@@ -349,7 +374,7 @@ struct ClipboardParsePage {
                       .fontSize(15).fontColor($r('app.color.text_primary'))
                       .layoutWeight(1).padding({ left: 8 })
                     if (item.confidence < 0.8) {
-                      Text('仅供参考')
+                      Text($r('app.string.ui_for_reference_only'))
                         .fontSize(10).fontColor($r('app.color.chip_warning_text'))
                         .padding({ left: 4, right: 4, top: 1, bottom: 1 })
                         .borderRadius(4).backgroundColor($r('app.color.chip_warning_bg'))
@@ -358,11 +383,10 @@ struct ClipboardParsePage {
                   .width('100%')
 
                   Row() {
-                    Text('需继续补充热量、保质期等信息')
-                      .fontSize(12).fontColor($r('app.color.text_hint')).layoutWeight(1)
-                    Button('加入入库')
-                      .height(40).fontSize(12).fontColor($r('app.color.button_secondary_text'))
-                      .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(6)
+                    Text($r('app.string.ui_add_calories_shelf_life_and_any_missing_details'))
+                      .fontSize(13).fontColor($r('app.color.text_hint')).layoutWeight(1)
+                    Button($r('app.string.ui_add_to_inventory_2'))
+                      .attributeModifier(FoodButtonStyle.compactSecondary)
                       .enabled(item.selected)
                       .onClick(() => {
                         this.startEntryForItem(index);
@@ -377,9 +401,31 @@ struct ClipboardParsePage {
           .width('100%').padding(16).margin({ left: 16, right: 16, bottom: 32 })
           .backgroundColor($r('app.color.card_background')).borderRadius(16)
         }
+        // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
+        .padding({ top: 56 + this.statusBarHeight })
       }
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .layoutWeight(1).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: $r('app.string.ui_import_from_clipboard_2') },
+        menu: { value: this.getMenuItems() }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .bindToScrollable([this.scroller])
+    .onHidden(() => {
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 ClipboardParsePage）
+@Builder
+export function ClipboardParsePageBuilder() {
+  ClipboardParsePage()
 }

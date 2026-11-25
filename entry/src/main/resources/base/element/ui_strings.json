@@ -1,0 +1,1788 @@
+{
+  "string": [
+    {
+      "name": "ui_food_name",
+      "value": "食品名称"
+    },
+    {
+      "name": "ui_e_g_milk_lettuce_apples",
+      "value": "如：纯牛奶、生菜、苹果"
+    },
+    {
+      "name": "ui_enter_a_food_name",
+      "value": "食品名称不能为空"
+    },
+    {
+      "name": "ui_barcode_optional",
+      "value": "商品条码（选填）"
+    },
+    {
+      "name": "ui_e_g_6901234567890",
+      "value": "如：6901234567890"
+    },
+    {
+      "name": "ui_food_category",
+      "value": "食品分类"
+    },
+    {
+      "name": "ui_e_g_250_ml_500_g_1_bag",
+      "value": "如：250ml、500g、1袋"
+    },
+    {
+      "name": "ui_storage_method",
+      "value": "存储方式"
+    },
+    {
+      "name": "ui_opened",
+      "value": "已开封"
+    },
+    {
+      "name": "ui_production_date",
+      "value": "生产日期"
+    },
+    {
+      "name": "ui_shelf_life",
+      "value": "保质期"
+    },
+    {
+      "name": "ui_expiry_date_calculated_automatically",
+      "value": "到期日期（自动计算）"
+    },
+    {
+      "name": "ui_start_scanning",
+      "value": "点击扫码"
+    },
+    {
+      "name": "ui_point_the_camera_at_a_barcode",
+      "value": "对准商品条码即可识别"
+    },
+    {
+      "name": "ui_scan_a_photo",
+      "value": "从相册识别条码"
+    },
+    {
+      "name": "ui_batch_scanning",
+      "value": "批量扫码模式"
+    },
+    {
+      "name": "ui_add_in_bulk",
+      "value": "前往批量添加页"
+    },
+    {
+      "name": "ui_enter_a_barcode_e_g_6901234567890",
+      "value": "输入商品条码（如 6901234567890）"
+    },
+    {
+      "name": "ui_match",
+      "value": "匹配"
+    },
+    {
+      "name": "ui_looking_up_barcode",
+      "value": "正在匹配条码..."
+    },
+    {
+      "name": "ui_barcode",
+      "value": "条码"
+    },
+    {
+      "name": "ui_product_name",
+      "value": "商品名称"
+    },
+    {
+      "name": "ui_category_optional",
+      "value": "商品品类（选填）"
+    },
+    {
+      "name": "ui_package_size_optional",
+      "value": "商品规格（选填）"
+    },
+    {
+      "name": "ui_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "ui_confirm",
+      "value": "确认"
+    },
+    {
+      "name": "ui_scan_a_barcode",
+      "value": "扫码入库"
+    },
+    {
+      "name": "ui_scan_to_add",
+      "value": "扫码添加"
+    },
+    {
+      "name": "ui_add_manually",
+      "value": "手动添加"
+    },
+    {
+      "name": "ui_tap_the_button_above_to_add_food",
+      "value": "点击上方按钮添加食品"
+    },
+    {
+      "name": "ui_scan_multiple_barcodes_in_a_row",
+      "value": "可连续扫描多个条码"
+    },
+    {
+      "name": "ui_edit",
+      "value": "编辑"
+    },
+    {
+      "name": "ui_delete",
+      "value": "删除"
+    },
+    {
+      "name": "ui_back_to_list",
+      "value": "返回列表"
+    },
+    {
+      "name": "ui_package_size_optional_2",
+      "value": "规格（选填）"
+    },
+    {
+      "name": "ui_refrigerated",
+      "value": "冷藏"
+    },
+    {
+      "name": "ui_frozen",
+      "value": "冷冻"
+    },
+    {
+      "name": "ui_room_temperature",
+      "value": "常温"
+    },
+    {
+      "name": "ui_review_details",
+      "value": "确认信息"
+    },
+    {
+      "name": "ui_edit_food_details",
+      "value": "编辑食品信息"
+    },
+    {
+      "name": "ui_add_in_bulk_2",
+      "value": "批量添加"
+    },
+    {
+      "name": "ui_food_information",
+      "value": "食品信息"
+    },
+    {
+      "name": "ui_next_set_shelf_life",
+      "value": "下一步：设置保质期"
+    },
+    {
+      "name": "ui_calorie_information",
+      "value": "热量获取"
+    },
+    {
+      "name": "ui_tap_to_allow_clipboard_access",
+      "value": "从系统剪贴板读取（需点击授权）"
+    },
+    {
+      "name": "ui_access_granted",
+      "value": "已授权"
+    },
+    {
+      "name": "ui_enter_a_shopping_list_separated_by_commas_or_line_breaks",
+      "value": "输入购物清单（用逗号、顿号或换行分隔）"
+    },
+    {
+      "name": "ui_e_g_milk_bread_apples_eggs",
+      "value": "如：牛奶、面包、苹果、鸡蛋"
+    },
+    {
+      "name": "ui_parse",
+      "value": "解析"
+    },
+    {
+      "name": "ui_import_from_clipboard",
+      "value": "从剪贴板识别"
+    },
+    {
+      "name": "ui_import_from_clipboard_2",
+      "value": "剪贴板解析"
+    },
+    {
+      "name": "ui_export_data",
+      "value": "数据导出"
+    },
+    {
+      "name": "ui_no_backup_files",
+      "value": "暂无备份文件"
+    },
+    {
+      "name": "ui_backup_and_restore",
+      "value": "数据备份与恢复"
+    },
+    {
+      "name": "ui_product_dictionary",
+      "value": "产品字典"
+    },
+    {
+      "name": "ui_choose_how_to_add_food",
+      "value": "选择入库方式"
+    },
+    {
+      "name": "ui_could_not_save_the_record_refresh_your_inventory_and_try_again",
+      "value": "记录未保存，请刷新库存后重试"
+    },
+    {
+      "name": "ui_delete_this_item",
+      "value": "删除此食品"
+    },
+    {
+      "name": "ui_loading",
+      "value": "加载中..."
+    },
+    {
+      "name": "ui_food_item_not_found",
+      "value": "食品不存在"
+    },
+    {
+      "name": "ui_food_details",
+      "value": "食品详情"
+    },
+    {
+      "name": "ui_mark_as_eaten",
+      "value": "吃掉"
+    },
+    {
+      "name": "ui_discard",
+      "value": "扔掉"
+    },
+    {
+      "name": "ui_who_ate_this",
+      "value": "选择食用者"
+    },
+    {
+      "name": "ui_choose_a_reason",
+      "value": "选择丢弃原因"
+    },
+    {
+      "name": "ui_search",
+      "value": "查询"
+    },
+    {
+      "name": "ui_discarded_food",
+      "value": "浪费食品"
+    },
+    {
+      "name": "ui_calorie_intake_by_member",
+      "value": "成员热量摄入"
+    },
+    {
+      "name": "ui_food_waste_analysis",
+      "value": "浪费分析"
+    },
+    {
+      "name": "ui_health_report",
+      "value": "健康报表"
+    },
+    {
+      "name": "ui_inventory",
+      "value": "库存"
+    },
+    {
+      "name": "ui_health",
+      "value": "健康"
+    },
+    {
+      "name": "ui_profile",
+      "value": "我的"
+    },
+    {
+      "name": "ui_dictionary",
+      "value": "字典"
+    },
+    {
+      "name": "ui_search_food_names",
+      "value": "搜索食品名称"
+    },
+    {
+      "name": "ui_no_ocr_records",
+      "value": "暂无OCR记录"
+    },
+    {
+      "name": "ui_enter_calories",
+      "value": "输入热量值"
+    },
+    {
+      "name": "ui_save",
+      "value": "保存"
+    },
+    {
+      "name": "ui_ocr_history",
+      "value": "OCR记录"
+    },
+    {
+      "name": "ui_change",
+      "value": "修改"
+    },
+    {
+      "name": "ui_detected_food_name_editable",
+      "value": "食品名称（自动识别，可修改）"
+    },
+    {
+      "name": "ui_storage_conditions",
+      "value": "存储环境"
+    },
+    {
+      "name": "ui_next_review_and_add",
+      "value": "下一步：确认并入库"
+    },
+    {
+      "name": "ui_add_from_a_photo",
+      "value": "拍照入库"
+    },
+    {
+      "name": "ui_search_by_name_or_barcode",
+      "value": "搜索商品名称或条码"
+    },
+    {
+      "name": "ui_no_dictionary_entries",
+      "value": "暂无产品字典数据"
+    },
+    {
+      "name": "ui_export_dictionary",
+      "value": "导出字典"
+    },
+    {
+      "name": "ui_import_dictionary",
+      "value": "导入字典"
+    },
+    {
+      "name": "ui_product_name_2",
+      "value": "商品名称 *"
+    },
+    {
+      "name": "ui_category",
+      "value": "品类"
+    },
+    {
+      "name": "ui_package_size",
+      "value": "规格"
+    },
+    {
+      "name": "ui_back",
+      "value": "返回"
+    },
+    {
+      "name": "ui_health_dashboard",
+      "value": "健康看板"
+    },
+    {
+      "name": "ui_detailed_report",
+      "value": "详细报表"
+    },
+    {
+      "name": "ui_intake_by_family_member",
+      "value": "成员摄入详情"
+    },
+    {
+      "name": "ui_waste_statistics",
+      "value": "浪费统计"
+    },
+    {
+      "name": "ui_consumption_history",
+      "value": "消耗记录"
+    },
+    {
+      "name": "ui_no_records",
+      "value": "暂无记录"
+    },
+    {
+      "name": "ui_food_inventory",
+      "value": "食品库存"
+    },
+    {
+      "name": "ui_reason_for_discarding",
+      "value": "丢弃原因"
+    },
+    {
+      "name": "ui_your_inventory_is_empty",
+      "value": "暂无食品库存"
+    },
+    {
+      "name": "ui_tap_to_add_food",
+      "value": "点击右下角 + 添加食品"
+    },
+    {
+      "name": "ui_family_members",
+      "value": "家庭成员"
+    },
+    {
+      "name": "ui_add",
+      "value": "添加"
+    },
+    {
+      "name": "ui_add_a_family_member_to_get_started",
+      "value": "暂无家庭成员，请添加"
+    },
+    {
+      "name": "ui_features",
+      "value": "功能"
+    },
+    {
+      "name": "ui_product_dictionary_2",
+      "value": "产品字典"
+    },
+    {
+      "name": "ui_health_report_2",
+      "value": "健康报表"
+    },
+    {
+      "name": "ui_view_calorie_and_food_waste_reports",
+      "value": "查看详细热量与浪费分析"
+    },
+    {
+      "name": "ui_backup",
+      "value": "数据备份"
+    },
+    {
+      "name": "ui_export_import_or_restore_data",
+      "value": "导出/导入/恢复数据"
+    },
+    {
+      "name": "ui_ocr_history_2",
+      "value": "OCR记录"
+    },
+    {
+      "name": "ui_view_nutrition_label_scan_history",
+      "value": "查看热量识别历史"
+    },
+    {
+      "name": "ui_statistics",
+      "value": "数据统计"
+    },
+    {
+      "name": "ui_total_added",
+      "value": "总入库"
+    },
+    {
+      "name": "ui_in_stock",
+      "value": "在库"
+    },
+    {
+      "name": "ui_consumed",
+      "value": "已食用"
+    },
+    {
+      "name": "ui_discarded",
+      "value": "已丢弃"
+    },
+    {
+      "name": "ui_built_in_barcode_database",
+      "value": "内置条码库"
+    },
+    {
+      "name": "ui_about",
+      "value": "关于"
+    },
+    {
+      "name": "ui_today_s_intake_by_member",
+      "value": "今日成员摄入"
+    },
+    {
+      "name": "ui_no_intake_records_today",
+      "value": "今日暂无摄入记录"
+    },
+    {
+      "name": "ui_today_s_total_intake",
+      "value": "今日总摄入"
+    },
+    {
+      "name": "ui_no_food_items",
+      "value": "暂无食品"
+    },
+    {
+      "name": "ui_no_data",
+      "value": "暂无数据"
+    },
+    {
+      "name": "add_scan_hint",
+      "value": "扫描商品条码，自动匹配商品信息"
+    },
+    {
+      "name": "add_photo_hint",
+      "value": "拍摄食品照片，适合生鲜果蔬"
+    },
+    {
+      "name": "add_manual_title",
+      "value": "手动入库"
+    },
+    {
+      "name": "add_manual_hint",
+      "value": "手动填写食品信息，适合无条码商品"
+    },
+    {
+      "name": "add_batch_hint",
+      "value": "连续扫码/拍照多件食品，统一补充信息后批量入库"
+    },
+    {
+      "name": "add_clipboard_hint",
+      "value": "手动读取剪贴板中的购物清单并生成待入库卡片"
+    },
+    {
+      "name": "inventory_count",
+      "value": "%d 件"
+    },
+    {
+      "name": "inventory_all_count",
+      "value": "全部 %d"
+    },
+    {
+      "name": "inventory_normal_count",
+      "value": "正常 %d"
+    },
+    {
+      "name": "inventory_near_expiry_count",
+      "value": "临期 %d"
+    },
+    {
+      "name": "inventory_expired_count",
+      "value": "过期 %d"
+    },
+    {
+      "name": "about_app_name",
+      "value": "应用名称"
+    },
+    {
+      "name": "about_app_name_value",
+      "value": "食安记 (Food Safe Note)"
+    },
+    {
+      "name": "about_storage",
+      "value": "数据存储"
+    },
+    {
+      "name": "about_storage_value",
+      "value": "仅本地存储，离线可用"
+    },
+    {
+      "name": "about_design",
+      "value": "设计理念"
+    },
+    {
+      "name": "about_design_value",
+      "value": "智能优先 · 全员平权 · 隐私安全"
+    },
+    {
+      "name": "about_version",
+      "value": "版本"
+    },
+    {
+      "name": "ui_add_food",
+      "value": "添加食品"
+    },
+    {
+      "name": "ui_add_to_inventory",
+      "value": "确认入库"
+    },
+    {
+      "name": "ui_review_photo_entry",
+      "value": "拍照入库确认"
+    },
+    {
+      "name": "ui_edit_food",
+      "value": "编辑食品"
+    },
+    {
+      "name": "ui_enter_a_food_name_2",
+      "value": "请输入食品名称"
+    },
+    {
+      "name": "ui_enter_a_valid_shelf_life",
+      "value": "请填写有效保质期"
+    },
+    {
+      "name": "ui_changes_saved",
+      "value": "修改成功"
+    },
+    {
+      "name": "ui_added_to_inventory",
+      "value": "入库成功"
+    },
+    {
+      "name": "ui_could_not_save_try_again",
+      "value": "保存失败，请重试"
+    },
+    {
+      "name": "ui_basic_information",
+      "value": "基本信息"
+    },
+    {
+      "name": "ui_photo_taken_add_any_missing_details_to_save_the_item",
+      "value": "已完成食品拍照，可继续补充信息并入库"
+    },
+    {
+      "name": "ui_you_can_enter_details_now_and_take_a_photo_later",
+      "value": "拍照入库模式：可先填写信息，稍后补拍"
+    },
+    {
+      "name": "ui_package_details_optional",
+      "value": "规格说明（选填）"
+    },
+    {
+      "name": "ui_storage_details",
+      "value": "存储信息"
+    },
+    {
+      "name": "ui_suggested_freshness_editable",
+      "value": "新鲜程度（拍照建议，可调整）"
+    },
+    {
+      "name": "ui_fresh",
+      "value": "新鲜"
+    },
+    {
+      "name": "ui_fair",
+      "value": "一般"
+    },
+    {
+      "name": "ui_poor",
+      "value": "偏差"
+    },
+    {
+      "name": "ui_production_date_and_shelf_life_are_known",
+      "value": "有确切生产日期和保质期"
+    },
+    {
+      "name": "ui_enter_the_production_date_and_shelf_life_to_calculate_the_expiry_date",
+      "value": "开启后填写生产日期 + 保质期（天/月/年），系统自动计算到期日期"
+    },
+    {
+      "name": "ui_collapse",
+      "value": "收起"
+    },
+    {
+      "name": "ui_select_date",
+      "value": "选择日期"
+    },
+    {
+      "name": "ui_e_g_7_6_1",
+      "value": "如：7 / 6 / 1"
+    },
+    {
+      "name": "ui_months",
+      "value": "月"
+    },
+    {
+      "name": "ui_years",
+      "value": "年"
+    },
+    {
+      "name": "ui_based_on_production_date",
+      "value": "来自生产信息"
+    },
+    {
+      "name": "ui_based_on_category_and_storage",
+      "value": "来自品类与存储环境"
+    },
+    {
+      "name": "ui_nutrition",
+      "value": "营养信息"
+    },
+    {
+      "name": "ui_total_calories_kcal_optional",
+      "value": "本次总热量（kcal，选填）"
+    },
+    {
+      "name": "ui_enter_total_calories_kcal",
+      "value": "输入本次入库总热量（kcal）"
+    },
+    {
+      "name": "ui_enter_the_label_value_and_quantity_under_calorie_information_then_return_to_confirm_the_total",
+      "value": "建议先在“热量获取”页录入营养标注与数量，再回到此页确认总热量"
+    },
+    {
+      "name": "ui_save_changes",
+      "value": "保存修改"
+    },
+    {
+      "name": "ui_scan_received",
+      "value": "已接收协同扫码结果"
+    },
+    {
+      "name": "ui_no_barcode_was_found_in_the_result_from_your_phone",
+      "value": "协同返回内容中未识别到条码"
+    },
+    {
+      "name": "ui_no_scan_result_received",
+      "value": "未获取到扫码结果"
+    },
+    {
+      "name": "ui_no_barcode_detected_try_again",
+      "value": "未识别到条码，请重试"
+    },
+    {
+      "name": "ui_no_barcode_found_in_the_image",
+      "value": "图片中未识别到条码"
+    },
+    {
+      "name": "ui_could_not_scan_the_photo_enter_the_barcode_manually",
+      "value": "相册识别失败，请手动输入条码"
+    },
+    {
+      "name": "ui_start_a_cross_device_scan_from_a_tablet_or_2_in_1_device",
+      "value": "当前手机端不支持发起协同扫码，请在平板或2in1设备使用"
+    },
+    {
+      "name": "ui_choose_a_connected_phone_signed_in_to_the_same_account",
+      "value": "请在弹出菜单中选择远端手机（需同账号并已组网）"
+    },
+    {
+      "name": "ui_enter_a_product_name",
+      "value": "请输入商品名称"
+    },
+    {
+      "name": "ui_no_camera_found_scan_a_photo_or_use_a_connected_device",
+      "value": "当前设备未检测到可用摄像头，已自动切换为相册/协同识别"
+    },
+    {
+      "name": "ui_scan_using_your_phone",
+      "value": "手机协同扫码"
+    },
+    {
+      "name": "ui_or_enter_the_barcode_manually",
+      "value": "  或手动输入条码  "
+    },
+    {
+      "name": "ui_turn_on_to_scan_multiple_codes_use_add_in_bulk_for_more_control",
+      "value": "开启后将优先启用多码识别，复杂场景可改用“批量添加”页"
+    },
+    {
+      "name": "ui_review_barcode_details_editable",
+      "value": "条码信息校验（可修改）"
+    },
+    {
+      "name": "ui_no_barcode_match_enter_product_details",
+      "value": "条码无匹配，录入商品信息"
+    },
+    {
+      "name": "ui_e_g_milk_plain_potato_chips",
+      "value": "如：纯牛奶、原味薯片"
+    },
+    {
+      "name": "ui_e_g_dairy_snacks",
+      "value": "如：乳制品、零食"
+    },
+    {
+      "name": "ui_e_g_250_ml_100_g",
+      "value": "如：250ml、100g"
+    },
+    {
+      "name": "ui_package_size_is_used_to_suggest_the_amount_to_add",
+      "value": "商品规格会作为入库量来源并自动带入下一步"
+    },
+    {
+      "name": "ui_scan_canceled",
+      "value": "扫码取消"
+    },
+    {
+      "name": "ui_barcode_scanning_is_unavailable",
+      "value": "扫码功能不可用"
+    },
+    {
+      "name": "ui_match_found_s",
+      "value": "已匹配：%s"
+    },
+    {
+      "name": "ui_no_match_found_enter_a_name_manually",
+      "value": "未匹配，需手动填写名称"
+    },
+    {
+      "name": "ui_item_d_needs_a_name_tap_edit",
+      "value": "第 %d 项缺少名称，请点击编辑"
+    },
+    {
+      "name": "ui_add_a_food_item_first",
+      "value": "请先添加食品"
+    },
+    {
+      "name": "ui_added_d_items",
+      "value": "成功入库 %d 件食品"
+    },
+    {
+      "name": "ui_add_all_items",
+      "value": "全部入库"
+    },
+    {
+      "name": "ui_d_added_d_reviewed",
+      "value": "已添加 %d 项，%d 项已确认信息"
+    },
+    {
+      "name": "ui_untitled_tap_to_edit",
+      "value": "(未命名，点击编辑)"
+    },
+    {
+      "name": "ui_e_g_milk_apples",
+      "value": "如：纯牛奶、苹果"
+    },
+    {
+      "name": "ui_e_g_250_ml_500_g",
+      "value": "如：250ml、500g"
+    },
+    {
+      "name": "ui_energy_per_100_g_optional",
+      "value": "能量/热量（每100g，选填）"
+    },
+    {
+      "name": "ui_kilojoules_kj",
+      "value": "千焦 kJ"
+    },
+    {
+      "name": "ui_kilocalories_kcal",
+      "value": "千卡 kcal"
+    },
+    {
+      "name": "ui_value_from_the_nutrition_label",
+      "value": "营养表上的数值"
+    },
+    {
+      "name": "ui_this_device_does_not_support_text_recognition",
+      "value": "当前设备不支持OCR识别"
+    },
+    {
+      "name": "ui_could_not_read_the_image_try_again",
+      "value": "图片读取失败，请重试"
+    },
+    {
+      "name": "ui_could_not_scan_the_nutrition_label_try_again",
+      "value": "OCR识别失败，请重试"
+    },
+    {
+      "name": "ui_no_text_detected_try_again",
+      "value": "未识别到文本，请重试"
+    },
+    {
+      "name": "ui_scan_received_review_the_result",
+      "value": "已接收识别结果，请校验"
+    },
+    {
+      "name": "ui_energy_details_are_incomplete_enter_the_unit_and_basis_manually",
+      "value": "未能识别到完整能量信息，请手动补录单位和基准"
+    },
+    {
+      "name": "ui_could_not_process_the_photo_from_your_phone",
+      "value": "协同图片解析失败"
+    },
+    {
+      "name": "ui_enter_a_valid_energy_value",
+      "value": "请填写有效能量值"
+    },
+    {
+      "name": "ui_scan_applied_enter_the_amount_to_add",
+      "value": "已应用OCR结果，请继续补充本次入库量"
+    },
+    {
+      "name": "ui_enter_the_nutrition_label_value_first",
+      "value": "请先填写营养标注值"
+    },
+    {
+      "name": "ui_enter_the_amount_to_add_to_calculate_calories",
+      "value": "请填写本次入库量（用于计算本份热量）"
+    },
+    {
+      "name": "ui_enter_the_number_of_servings_to_calculate_calories",
+      "value": "请填写份数（用于计算本份热量）"
+    },
+    {
+      "name": "ui_complete_the_quantity_information",
+      "value": "请补全数量信息"
+    },
+    {
+      "name": "ui_original_label_saved_enter_the_serving_size_to_calculate_a_standardized_value",
+      "value": "已按严格模式保存原始标注，待补全每份重量后再沉淀标准化值"
+    },
+    {
+      "name": "ui_name",
+      "value": "名称"
+    },
+    {
+      "name": "ui_category_2",
+      "value": "分类"
+    },
+    {
+      "name": "ui_energy_value_on_the_package",
+      "value": "营养标注值（来自包装）"
+    },
+    {
+      "name": "ui_kilojoules_kj_common_on_labels",
+      "value": "千焦 kJ（营养表常用）"
+    },
+    {
+      "name": "ui_per_100_units",
+      "value": "每100单位"
+    },
+    {
+      "name": "ui_per_serving",
+      "value": "每份"
+    },
+    {
+      "name": "ui_enter_energy_value",
+      "value": "输入能量值"
+    },
+    {
+      "name": "ui_amount_to_add",
+      "value": "本次入库量 *"
+    },
+    {
+      "name": "ui_enter_volume_ml",
+      "value": "输入本次体积（ml）"
+    },
+    {
+      "name": "ui_enter_weight_g",
+      "value": "输入本次重量（g）"
+    },
+    {
+      "name": "ui_serving_information",
+      "value": "按份信息"
+    },
+    {
+      "name": "ui_number_of_servings_e_g_1",
+      "value": "本次份数（如 1）"
+    },
+    {
+      "name": "ui_servings",
+      "value": "份"
+    },
+    {
+      "name": "ui_weight_or_volume_per_serving",
+      "value": "每份重量/体积（严格模式建议填写）"
+    },
+    {
+      "name": "ui_scan_a_nutrition_label_ocr",
+      "value": "实时拍照识别 (OCR)"
+    },
+    {
+      "name": "ui_scan_a_photo_from_your_phone",
+      "value": "手机协同传图识别"
+    },
+    {
+      "name": "ui_add_calories_to_include_this_food_in_health_reports",
+      "value": "未录入热量值，建议补录用于健康统计"
+    },
+    {
+      "name": "ui_strict_mode_saves_only_the_original_label_value_until_a_serving_size_is_entered",
+      "value": "严格模式：未填写“每份重量/体积”时，不会沉淀标准化值（仅保存原始标注）"
+    },
+    {
+      "name": "ui_how_to_find_calories",
+      "value": "热量获取方式"
+    },
+    {
+      "name": "ui_check_the_nutrition_label_on_the_package",
+      "value": "• 查看食品包装上的营养成分表"
+    },
+    {
+      "name": "ui_save_the_original_label_value_unit_and_basis_to_avoid_converting_twice",
+      "value": "• 统一记录：原始标注值 + 单位 + 基准；避免重复换算"
+    },
+    {
+      "name": "ui_strict_mode_requires_the_serving_size_to_calculate_a_standardized_value",
+      "value": "• 严格模式：按份但未填每份重量时，不沉淀标准化值"
+    },
+    {
+      "name": "ui_review_scanned_nutrition_information",
+      "value": "OCR营养信息校验"
+    },
+    {
+      "name": "ui_check_the_scanned_value_unit_and_basis_100_g_100_ml_or_per_serving",
+      "value": "请检查识别值、单位和基准（100g/100ml/每份）"
+    },
+    {
+      "name": "ui_energy",
+      "value": "能量值"
+    },
+    {
+      "name": "ui_enter_the_scanned_value",
+      "value": "输入OCR识别结果"
+    },
+    {
+      "name": "ui_unit_for_the_100_unit_basis",
+      "value": "每100单位类型"
+    },
+    {
+      "name": "ui_weight_or_volume_per_serving_editable",
+      "value": "每份重量/体积（可识别后手改）"
+    },
+    {
+      "name": "ui_clipboard_access_was_not_granted",
+      "value": "未完成授权，无法读取剪贴板"
+    },
+    {
+      "name": "ui_could_not_read_the_clipboard",
+      "value": "读取剪贴板失败"
+    },
+    {
+      "name": "ui_the_clipboard_is_empty_or_unreadable",
+      "value": "剪贴板为空或不可读"
+    },
+    {
+      "name": "ui_the_clipboard_is_empty",
+      "value": "剪贴板为空"
+    },
+    {
+      "name": "ui_no_food_name_could_be_identified",
+      "value": "未识别到可用的食品名称"
+    },
+    {
+      "name": "ui_check_the_shopping_list",
+      "value": "解析置信度较低"
+    },
+    {
+      "name": "ui_this_text_may_not_be_a_shopping_list_create_draft_entries_anyway",
+      "value": "当前文本不太像购物清单，是否仍生成待入库卡片？"
+    },
+    {
+      "name": "ui_create_drafts_anyway",
+      "value": "继续生成"
+    },
+    {
+      "name": "ui_select_at_least_one_item",
+      "value": "请至少选择一项"
+    },
+    {
+      "name": "ui_this_entry_is_not_selected",
+      "value": "该卡片未选中"
+    },
+    {
+      "name": "ui_continue_d",
+      "value": "继续录入 (%d)"
+    },
+    {
+      "name": "ui_draft_entries_d",
+      "value": "待入库卡片 (%d)"
+    },
+    {
+      "name": "ui_select_parse_to_create_draft_food_entries",
+      "value": "手动触发后生成待入库卡片"
+    },
+    {
+      "name": "ui_for_reference_only",
+      "value": "仅供参考"
+    },
+    {
+      "name": "ui_add_calories_shelf_life_and_any_missing_details",
+      "value": "需继续补充热量、保质期等信息"
+    },
+    {
+      "name": "ui_add_to_inventory_2",
+      "value": "加入入库"
+    },
+    {
+      "name": "ui_full_backup_exported",
+      "value": "全量备份成功"
+    },
+    {
+      "name": "ui_export_failed",
+      "value": "导出失败"
+    },
+    {
+      "name": "ui_full_backup_imported",
+      "value": "全量导入成功"
+    },
+    {
+      "name": "ui_import_failed_the_file_is_missing_or_has_an_invalid_format",
+      "value": "导入失败：文件不存在或格式错误"
+    },
+    {
+      "name": "ui_product_dictionary_exported",
+      "value": "产品字典导出成功"
+    },
+    {
+      "name": "ui_exports_are_saved_as_json_files_in_app_storage",
+      "value": "导出数据为JSON文件，保存在应用沙箱目录"
+    },
+    {
+      "name": "ui_export_foods_members_and_dictionary",
+      "value": "全量导出（食品+成员+字典）"
+    },
+    {
+      "name": "ui_export_product_dictionary_only",
+      "value": "产品字典单独导出"
+    },
+    {
+      "name": "ui_import_full_backup_from_app_storage",
+      "value": "全量导入（从沙箱目录）"
+    },
+    {
+      "name": "ui_to_import_rename_the_backup_to_import_data_json_and_place_it_in_app_storage",
+      "value": "导入说明：将备份JSON文件重命名为 import_data.json 放入应用沙箱目录"
+    },
+    {
+      "name": "ui_last_export_s",
+      "value": "最近导出：%s"
+    },
+    {
+      "name": "ui_data_and_backups",
+      "value": "数据安全说明"
+    },
+    {
+      "name": "ui_your_data_is_stored_on_your_device",
+      "value": "• 所有数据仅存储在本地设备"
+    },
+    {
+      "name": "ui_exported_files_are_saved_in_app_storage",
+      "value": "• 导出文件保存在应用沙箱目录"
+    },
+    {
+      "name": "ui_uninstalling_the_app_deletes_its_local_data",
+      "value": "• 卸载应用将清除所有本地数据"
+    },
+    {
+      "name": "ui_export_backups_regularly_to_keep_important_data_safe",
+      "value": "• 建议定期导出备份重要数据"
+    },
+    {
+      "name": "ui_backup_files",
+      "value": "备份文件"
+    },
+    {
+      "name": "ui_recorded_as_eaten_by_s",
+      "value": "已记录 %s 食用"
+    },
+    {
+      "name": "ui_discard_recorded",
+      "value": "已记录丢弃"
+    },
+    {
+      "name": "ui_confirm_deletion",
+      "value": "确认删除"
+    },
+    {
+      "name": "ui_delete_s_this_cannot_be_undone",
+      "value": "确定要删除“%s”吗？此操作不可恢复。"
+    },
+    {
+      "name": "ui_deleted",
+      "value": "已删除"
+    },
+    {
+      "name": "ui_expiry_date",
+      "value": "到期日期"
+    },
+    {
+      "name": "ui_expiry_status",
+      "value": "保质期状态"
+    },
+    {
+      "name": "ui_calories_for_this_item",
+      "value": "本次热量"
+    },
+    {
+      "name": "ui_not_recorded",
+      "value": "未记录"
+    },
+    {
+      "name": "ui_added_on",
+      "value": "入库时间"
+    },
+    {
+      "name": "ui_unknown",
+      "value": "未知"
+    },
+    {
+      "name": "ui_eaten_by",
+      "value": "食用者"
+    },
+    {
+      "name": "ui_eaten_on",
+      "value": "食用时间"
+    },
+    {
+      "name": "ui_discarded_on",
+      "value": "丢弃时间"
+    },
+    {
+      "name": "ui_expired_do_not_eat",
+      "value": "已过期，不可食用"
+    },
+    {
+      "name": "ui_add_a_family_member_in_profile_first",
+      "value": "请先在\"我的\"页面添加家庭成员"
+    },
+    {
+      "name": "ui_7_days",
+      "value": "7天"
+    },
+    {
+      "name": "ui_30_days",
+      "value": "30天"
+    },
+    {
+      "name": "ui_90_days",
+      "value": "90天"
+    },
+    {
+      "name": "ui_six_months",
+      "value": "半年"
+    },
+    {
+      "name": "ui_one_year",
+      "value": "一年"
+    },
+    {
+      "name": "ui_all",
+      "value": "全部"
+    },
+    {
+      "name": "ui_custom",
+      "value": "自定义"
+    },
+    {
+      "name": "ui_from_s",
+      "value": "从：%s"
+    },
+    {
+      "name": "ui_to_s",
+      "value": "到：%s"
+    },
+    {
+      "name": "ui_total_intake_kcal",
+      "value": "总摄入 kcal"
+    },
+    {
+      "name": "ui_times_eaten",
+      "value": "进食次数"
+    },
+    {
+      "name": "ui_detailed_records_d",
+      "value": "详细记录 (%d)"
+    },
+    {
+      "name": "ui_no_records_for_this_date_range",
+      "value": "该时间范围内暂无记录"
+    },
+    {
+      "name": "ui_updated",
+      "value": "已更新"
+    },
+    {
+      "name": "ui_15_days",
+      "value": "15天"
+    },
+    {
+      "name": "ui_review_and_edit_previous_nutrition_label_scans",
+      "value": "记录热量识别和校验历史，可回溯修改"
+    },
+    {
+      "name": "ui_records_appear_here_after_you_scan_food_and_enter_calories",
+      "value": "通过扫码入库并设置热量后，记录将显示在这里"
+    },
+    {
+      "name": "ui_edit_calories",
+      "value": "修改热量值"
+    },
+    {
+      "name": "ui_confirmed_calories_kcal",
+      "value": "最终确认热量 (kcal)"
+    },
+    {
+      "name": "ui_barcode_s",
+      "value": "条码：%s"
+    },
+    {
+      "name": "ui_detected_value",
+      "value": "AI识别值"
+    },
+    {
+      "name": "ui_none",
+      "value": "无"
+    },
+    {
+      "name": "ui_confirmed_value",
+      "value": "最终确认值"
+    },
+    {
+      "name": "ui_take_a_photo_to_start",
+      "value": "等待拍照识别"
+    },
+    {
+      "name": "ui_no_camera_is_available_add_the_item_manually",
+      "value": "当前设备无可用摄像头，请改用手动入库"
+    },
+    {
+      "name": "ui_photo_taken_and_suggestions_generated",
+      "value": "拍照成功，已生成入库建议"
+    },
+    {
+      "name": "ui_could_not_take_a_photo_try_again",
+      "value": "拍照失败，请重试"
+    },
+    {
+      "name": "ui_scanning_the_photo",
+      "value": "正在识别图片内容..."
+    },
+    {
+      "name": "ui_automatic_recognition_is_unavailable_enter_the_details_manually",
+      "value": "当前设备不支持自动识别，可手动调整"
+    },
+    {
+      "name": "ui_could_not_read_the_image_enter_the_details_manually",
+      "value": "图片读取失败，请手动填写"
+    },
+    {
+      "name": "ui_processing_the_photo_from_your_phone",
+      "value": "正在处理协同图片..."
+    },
+    {
+      "name": "ui_photo_received_and_suggestions_generated",
+      "value": "已接收协同图片并生成建议"
+    },
+    {
+      "name": "ui_could_not_process_the_photo_from_your_phone_try_again",
+      "value": "协同图片解析失败，请重试"
+    },
+    {
+      "name": "ui_text_suggestions_received",
+      "value": "已接收协同文本建议"
+    },
+    {
+      "name": "ui_no_usable_text_found_review_the_food_details_manually",
+      "value": "未识别到有效文本，请手动确认食品信息"
+    },
+    {
+      "name": "ui_detected_s_editable",
+      "value": "已自动识别：%s（可手动修改）"
+    },
+    {
+      "name": "ui_text_detected_and_suggestions_generated_you_can_edit_them",
+      "value": "已提取图片文本并生成建议（可手动修改）"
+    },
+    {
+      "name": "ui_take_a_photo_to_get_suggestions_for_category_freshness_and_shelf_life",
+      "value": "拍照后自动识别食品类别与新鲜程度，并给出保质期建议"
+    },
+    {
+      "name": "ui_retake_photo",
+      "value": "重新拍照识别"
+    },
+    {
+      "name": "ui_take_a_food_photo",
+      "value": "拍摄食品照片"
+    },
+    {
+      "name": "ui_scan_result",
+      "value": "识别结果"
+    },
+    {
+      "name": "ui_freshness",
+      "value": "新鲜程度"
+    },
+    {
+      "name": "ui_estimated_expiry_s",
+      "value": "预计到期：%s"
+    },
+    {
+      "name": "ui_skip_photo_and_add_manually",
+      "value": "不拍照，直接手动入库"
+    },
+    {
+      "name": "ui_delete_the_saved_details_for_s",
+      "value": "确定要删除“%s”的记忆数据吗？"
+    },
+    {
+      "name": "ui_dictionary_exported",
+      "value": "字典导出成功"
+    },
+    {
+      "name": "ui_dictionary_imported_d_added_d_skipped",
+      "value": "字典导入成功（%d 条，跳过 %d 条）"
+    },
+    {
+      "name": "ui_enter_a_product_name_2",
+      "value": "商品名称不能为空"
+    },
+    {
+      "name": "ui_works_offline_with_on_device_storage",
+      "value": "数据仅本地存储，离线可用"
+    },
+    {
+      "name": "ui_scanning_a_barcode_when_adding_food_saves_the_product_information",
+      "value": "通过扫码入库会自动记录商品信息"
+    },
+    {
+      "name": "ui_edit_product_details",
+      "value": "编辑产品信息"
+    },
+    {
+      "name": "ui_barcode_editable_or_removable",
+      "value": "条码（可解绑/重绑）"
+    },
+    {
+      "name": "ui_leave_blank_to_remove_barcode",
+      "value": "留空表示解绑条码"
+    },
+    {
+      "name": "ui_category_optional_2",
+      "value": "品类（选填）"
+    },
+    {
+      "name": "ui_standardized_calories_kcal_per_100_units",
+      "value": "标准化热量 (kcal/100单位)"
+    },
+    {
+      "name": "ui_no_original_nutrition_label_value_saved",
+      "value": "原始营养标注未记录"
+    },
+    {
+      "name": "ui_standardized",
+      "value": "已标准化"
+    },
+    {
+      "name": "ui_details_needed",
+      "value": "待补全"
+    },
+    {
+      "name": "ui_last_7_days",
+      "value": "近7天"
+    },
+    {
+      "name": "ui_last_30_days",
+      "value": "近30天"
+    },
+    {
+      "name": "ui_start_s",
+      "value": "开始：%s"
+    },
+    {
+      "name": "ui_end_s",
+      "value": "结束：%s"
+    },
+    {
+      "name": "ui_intake_kcal",
+      "value": "摄入 (kcal)"
+    },
+    {
+      "name": "ui_discarded_items",
+      "value": "浪费 (件)"
+    },
+    {
+      "name": "ui_enter_a_family_member_name",
+      "value": "请输入成员名称"
+    },
+    {
+      "name": "ui_added",
+      "value": "添加成功"
+    },
+    {
+      "name": "ui_keep_at_least_one_family_member",
+      "value": "至少保留一个家庭成员"
+    },
+    {
+      "name": "ui_remove_s_from_your_family",
+      "value": "确定要删除家庭成员“%s”吗？"
+    },
+    {
+      "name": "ui_enter_a_name_e_g_dad",
+      "value": "输入成员名称，如：爸爸"
+    },
+    {
+      "name": "ui_works_offline_with_on_device_storage_2",
+      "value": "数据仅本地存储，离线可用"
+    },
+    {
+      "name": "ui_about_d_kcal_converted",
+      "value": "约 %d kcal（自动换算）"
+    },
+    {
+      "name": "ui_from_saved_details_standardized",
+      "value": "来自本地记忆（已标准化）"
+    },
+    {
+      "name": "ui_from_saved_details_incomplete",
+      "value": "来自本地记忆（待补全）"
+    },
+    {
+      "name": "ui_from_a_reviewed_nutrition_label_scan",
+      "value": "来自OCR识别（已校验）"
+    },
+    {
+      "name": "ui_per_100_s",
+      "value": "每100%s"
+    },
+    {
+      "name": "ui_per_100_g",
+      "value": "每100g"
+    },
+    {
+      "name": "ui_about_s_kcal_one_conversion",
+      "value": "约 %s kcal（仅换算一次）"
+    },
+    {
+      "name": "ui_about_s_kcal_for_this_amount",
+      "value": "本次入库热量约 %s kcal"
+    },
+    {
+      "name": "ui_expiry_date_not_set",
+      "value": "未设置保质期"
+    },
+    {
+      "name": "ui_expired_d_days_ago",
+      "value": "已过期 %d 天"
+    },
+    {
+      "name": "ui_expires_in_d_days",
+      "value": "剩余 %d 天"
+    },
+    {
+      "name": "ui_last_90_days",
+      "value": "近90天"
+    },
+    {
+      "name": "ui_last_six_months",
+      "value": "近半年"
+    },
+    {
+      "name": "ui_last_year",
+      "value": "近一年"
+    },
+    {
+      "name": "ui_all_records",
+      "value": "全部数据"
+    },
+    {
+      "name": "ui_s_records_d",
+      "value": "%s · 共 %d 条记录"
+    },
+    {
+      "name": "ui_times_eaten_d",
+      "value": "%d 次进食"
+    },
+    {
+      "name": "ui_eaten_by_s",
+      "value": "%s 食用"
+    },
+    {
+      "name": "ui_discarded_s",
+      "value": "丢弃：%s"
+    },
+    {
+      "name": "ui_records_d",
+      "value": "%d 条记录"
+    },
+    {
+      "name": "ui_s_about_d_days_left",
+      "value": "%s（预计剩余 %d 天）"
+    },
+    {
+      "name": "ui_per_100_ml",
+      "value": "每100ml"
+    },
+    {
+      "name": "ui_no_standardized_calorie_value_yet",
+      "value": "暂未换算为每100单位热量"
+    },
+    {
+      "name": "ui_original_s_s_s",
+      "value": "原始：%s %s / %s"
+    },
+    {
+      "name": "ui_this_item_s_kcal",
+      "value": "本次 %s kcal"
+    },
+    {
+      "name": "ui_saved_entries_d",
+      "value": "%d 条记忆数据"
+    },
+    {
+      "name": "ui_loaded_d",
+      "value": "已加载 %d 条"
+    },
+    {
+      "name": "ui_vegetables",
+      "value": "蔬菜"
+    },
+    {
+      "name": "ui_fruit",
+      "value": "水果"
+    },
+    {
+      "name": "ui_meat",
+      "value": "肉类"
+    },
+    {
+      "name": "ui_seafood",
+      "value": "海鲜"
+    },
+    {
+      "name": "ui_dairy",
+      "value": "乳制品"
+    },
+    {
+      "name": "ui_snacks",
+      "value": "零食"
+    },
+    {
+      "name": "ui_drinks",
+      "value": "饮料"
+    },
+    {
+      "name": "ui_seasonings",
+      "value": "调味品"
+    },
+    {
+      "name": "ui_staples",
+      "value": "主食"
+    },
+    {
+      "name": "ui_prepared_food",
+      "value": "熟食"
+    },
+    {
+      "name": "ui_other",
+      "value": "其他"
+    },
+    {
+      "name": "ui_expired_or_spoiled",
+      "value": "过期/变质"
+    },
+    {
+      "name": "ui_leftovers",
+      "value": "吃不完"
+    },
+    {
+      "name": "ui_manual_entry",
+      "value": "手动录入"
+    },
+    {
+      "name": "ui_nutrition_label_scan",
+      "value": "OCR识别"
+    },
+    {
+      "name": "ui_edited_and_confirmed",
+      "value": "修改确认"
+    },
+    {
+      "name": "ui_built_in_database",
+      "value": "内置库"
+    },
+    {
+      "name": "ui_invalid_file_missing_product_dictionary",
+      "value": "文件格式错误：缺少productDict字段"
+    },
+    {
+      "name": "ui_product_dictionary_imported",
+      "value": "字典导入成功"
+    },
+    {
+      "name": "ui_import_failed_invalid_data_format",
+      "value": "导入失败: 数据格式错误"
+    },
+    {
+      "name": "ui_invalid_file_format",
+      "value": "文件格式错误"
+    },
+    {
+      "name": "ui_import_complete_d_added_d_skipped",
+      "value": "导入成功（%d 条，跳过 %d 条）"
+    },
+    {
+      "name": "ui_choose_where_to_save_backup",
+      "value": "备份为 JSON 文件，可选择保存位置。"
+    },
+    {
+      "name": "ui_import_full_backup_file",
+      "value": "选择完整备份文件"
+    },
+    {
+      "name": "ui_keep_exported_backups_in_a_safe_place",
+      "value": "请妥善保存导出的备份文件。"
+    },
+    {
+      "name": "ui_privacy_policy_load_failed",
+      "value": "无法加载隐私政策，请检查网络后重试。"
+    },
+    {
+      "name": "ui_retry_action",
+      "value": "重试"
+    },
+    {
+      "name": "ui_import_backup_adds_records",
+      "value": "备份中的记录会添加到本机。重复导入同一个文件可能产生重复记录。"
+    },
+    {
+      "name": "inventory_empty_description",
+      "value": "记下食品和到期日期，打开库存就能查看。"
+    },
+    {
+      "name": "inventory_filtered_empty",
+      "value": "这个筛选下没有食品"
+    },
+    {
+      "name": "entry_other_methods",
+      "value": "其他入库方式"
+    },
+    {
+      "name": "profile_records_and_tools",
+      "value": "记录与工具"
+    },
+    {
+      "name": "food_form_select_category",
+      "value": "选择食品分类"
+    },
+    {
+      "name": "food_form_more_details",
+      "value": "更多信息"
+    },
+    {
+      "name": "food_form_more_details_hint",
+      "value": "条码、规格和热量（选填）"
+    },
+    {
+      "name": "backup_restore_heading",
+      "value": "从备份恢复"
+    },
+    {
+      "name": "backup_restore_description",
+      "value": "选择此前导出的完整备份，导入其中的记录。"
+    },
+    {
+      "name": "food_sync_title",
+      "value": "多设备同步"
+    },
+    {
+      "name": "food_sync_permission",
+      "value": "点击授权，未授权时仍可使用本机数据"
+    },
+    {
+      "name": "food_sync_waiting",
+      "value": "等待同一华为账号的设备，点击重试"
+    },
+    {
+      "name": "food_sync_syncing",
+      "value": "正在同步库存、成员、消费记录和字典"
+    },
+    {
+      "name": "food_sync_synced",
+      "value": "最近一次同步已完成，点击再次同步"
+    },
+    {
+      "name": "food_sync_failed",
+      "value": "同步未完成，点击重试"
+    },
+    {
+      "name": "food_sync_unavailable",
+      "value": "此设备无法使用多设备同步"
+    },
+    {
+      "name": "food_data_open_failed",
+      "value": "无法打开食品数据，请重新进入应用再试"
+    },
+    {
+      "name": "food_scan_remote_photo",
+      "value": "从其他设备拍照识码"
+    },
+    {
+      "name": "food_pick_remote_photo",
+      "value": "从其他设备拍照或选图"
+    },
+    {
+      "name": "food_could_not_process_remote_photo",
+      "value": "无法处理其他设备传来的照片，请重试"
+    }
+  ]
+}

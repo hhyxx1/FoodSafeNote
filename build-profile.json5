@@ -21,8 +21,13 @@
       {
         "name": "default",
         "signingConfig": "publish",
-        "compatibleSdkVersion": "6.0.0(20)",
-        "targetSdkVersion": "6.0.0(20)",
+        "buildOption": {
+          "strictMode": {
+            "apiCompatibilityCheck": "error"
+          }
+        },
+        "compatibleSdkVersion": "6.1.0(23)",
+        "targetSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS"
       }
     ],

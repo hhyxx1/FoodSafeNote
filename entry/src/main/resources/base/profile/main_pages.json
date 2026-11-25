@@ -1,20 +1,7 @@
 {
   "src": [
     "pages/Index",
-    "pages/AddFoodPage",
-    "pages/FoodDetailPage",
-    "pages/EntrySelectionPage",
-    "pages/BarcodeScanPage",
-    "pages/PhotoEntryPage",
-    "pages/CalorieInputPage",
-    "pages/ProductDictPage",
-    "pages/HealthReportPage",
-    "pages/DataBackupPage",
-    "pages/OcrRecordPage",
-    "pages/PrivacyPolicyPage",
     "pages/WatchFoodDetailPage",
-    "pages/TvFoodDetailPage",
-    "pages/ClipboardParsePage",
-    "pages/BatchAddPage"
+    "pages/TvFoodDetailPage"
   ]
 }

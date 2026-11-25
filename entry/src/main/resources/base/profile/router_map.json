@@ -1,0 +1,69 @@
+{
+  "routerMap": [
+    {
+      "name": "AddFoodPage",
+      "pageSourceFile": "src/main/ets/pages/AddFoodPage.ets",
+      "buildFunction": "AddFoodPageBuilder"
+    },
+    {
+      "name": "FoodDetailPage",
+      "pageSourceFile": "src/main/ets/pages/FoodDetailPage.ets",
+      "buildFunction": "FoodDetailPageBuilder"
+    },
+    {
+      "name": "EntrySelectionPage",
+      "pageSourceFile": "src/main/ets/pages/EntrySelectionPage.ets",
+      "buildFunction": "EntrySelectionPageBuilder"
+    },
+    {
+      "name": "BarcodeScanPage",
+      "pageSourceFile": "src/main/ets/pages/BarcodeScanPage.ets",
+      "buildFunction": "BarcodeScanPageBuilder"
+    },
+    {
+      "name": "PhotoEntryPage",
+      "pageSourceFile": "src/main/ets/pages/PhotoEntryPage.ets",
+      "buildFunction": "PhotoEntryPageBuilder"
+    },
+    {
+      "name": "CalorieInputPage",
+      "pageSourceFile": "src/main/ets/pages/CalorieInputPage.ets",
+      "buildFunction": "CalorieInputPageBuilder"
+    },
+    {
+      "name": "ClipboardParsePage",
+      "pageSourceFile": "src/main/ets/pages/ClipboardParsePage.ets",
+      "buildFunction": "ClipboardParsePageBuilder"
+    },
+    {
+      "name": "BatchAddPage",
+      "pageSourceFile": "src/main/ets/pages/BatchAddPage.ets",
+      "buildFunction": "BatchAddPageBuilder"
+    },
+    {
+      "name": "ProductDictPage",
+      "pageSourceFile": "src/main/ets/pages/ProductDictPage.ets",
+      "buildFunction": "ProductDictPageBuilder"
+    },
+    {
+      "name": "HealthReportPage",
+      "pageSourceFile": "src/main/ets/pages/HealthReportPage.ets",
+      "buildFunction": "HealthReportPageBuilder"
+    },
+    {
+      "name": "DataBackupPage",
+      "pageSourceFile": "src/main/ets/pages/DataBackupPage.ets",
+      "buildFunction": "DataBackupPageBuilder"
+    },
+    {
+      "name": "OcrRecordPage",
+      "pageSourceFile": "src/main/ets/pages/OcrRecordPage.ets",
+      "buildFunction": "OcrRecordPageBuilder"
+    },
+    {
+      "name": "PrivacyPolicyPage",
+      "pageSourceFile": "src/main/ets/pages/PrivacyPolicyPage.ets",
+      "buildFunction": "PrivacyPolicyPageBuilder"
+    }
+  ]
+}

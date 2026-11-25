@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
@@ -11,27 +10,32 @@ interface WatchFoodParams {
 @Component
 struct WatchFoodDetailPage {
   @State foodItem: FoodItem | null = null;
+  @State isLoading: boolean = true;
   @State touchStartX: number = 0;
   @State touchStartY: number = 0;
   private foodId: number = 0;
 
   aboutToAppear(): void {
-    const params: WatchFoodParams = router.getParams() as WatchFoodParams;
+    const params: WatchFoodParams = this.getUIContext().getRouter().getParams() as WatchFoodParams;
     if (params !== null && params !== undefined) {
       this.foodId = params.foodId;
       this.loadData();
+    } else {
+      this.isLoading = false;
     }
   }
 
   private loadData(): void {
     DatabaseHelper.getInstance().getFoodItemById(this.foodId).then((item: FoodItem | null) => {
       this.foodItem = item;
+    }).finally(() => {
+      this.isLoading = false;
     });
   }
 
   private getString(resId: number, fallback: string): string {
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       return ctx.resourceManager.getStringSync(resId);
     } catch (e) {
       return fallback;
@@ -75,13 +79,14 @@ struct WatchFoodDetailPage {
       Text($r('app.string.watch_back'))
         .fontSize(10)
         .fontColor('#007DFF')
-        .onClick(() => { router.back(); })
+        .onClick(() => { this.getUIContext().getRouter().back(); })
 
       if (this.foodItem !== null) {
-        Circle()
+        Row()
           .width(14)
           .height(14)
-          .fill(this.foodItem.getStatusColor())
+          .borderRadius(7)
+          .backgroundColor(this.foodItem.getStatusColor())
 
         Text(this.foodItem.name)
           .fontSize(15)
@@ -106,7 +111,7 @@ struct WatchFoodDetailPage {
             .fontColor('#FF6B00')
         }
       } else {
-        Text($r('app.string.watch_loading'))
+        Text(this.isLoading ? $r('app.string.watch_loading') : $r('app.string.ui_food_item_not_found'))
           .fontSize(11)
           .fontColor($r('app.color.text_hint'))
       }
@@ -127,7 +132,7 @@ struct WatchFoodDetailPage {
         const dx: number = event.changedTouches[0].x - this.touchStartX;
         const dy: number = event.changedTouches[0].y - this.touchStartY;
         if (dx > 70 && Math.abs(dx) > Math.abs(dy)) {
-          router.back();
+          this.getUIContext().getRouter().back();
         }
       }
     })

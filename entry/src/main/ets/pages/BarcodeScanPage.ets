@@ -1,15 +1,19 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { cacheRemoteFoodPhoto, canReceiveRemoteFoodPhoto, removeRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
+import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { scanBarcode, scanCore, detectBarcode } from '@kit.ScanKit';
 import {
   createCollaborationServiceMenuItems,
   CollaborationServiceStateDialog,
-  CollaborationServiceFilter
+  CollaborationServiceFilter,
+  CollaborationDeviceFilterType
 } from '@kit.ServiceCollaborationKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { BarcodeService } from '../common/BarcodeService';
 import { BarcodeMatchResult } from '../model/DataModels';
+import { HdsNavDestination } from '@kit.UIDesignKit';
+import { AppNavigation } from '../common/AppNavigation';
 
 // 条码校验弹窗参数接口
 interface BarcodeVerifyResult {
@@ -34,12 +38,12 @@ interface ParsedAmountResult {
   unit: string;
 }
 
-@Entry
 @Component
 struct BarcodeScanPage {
   @State barcodeInput: string = '';
   @State isMatching: boolean = false;
   @State batchScanMode: boolean = false;
+  @State isScannerOpen: boolean = false;
   @State showVerifyDialog: boolean = false;
   @State matchedName: string = '';
   @State matchedCategory: string = '';
@@ -47,76 +51,61 @@ struct BarcodeScanPage {
   @State currentBarcode: string = '';
   @State matchSource: string = '';
   @State forceAlbumMode: boolean = false;
-  @State showCollaborationButton: boolean = true;
+  @State showCollaborationButton: boolean = false;
+  private isPageActive: boolean = true;
+
+  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
 
   aboutToAppear(): void {
     // 2in1 机型普遍无本地摄像头，默认使用相册/协同路径
     this.forceAlbumMode = deviceInfo.deviceType === '2in1' || !canIUse('SystemCapability.Multimedia.Camera.Core');
     // 协同服务仅支持从更大设备发起到更便携设备，手机端不展示远端设备菜单
-    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
+    this.showCollaborationButton = canReceiveRemoteFoodPhoto() &&
+      canIUse('SystemCapability.Multimedia.Scan.ScanBarcode');
   }
 
   @Builder
   collaborationMenu() {
     Menu() {
-      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.TAKE_PHOTO,
+        CollaborationServiceFilter.IMAGE_PICKER], 1, [CollaborationDeviceFilterType.PHONE,
+        CollaborationDeviceFilterType.TABLET, CollaborationDeviceFilterType.PC_2IN1]);
     }
   }
 
-  private decodeBufferToText(buffer: ArrayBuffer): string {
-    const bytes: Uint8Array = new Uint8Array(buffer);
-    let text: string = '';
-    for (let i = 0; i < bytes.length; i++) {
-      text = text + String.fromCharCode(bytes[i]);
-    }
-    return text;
-  }
-
-  private extractBarcodeFromPayload(payload: string): string {
-    const txt: string = payload.trim();
-    if (txt.length === 0) {
-      return '';
+  private async onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): Promise<void> {
+    if (!this.isPageActive || stateCode !== 0 || bufferType !== 'general.image' || !buffer || buffer.byteLength === 0 ||
+      this.isScannerOpen || this.isMatching) {
+      return;
     }
 
-    // 优先尝试JSON载荷
-    if (txt.startsWith('{') && txt.endsWith('}')) {
-      try {
-        const obj: Record<string, string> = JSON.parse(txt) as Record<string, string>;
-        const direct: string = obj['barcode'] || obj['code'] || obj['originalValue'] || '';
-        if (direct.length > 0) {
-          return direct;
-        }
-      } catch (e) {
-        // ignore
+    this.isScannerOpen = true;
+    let uri = '';
+    try {
+      const context = this.getUIContext().getHostContext();
+      if (context === undefined) return;
+      uri = cacheRemoteFoodPhoto(context, buffer);
+      await this.scanImage(uri);
+    } catch (error) {
+      if (this.isPageActive) {
+        this.getUIContext().getPromptAction().showToast({
+          message: $r('app.string.ui_could_not_scan_the_photo_enter_the_barcode_manually'), duration: 2000
+        });
       }
-    }
-
-    // 兜底提取常见条码格式（8-18位数字）
-    const barcodeRegex: RegExp = new RegExp('\\b\\d{8,18}\\b');
-    const m: RegExpMatchArray | null = txt.match(barcodeRegex);
-    return m !== null && m.length > 0 ? m[0] : '';
-  }
-
-  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
-    if (stateCode !== 0) {
-      return;
-    }
-    const payload: string = this.decodeBufferToText(buffer);
-    const code: string = this.extractBarcodeFromPayload(payload);
-    if (code.length > 0) {
-      this.barcodeInput = code;
-      this.handleBarcodeMatch(code);
-      promptAction.showToast({ message: '已接收协同扫码结果', duration: 1500 });
-      return;
-    }
-    if (bufferType.length > 0) {
-      promptAction.showToast({ message: '协同返回内容中未识别到条码', duration: 1800 });
+    } finally {
+      if (uri.length > 0) removeRemoteFoodPhoto(uri);
+      this.isScannerOpen = false;
     }
   }
 
   private handleScanResult(result: scanBarcode.ScanResult | null | undefined): void {
     if (result === null || result === undefined) {
-      promptAction.showToast({ message: '未获取到扫码结果', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_scan_result_received'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     const code: string = (typeof result.originalValue === 'string') ? result.originalValue : '';
@@ -125,10 +114,16 @@ struct BarcodeScanPage {
       this.handleBarcodeMatch(code);
       return;
     }
-    promptAction.showToast({ message: '未识别到条码，请重试', duration: 1500 });
+    try {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_barcode_detected_try_again'), duration: 1500 });
+    } catch (e) {
+      // Toast 展示失败时忽略
+    }
   }
 
   private async startScanFromAlbum(): Promise<void> {
+    if (this.isScannerOpen) return;
+    this.isScannerOpen = true;
     try {
       const photoOption = new photoAccessHelper.PhotoSelectOptions();
       photoOption.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
@@ -139,20 +134,15 @@ struct BarcodeScanPage {
       if (!photoResult || photoResult.photoUris.length === 0) {
         return;
       }
-      const inputImage: detectBarcode.InputImage = { uri: photoResult.photoUris[0] };
-      const options: scanBarcode.ScanOptions = {
-        scanTypes: [scanCore.ScanType.ALL],
-        enableMultiMode: false,
-        enableAlbum: true
-      };
-      const results: Array<scanBarcode.ScanResult> = await detectBarcode.decode(inputImage, options);
-      if (results.length > 0) {
-        this.handleScanResult(results[0]);
-      } else {
-        promptAction.showToast({ message: '图片中未识别到条码', duration: 1700 });
-      }
+      await this.scanImage(photoResult.photoUris[0]);
     } catch (error) {
-      promptAction.showToast({ message: '相册识别失败，请手动输入条码', duration: 2000 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_scan_the_photo_enter_the_barcode_manually'), duration: 2000 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
+    } finally {
+      this.isScannerOpen = false;
     }
   }
 
@@ -184,57 +174,56 @@ struct BarcodeScanPage {
     return { amount: 0, unit: 'g' };
   }
 
-  private onCollaborationScanClick(): void {
-    if (!this.showCollaborationButton) {
-      promptAction.showToast({
-        message: '当前手机端不支持发起协同扫码，请在平板或2in1设备使用',
-        duration: 2000
-      });
-      return;
+  private async scanImage(uri: string): Promise<void> {
+    const inputImage: detectBarcode.InputImage = { uri: uri };
+    const options: scanBarcode.ScanOptions = {
+      scanTypes: [scanCore.ScanType.ALL],
+      enableMultiMode: false,
+      enableAlbum: true
+    };
+    const results: Array<scanBarcode.ScanResult> = await detectBarcode.decode(inputImage, options);
+    if (!this.isPageActive) return;
+    if (results.length > 0) {
+      this.handleScanResult(results[0]);
+    } else {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_barcode_found_in_the_image'), duration: 1700 });
     }
-    promptAction.showToast({
-      message: '请在弹出菜单中选择远端手机（需同账号并已组网）',
-      duration: 1500
-    });
   }
 
-  // 调用系统扫码
-  private startScan(): void {
-    // 2in1 等无摄像头设备：直接走相册识别兜底，避免调用相机扫码导致崩溃
+  private async startScan(): Promise<void> {
+    if (this.isScannerOpen || this.isMatching) return;
     if (this.forceAlbumMode) {
-      this.startScanFromAlbum();
+      await this.startScanFromAlbum();
       return;
     }
-
     const options: scanBarcode.ScanOptions = {
       scanTypes: [scanCore.ScanType.ALL],
       enableMultiMode: this.batchScanMode,
       enableAlbum: true
     };
+    this.isScannerOpen = true;
     try {
-      scanBarcode.startScanForResult(getContext(this), options)
+      await scanBarcode.startScanForResult(this.getUIContext().getHostContext(), options)
         .then((result: scanBarcode.ScanResult) => {
           this.handleScanResult(result);
-        })
-        .catch((error: BusinessError) => {
-          if (error.code === scanCore.ScanErrorCode.SCAN_SERVICE_CANCELED) {
-            return;
-          }
-          // 扫码服务异常时自动回退到相册解码
-          this.startScanFromAlbum();
         });
+      return;
     } catch (error) {
-      // 某些设备会在启动扫码服务时直接抛错（如无摄像头），这里也回退到相册
-      this.startScanFromAlbum();
+      if ((error as BusinessError).code === scanCore.ScanErrorCode.SCAN_SERVICE_CANCELED) return;
+    } finally {
+      this.isScannerOpen = false;
     }
+    await this.startScanFromAlbum();
   }
 
   // 条码匹配
   private handleBarcodeMatch(barcode: string): void {
+    if (this.isMatching) return;
     this.isMatching = true;
     this.currentBarcode = barcode;
     BarcodeService.getInstance().matchBarcodeInfo(barcode).then((result: BarcodeMatchResult) => {
       this.isMatching = false;
+      if (!this.isPageActive) return;
       if (result.matched) {
         this.matchedName = result.name;
         this.matchedCategory = result.category;
@@ -249,13 +238,23 @@ struct BarcodeScanPage {
       this.showVerifyDialog = true;
     }).catch(() => {
       this.isMatching = false;
+      if (!this.isPageActive) return;
+      this.matchedName = '';
+      this.matchedCategory = '';
+      this.matchedSpec = '';
+      this.matchSource = '';
+      this.showVerifyDialog = true;
     });
   }
 
   // 确认后跳转热量页
   private confirmAndProceed(): void {
     if (this.matchedName.trim().length === 0) {
-      promptAction.showToast({ message: '请输入商品名称', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_product_name'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     // 存入ProductDict
@@ -282,191 +281,119 @@ struct BarcodeScanPage {
       amount: parsedAmount.amount,
       amountUnit: parsedAmount.unit
     };
-    router.pushUrl({ url: 'pages/CalorieInputPage', params: params });
+    try {
+      AppNavigation.push('CalorieInputPage', params);
+    } catch (e) {
+      // 路由跳转失败时忽略
+    }
   }
 
   build() {
+    HdsNavDestination() {
     Stack() {
       Column() {
-        CollaborationServiceStateDialog({
-          onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
-            this.onCollaborationState(stateCode, bufferType, buffer);
-          }
-        })
-
-        // 导航栏
-        Row() {
-          Button('返回')
-            .height(40)
-            .fontSize(14)
-            .fontColor($r('app.color.accent_link'))
-            .backgroundColor(Color.Transparent)
-            .onClick(() => {
-              router.back();
-            })
-          Text('扫码入库')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-          Text('').width(56)
+        if (this.showCollaborationButton) {
+          CollaborationServiceStateDialog({
+            onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+              this.onCollaborationState(stateCode, bufferType, buffer);
+            }
+          })
         }
-        .width('100%')
-        .padding({ left: 8, right: 8, top: 8, bottom: 8 })
-        .backgroundColor($r('app.color.card_background'))
 
-        Column({ space: 24 }) {
-          // 扫码按钮
-          Column({ space: 12 }) {
-            Text('📷')
-              .fontSize(56)
-            Button('点击扫码')
-              .width(200)
-              .height(48)
-              .fontSize(16)
-              .fontColor($r('app.color.button_primary_text'))
-              .backgroundColor($r('app.color.button_primary_bg'))
-              .borderRadius(24)
-              .hoverEffect(HoverEffect.Highlight)
-              .onClick(() => {
-                this.startScan();
-              })
-            Text('对准商品条码即可识别')
-              .fontSize(13)
-              .fontColor($r('app.color.text_hint'))
+        Scroll() {
+          Column({ space: 14 }) {
+            Column({ space: 10 }) {
+              SymbolGlyph($r('sys.symbol.barcode_viewfinder'))
+                .fontSize(36).fontColor([$r('app.color.journal_hero_text')])
+              Text(this.forceAlbumMode ? $r('app.string.ui_no_camera_found_scan_a_photo_or_use_a_connected_device') :
+                $r('app.string.ui_point_the_camera_at_a_barcode'))
+                .fontSize(14).fontColor($r('app.color.journal_hero_secondary')).width('100%')
+              Button(this.forceAlbumMode ? $r('app.string.ui_scan_a_photo') : $r('app.string.ui_start_scanning'))
+                .attributeModifier(FoodButtonStyle.primary)
+                .width('100%')
+                .enabled(!this.isScannerOpen && !this.isMatching)
+                .onClick(() => { this.startScan(); })
+            }
+            .width('100%').padding(18).alignItems(HorizontalAlign.Start)
+            .backgroundColor($r('app.color.journal_hero_bg')).borderRadius(22)
 
-            if (this.forceAlbumMode) {
-              Text('当前设备未检测到可用摄像头，已自动切换为相册/协同识别')
-                .fontSize(12)
-                .fontColor($r('app.color.status_warning'))
-                .textAlign(TextAlign.Center)
+            if (!this.forceAlbumMode || this.showCollaborationButton) {
+              Row({ space: 8 }) {
+                if (!this.forceAlbumMode) {
+                  Button($r('app.string.ui_scan_a_photo'))
+                    .attributeModifier(FoodButtonStyle.text)
+                    .layoutWeight(1)
+                    .enabled(!this.isScannerOpen && !this.isMatching)
+                    .onClick(() => { this.startScanFromAlbum(); })
+                }
+                if (this.showCollaborationButton) {
+                  Button($r('app.string.food_scan_remote_photo'))
+                    .attributeModifier(FoodButtonStyle.text)
+                    .layoutWeight(1)
+                    .enabled(!this.isScannerOpen && !this.isMatching)
+                    .bindMenu(this.collaborationMenu)
+                }
+              }
+              .width('100%')
             }
 
-            Button('从相册识别条码')
-              .width(200)
-              .height(40)
-              .fontSize(14)
-              .fontColor($r('app.color.button_secondary_text'))
-              .backgroundColor($r('app.color.button_secondary_bg'))
-              .borderRadius(20)
-              .hoverEffect(HoverEffect.Highlight)
-              .onClick(() => {
-                this.startScanFromAlbum();
-              })
-
-            if (this.showCollaborationButton) {
-              Button('手机协同扫码')
-                .width(200)
-                .height(40)
-                .fontSize(14)
-                .fontColor($r('app.color.button_secondary_text'))
-                .backgroundColor($r('app.color.button_secondary_bg'))
-                .borderRadius(20)
-                .onClick(() => {
-                  this.onCollaborationScanClick();
-                })
-                .bindMenu(this.collaborationMenu)
-            } else {
-              Button('手机协同扫码')
-                .width(200)
-                .height(40)
-                .fontSize(14)
-                .fontColor($r('app.color.text_hint'))
-                .backgroundColor($r('app.color.chip_background'))
-                .borderRadius(20)
-                .onClick(() => {
-                  this.onCollaborationScanClick();
-                })
+            Column({ space: 10 }) {
+              Text($r('app.string.ui_or_enter_the_barcode_manually'))
+                .fontSize(17).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
+              Row({ space: 8 }) {
+                TextInput({ text: this.barcodeInput, placeholder: $r('app.string.ui_enter_a_barcode_e_g_6901234567890') })
+                  .layoutWeight(1).height(48).fontSize(15).borderRadius(12)
+                  .fontColor($r('app.color.text_primary')).placeholderColor($r('app.color.text_hint'))
+                  .backgroundColor($r('app.color.input_background')).type(InputType.Number)
+                  .onChange((value: string) => { this.barcodeInput = value; })
+                Button($r('app.string.ui_match'))
+                  .attributeModifier(FoodButtonStyle.secondary)
+                  .enabled(!this.isMatching && this.barcodeInput.trim().length > 0)
+                  .onClick(() => { this.handleBarcodeMatch(this.barcodeInput.trim()); })
+              }
+              .width('100%')
+              if (this.isMatching) {
+                Row({ space: 8 }) {
+                  LoadingProgress().width(20).height(20).color($r('app.color.accent_link'))
+                  Text($r('app.string.ui_looking_up_barcode'))
+                    .fontSize(14).fontColor($r('app.color.text_secondary'))
+                }
+                .width('100%')
+                .transition(FoodMotion.reveal())
+              }
             }
-          }
-          .width('100%')
-          .padding({ top: 40, bottom: 24 })
-          .alignItems(HorizontalAlign.Center)
+            .width('100%').padding(16).backgroundColor($r('app.color.card_background')).borderRadius(20)
 
-          // 分隔线
-          Row() {
-            Divider().layoutWeight(1).color($r('app.color.divider'))
-            Text('  或手动输入条码  ')
-              .fontSize(13)
-              .fontColor($r('app.color.text_hint'))
-            Divider().layoutWeight(1).color($r('app.color.divider'))
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          Row() {
-            Column({ space: 2 }) {
-              Text('批量扫码模式')
-                .fontSize(14)
-                .fontColor($r('app.color.text_primary'))
-              Text('开启后将优先启用多码识别，复杂场景可改用“批量添加”页')
-                .fontSize(12)
-                .fontColor($r('app.color.text_hint'))
+            Column({ space: 8 }) {
+              Row({ space: 10 }) {
+                Column({ space: 4 }) {
+                  Text($r('app.string.ui_batch_scanning'))
+                    .fontSize(16).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+                  Text($r('app.string.ui_turn_on_to_scan_multiple_codes_use_add_in_bulk_for_more_control'))
+                    .fontSize(13).fontColor($r('app.color.text_secondary'))
+                }
+                .layoutWeight(1).alignItems(HorizontalAlign.Start)
+                Toggle({ type: ToggleType.Switch, isOn: this.batchScanMode })
+                  .selectedColor($r('app.color.button_primary_bg'))
+                  .onChange((isOn: boolean) => { this.batchScanMode = isOn; })
+              }.width('100%')
+              Button($r('app.string.ui_add_in_bulk'))
+                .attributeModifier(FoodButtonStyle.text)
+                .onClick(() => { AppNavigation.push('BatchAddPage'); })
             }
-            .layoutWeight(1)
-            Toggle({ type: ToggleType.Switch, isOn: this.batchScanMode })
-              .selectedColor($r('app.color.button_primary_bg'))
-              .onChange((isOn: boolean) => {
-                this.batchScanMode = isOn;
-              })
+            .width('100%').padding(16).backgroundColor($r('app.color.card_background')).borderRadius(20)
           }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          Button('前往批量添加页')
-            .width('100%')
-            .height(40)
-            .margin({ left: 16, right: 16 })
-            .fontSize(14)
-            .fontColor($r('app.color.button_secondary_text'))
-            .backgroundColor($r('app.color.button_secondary_bg'))
-            .borderRadius(8)
-            .hoverEffect(HoverEffect.Highlight)
-            .onClick(() => {
-              router.pushUrl({ url: 'pages/BatchAddPage' });
-            })
-
-          // 手动输入
-          Row({ space: 8 }) {
-            TextInput({ text: this.barcodeInput, placeholder: '输入商品条码（如 6901234567890）' })
-              .layoutWeight(1)
-              .height(44)
-              .fontSize(15)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .type(InputType.Number)
-              .onChange((value: string) => {
-                this.barcodeInput = value;
-              })
-            Button('匹配')
-              .height(44)
-              .fontSize(14)
-              .fontColor($r('app.color.button_primary_text'))
-              .backgroundColor($r('app.color.button_primary_bg'))
-              .borderRadius(8)
-              .enabled(!this.isMatching && this.barcodeInput.trim().length > 0)
-              .onClick(() => {
-                this.handleBarcodeMatch(this.barcodeInput.trim());
-              })
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          if (this.isMatching) {
-            Row({ space: 8 }) {
-              LoadingProgress().width(20).height(20)
-              Text('正在匹配条码...')
-                .fontSize(14)
-                .fontColor($r('app.color.text_hint'))
-            }
-          }
+          .width('100%').padding({ left: 18, right: 18, top: 12, bottom: 24 })
         }
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
+        .scrollBar(BarState.Off)
         .layoutWeight(1)
       }
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.page_background'))
+      // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
+      .padding({ top: 56 + this.statusBarHeight })
 
       // 条码信息校验弹窗
       if (this.showVerifyDialog) {
@@ -476,6 +403,7 @@ struct BarcodeScanPage {
             .width('100%')
             .height('100%')
             .backgroundColor($r('app.color.overlay_background'))
+            .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
             .onClick(() => {
               this.showVerifyDialog = false;
             })
@@ -486,7 +414,7 @@ struct BarcodeScanPage {
 
         Column({ space: 16 }) {
           // 标题
-          Text(this.matchSource.length > 0 ? '条码信息校验（可修改）' : '条码无匹配，录入商品信息')
+          Text(this.matchSource.length > 0 ? $r('app.string.ui_review_barcode_details_editable') : $r('app.string.ui_no_barcode_match_enter_product_details'))
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
@@ -494,7 +422,7 @@ struct BarcodeScanPage {
 
           // 条码（不可修改）
           Column({ space: 4 }) {
-            Text('条码')
+            Text($r('app.string.ui_barcode'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
             Text(this.currentBarcode)
@@ -510,14 +438,14 @@ struct BarcodeScanPage {
           // 商品名称（必填）
           Column({ space: 4 }) {
             Row() {
-              Text('商品名称')
+              Text($r('app.string.ui_product_name'))
                 .fontSize(13)
                 .fontColor($r('app.color.text_secondary'))
               Text(' *')
                 .fontSize(13)
                 .fontColor($r('app.color.status_danger'))
             }
-            TextInput({ text: this.matchedName, placeholder: '如：纯牛奶、原味薯片' })
+            TextInput({ text: this.matchedName, placeholder: $r('app.string.ui_e_g_milk_plain_potato_chips') })
               .width('100%')
               .height(40)
               .fontSize(14)
@@ -530,10 +458,10 @@ struct BarcodeScanPage {
 
           // 品类
           Column({ space: 4 }) {
-            Text('商品品类（选填）')
+            Text($r('app.string.ui_category_optional'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-            TextInput({ text: this.matchedCategory, placeholder: '如：乳制品、零食' })
+            TextInput({ text: this.matchedCategory, placeholder: $r('app.string.ui_e_g_dairy_snacks') })
               .width('100%')
               .height(40)
               .fontSize(14)
@@ -546,10 +474,10 @@ struct BarcodeScanPage {
 
           // 规格
           Column({ space: 4 }) {
-            Text('商品规格（选填）')
+            Text($r('app.string.ui_package_size_optional'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-            TextInput({ text: this.matchedSpec, placeholder: '如：250ml、100g' })
+            TextInput({ text: this.matchedSpec, placeholder: $r('app.string.ui_e_g_250_ml_100_g') })
               .width('100%')
               .height(40)
               .fontSize(14)
@@ -560,30 +488,26 @@ struct BarcodeScanPage {
               })
           }
 
-          Text('💡 商品规格会作为入库量来源并自动带入下一步')
-            .fontSize(12)
-            .fontColor($r('app.color.text_hint'))
-            .width('100%')
+          Row({ space: 6 }) {
+            Image($r('app.media.icon_info')).width(14).height(14).draggable(false)
+            Text($r('app.string.ui_package_size_is_used_to_suggest_the_amount_to_add'))
+              .fontSize(12)
+              .fontColor($r('app.color.text_hint'))
+              .width('100%').layoutWeight(1)
+          }
+          .width('100%')
 
           // 按钮
           Row({ space: 12 }) {
-            Button('取消')
+            Button($r('app.string.ui_cancel'))
+              .attributeModifier(FoodButtonStyle.neutral)
               .layoutWeight(1)
-              .height(44)
-              .fontSize(15)
-              .fontColor($r('app.color.text_secondary'))
-              .backgroundColor($r('app.color.chip_background'))
-              .borderRadius(8)
               .onClick(() => {
                 this.showVerifyDialog = false;
               })
-            Button('确认')
+            Button($r('app.string.ui_confirm'))
+              .attributeModifier(FoodButtonStyle.primary)
               .layoutWeight(1)
-              .height(44)
-              .fontSize(15)
-              .fontColor($r('app.color.button_primary_text'))
-              .backgroundColor($r('app.color.button_primary_bg'))
-              .borderRadius(8)
               .onClick(() => {
                 this.confirmAndProceed();
               })
@@ -595,11 +519,31 @@ struct BarcodeScanPage {
         .padding(20)
         .backgroundColor($r('app.color.card_background'))
         .borderRadius(16)
+        .transition(FoodMotion.panel())
         .position({ x: '7.5%', y: '20%' })
       }
     }
     .width('100%')
     .height('100%')
     .animation({ duration: 260, curve: Curve.EaseInOut })
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: $r('app.string.ui_scan_a_barcode') }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .onShown(() => { this.isPageActive = true; })
+    .onHidden(() => {
+      this.isPageActive = false;
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 BarcodeScanPage）
+@Builder
+export function BarcodeScanPageBuilder() {
+  BarcodeScanPage()
 }

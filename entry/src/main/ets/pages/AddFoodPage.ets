@@ -1,5 +1,8 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
+import { localizedFoodLabel } from '../common/Constants';
+import { HdsNavDestination } from '@kit.UIDesignKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
+import { AppNavigation } from '../common/AppNavigation';
 import { FoodItem } from '../model/DataModels';
 import {
   FOOD_CATEGORIES,
@@ -28,7 +31,6 @@ interface AddFoodParams {
   foodId: number;
 }
 
-@Entry
 @Component
 struct AddFoodPage {
   @State foodName: string = '';
@@ -45,10 +47,11 @@ struct AddFoodPage {
   @State shelfLifeUnit: string = 'day'; // day | month | year
   @State nameError: boolean = false;
   @State isSaving: boolean = false;
+  @State showOptionalDetails: boolean = false;
   @State isOpened: boolean = false;
   @State isEditMode: boolean = false;
   @State editFoodId: number = 0;
-  @State pageTitle: string = '添加食品';
+  @State pageTitle: ResourceStr = $r('app.string.ui_add_food');
   @State fromBarcodeScan: boolean = false;
   @State fromPhotoCapture: boolean = false;
   @State photoUri: string = '';
@@ -56,8 +59,12 @@ struct AddFoodPage {
   @State fromClipboardParse: boolean = false;
   @State clipboardSourceIndex: number = -1;
 
+  @StorageProp('naviIndicatorHeight') naviIndicatorHeight: number = 0;
+
+  private scroller: Scroller = new Scroller();
+
   aboutToAppear(): void {
-    const params: AddFoodParams = router.getParams() as AddFoodParams;
+    const params: AddFoodParams | undefined = AppNavigation.getParamByName('AddFoodPage') as AddFoodParams | undefined;
     if (params !== null && params !== undefined) {
       // 从扫码流程传来的预填值
       if (params.barcode !== undefined && params.barcode.length > 0) {
@@ -77,11 +84,11 @@ struct AddFoodPage {
       }
       if (params.fromBarcodeScan !== undefined) {
         this.fromBarcodeScan = params.fromBarcodeScan;
-        this.pageTitle = '确认入库';
+        this.pageTitle = $r('app.string.ui_add_to_inventory');
       }
       if (params.fromPhotoCapture !== undefined && params.fromPhotoCapture) {
         this.fromPhotoCapture = true;
-        this.pageTitle = '拍照入库确认';
+        this.pageTitle = $r('app.string.ui_review_photo_entry');
       }
       if (params.photoUri !== undefined && params.photoUri.length > 0) {
         this.photoUri = params.photoUri;
@@ -102,7 +109,7 @@ struct AddFoodPage {
       if (params.editMode !== undefined && params.editMode) {
         this.isEditMode = true;
         this.editFoodId = params.foodId;
-        this.pageTitle = '编辑食品';
+        this.pageTitle = $r('app.string.ui_edit_food');
         this.loadFoodForEdit(params.foodId);
       }
       // 自动计算保质期（默认简洁模式）
@@ -135,10 +142,7 @@ struct AddFoodPage {
   }
 
   private formatDate(date: Date): string {
-    const year: number = date.getFullYear();
-    const month: number = date.getMonth() + 1;
-    const day: number = date.getDate();
-    return year + '-' + padZero(month) + '-' + padZero(day);
+    return date.getFullYear() + '-' + padZero(date.getMonth() + 1) + '-' + padZero(date.getDate());
   }
 
   private updateExpiryDate(): void {
@@ -219,474 +223,504 @@ struct AddFoodPage {
   }
 
   private async saveFoodItem(): Promise<void> {
-    if (this.foodName.trim().length === 0) {
-      this.nameError = true;
-      promptAction.showToast({ message: '请输入食品名称', duration: 1500 });
-      return;
-    }
-    if (this.isSaving) return;
-    this.isSaving = true;
+    try {
+      if (this.foodName.trim().length === 0) {
+        this.nameError = true;
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_food_name_2'), duration: 1500 });
+        return;
+      }
+      if (this.isSaving) return;
+      this.isSaving = true;
 
-    const food = new FoodItem();
-    food.name = this.foodName.trim();
-    food.category = this.selectedCategory;
-    food.spec = this.spec.trim();
-    food.barcode = this.barcode;
-    food.calories = Number(this.caloriesText) || 0;
-    food.storageType = this.storageType;
-    food.isOpened = this.isOpened;
-    if (this.hasExactProductionInfo) {
-      const shelfLifeAmount: number = Number(this.shelfLifeDaysText) || 0;
-      if (shelfLifeAmount <= 0) {
-        promptAction.showToast({ message: '请填写有效保质期', duration: 1500 });
+      const food = new FoodItem();
+      food.name = this.foodName.trim();
+      food.category = this.selectedCategory;
+      food.spec = this.spec.trim();
+      food.barcode = this.barcode;
+      food.calories = this.caloriesText.trim().length === 0 ? 0 : Number(this.caloriesText);
+      if (!Number.isFinite(food.calories) || food.calories < 0) {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_valid_energy_value') });
         this.isSaving = false;
         return;
       }
-      this.calculateExpiryFromProduction();
-    }
-    food.expiryDate = this.expiryDate.getTime();
-    food.status = 0;
+      food.storageType = this.storageType;
+      food.isOpened = this.isOpened;
+      if (this.hasExactProductionInfo) {
+        const shelfLifeAmount: number = Number(this.shelfLifeDaysText) || 0;
+        if (!Number.isFinite(shelfLifeAmount) || shelfLifeAmount <= 0) {
+          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_valid_shelf_life'), duration: 1500 });
+          this.isSaving = false;
+          return;
+        }
+        this.calculateExpiryFromProduction();
+      }
+      food.expiryDate = this.expiryDate.getTime();
+      food.status = 0;
 
-    try {
       if (this.isEditMode) {
         food.id = this.editFoodId;
-        await DatabaseHelper.getInstance().updateFoodItem(food);
+        if (!await DatabaseHelper.getInstance().updateFoodItem(food)) {
+          throw new Error('Food item was not updated');
+        }
         AppStorage.setOrCreate<number>('foodDetailRefreshFoodId', this.editFoodId);
         AppStorage.setOrCreate<number>('foodDetailRefreshVersion', Date.now());
-        promptAction.showToast({ message: '修改成功', duration: 1500 });
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_changes_saved'), duration: 1500 });
       } else {
-        await DatabaseHelper.getInstance().insertFoodItem(food);
+        if (await DatabaseHelper.getInstance().insertFoodItem(food) <= 0) {
+          throw new Error('Food item was not inserted');
+        }
         if (this.fromClipboardParse && this.clipboardSourceIndex >= 0) {
           AppStorage.setOrCreate<number>('clipboardEntryCompletedIndex', this.clipboardSourceIndex);
         }
-        promptAction.showToast({ message: '入库成功', duration: 1500 });
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_added_to_inventory'), duration: 1500 });
       }
-      router.back();
+      AppNavigation.pop();
     } catch (e) {
-      promptAction.showToast({ message: '保存失败，请重试', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_save_try_again'), duration: 1500 });
+      } catch (e) {
+        // 提示失败，忽略
+      }
       this.isSaving = false;
     }
   }
 
+  private getCategoryOptions(): SelectOption[] {
+    return FOOD_CATEGORIES.map((category: string): SelectOption => {
+      return { value: localizedFoodLabel(category) };
+    });
+  }
+
   build() {
+    HdsNavDestination() {
     Column() {
-      // 导航栏
-      Row() {
-        Button('返回')
-          .height(40)
-          .fontSize(14)
-          .fontColor($r('app.color.accent_link'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => {
-            router.back();
-          })
-        Text(this.pageTitle)
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-        Button('保存')
-          .height(40)
-          .fontSize(14)
-          .fontColor($r('app.color.button_primary_text'))
-          .backgroundColor($r('app.color.button_primary_bg'))
-          .borderRadius(8)
-          .onClick(() => {
-            this.saveFoodItem();
-          })
-      }
-      .width('100%')
-      .padding({ left: 8, right: 8, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
-
       // 表单
-      Scroll() {
+      Scroll(this.scroller) {
         Column({ space: 16 }) {
-          // 基本信息
-          this.buildSectionTitle('基本信息')
+          Column({ space: 14 }) {
+            // 基本信息
+            this.buildSectionTitle($r('app.string.ui_basic_information'))
 
-          if (this.fromPhotoCapture) {
-            Row() {
-              Text(this.photoUri.length > 0 ? '已完成食品拍照，可继续补充信息并入库' : '拍照入库模式：可先填写信息，稍后补拍')
-                .fontSize(12)
-                .fontColor(this.photoUri.length > 0 ? $r('app.color.status_success') : $r('app.color.status_warning'))
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16 })
-          }
-
-          // 食品名称
-          Column({ space: 6 }) {
-            Row() {
-              Text('食品名称')
-                .fontSize(14)
-                .fontColor($r('app.color.text_primary'))
-              Text(' *')
-                .fontSize(14)
-                .fontColor($r('app.color.status_danger'))
-            }
-            TextInput({ text: this.foodName, placeholder: '如：纯牛奶、生菜、苹果' })
+            if (this.fromPhotoCapture) {
+              Row() {
+                Text(this.photoUri.length > 0 ? $r('app.string.ui_photo_taken_add_any_missing_details_to_save_the_item') : $r('app.string.ui_you_can_enter_details_now_and_take_a_photo_later'))
+                  .fontSize(12)
+                  .fontColor(this.photoUri.length > 0 ? $r('app.color.status_success') : $r('app.color.status_warning'))
+              }
               .width('100%')
-              .height(44)
-              .fontSize(15)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .onChange((value: string) => {
-                this.foodName = value;
-                this.nameError = false;
-              })
-            if (this.nameError) {
-              Text('食品名称不能为空')
-                .fontSize(12)
-                .fontColor($r('app.color.status_danger'))
-            }
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
 
-          // 条码（如有）
-          if (this.barcode.length > 0 || !this.fromBarcodeScan) {
+            }
+
+            // 食品名称
             Column({ space: 6 }) {
-              Text('商品条码（选填）')
-                .fontSize(14)
-                .fontColor($r('app.color.text_primary'))
-              TextInput({ text: this.barcode, placeholder: '如：6901234567890' })
+              Row() {
+                Text($r('app.string.ui_food_name'))
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+                Text(' *')
+                  .fontSize(14)
+                  .fontColor($r('app.color.status_danger'))
+              }
+              .width('100%')
+              TextInput({ text: this.foodName, placeholder: $r('app.string.ui_e_g_milk_lettuce_apples') })
                 .width('100%')
                 .height(44)
                 .fontSize(15)
                 .borderRadius(8)
-                .backgroundColor(this.fromBarcodeScan ? $r('app.color.chip_background') : $r('app.color.input_background'))
-                .enabled(!this.fromBarcodeScan)
-                .onChange((value: string) => {
-                  this.barcode = value;
-                })
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16 })
-          }
-
-          // 食品分类
-          Column({ space: 6 }) {
-            Text('食品分类')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-              .width('100%')
-            Flex({ wrap: FlexWrap.Wrap }) {
-              ForEach(FOOD_CATEGORIES, (category: string) => {
-                Text(category)
-                  .fontSize(13)
-                  .fontColor(this.selectedCategory === category ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
-                  .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                  .margin({ right: 8, bottom: 8 })
-                  .borderRadius(16)
-                  .backgroundColor(this.selectedCategory === category ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
-                  .onClick(() => {
-                    this.selectedCategory = category;
-                    this.updateExpiryDate();
-                  })
-              }, (category: string) => category)
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          // 规格说明
-          Column({ space: 6 }) {
-            Text('规格说明（选填）')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-            TextInput({ text: this.spec, placeholder: '如：250ml、500g、1袋' })
-              .width('100%')
-              .height(44)
-              .fontSize(15)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.input_background'))
-              .onChange((value: string) => {
-                this.spec = value;
-              })
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          // 存储信息
-          this.buildSectionTitle('存储信息')
-
-          // 存储方式
-          Column({ space: 6 }) {
-            Text('存储方式')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-              .width('100%')
-            Row({ space: 0 }) {
-              this.buildStorageButton('冷藏', StorageType.FRIDGE)
-              this.buildStorageButton('冷冻', StorageType.FREEZER)
-              this.buildStorageButton('常温', StorageType.ROOM)
-            }
-            .width('100%')
-            .borderRadius(8)
-            .clip(true)
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          if (this.fromPhotoCapture) {
-            Column({ space: 6 }) {
-              Text('新鲜程度（拍照建议，可调整）')
-                .fontSize(14)
-                .fontColor($r('app.color.text_primary'))
-              Row({ space: 8 }) {
-                this.buildFreshnessButton('新鲜', 'fresh')
-                this.buildFreshnessButton('一般', 'normal')
-                this.buildFreshnessButton('偏差', 'stale')
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16 })
-          }
-
-          // 已开封
-          Row() {
-            Text('已开封')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-            Blank()
-            Toggle({ type: ToggleType.Switch, isOn: this.isOpened })
-              .onChange((isOn: boolean) => {
-                this.isOpened = isOn;
-                this.updateExpiryDate();
-              })
-          }
-          .width('100%')
-          .height(48)
-          .padding({ left: 16, right: 16 })
-
-          // 生产信息开关（展开/折叠）
-          Row() {
-            Column({ space: 2 }) {
-              Text('有确切生产日期和保质期')
-                .fontSize(14)
-                .fontColor($r('app.color.text_primary'))
-              Text('开启后填写生产日期 + 保质期（天/月/年），系统自动计算到期日期')
-                .fontSize(12)
-                .fontColor($r('app.color.text_hint'))
-            }
-            .layoutWeight(1)
-            Toggle({ type: ToggleType.Switch, isOn: this.hasExactProductionInfo })
-              .selectedColor($r('app.color.button_primary_bg'))
-              .onChange((isOn: boolean) => {
-                this.hasExactProductionInfo = isOn;
-                if (!isOn) {
-                  this.showProductionDatePicker = false;
-                  this.updateExpiryDate();
-                } else {
-                  this.calculateExpiryFromProduction();
-                }
-              })
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          // 日期与保质期信息
-          Column({ space: 6 }) {
-            if (this.hasExactProductionInfo) {
-              Column({ space: 8 }) {
-                Row() {
-                  Text('生产日期')
-                    .fontSize(14)
-                    .fontColor($r('app.color.text_primary'))
-                  Blank()
-                  Text(this.showProductionDatePicker ? '收起' : '选择日期')
-                    .fontSize(13)
-                    .fontColor($r('app.color.accent_link'))
-                }
-                .width('100%')
-
-                Row() {
-                  Text(this.formatDate(this.productionDate))
-                    .fontSize(16)
-                    .fontColor($r('app.color.text_primary'))
-                }
-                .width('100%')
-                .height(44)
-                .padding({ left: 12, right: 12 })
                 .backgroundColor($r('app.color.input_background'))
-                .borderRadius(8)
-                .onClick(() => {
-                  this.showProductionDatePicker = !this.showProductionDatePicker;
+                .placeholderColor($r('app.color.text_hint'))
+                .fontColor($r('app.color.text_primary'))
+                .onChange((value: string) => {
+                  this.foodName = value;
+                  this.nameError = false;
                 })
+              if (this.nameError) {
+                Text($r('app.string.ui_enter_a_food_name'))
+                  .fontSize(12)
+                  .fontColor($r('app.color.status_danger'))
+              }
+            }
+            .width('100%')
 
-                if (this.showProductionDatePicker) {
-                  DatePicker({
-                    start: new Date('2020-01-01'),
-                    end: new Date(),
-                    selected: this.productionDate
-                  })
-                    .width('100%')
-                    .onChange((value: DatePickerResult) => {
-                      const year: number = value.year !== undefined ? value.year : new Date().getFullYear();
-                      const month: number = value.month !== undefined ? value.month : new Date().getMonth();
-                      const day: number = value.day !== undefined ? value.day : new Date().getDate();
-                      const d = new Date();
-                      d.setFullYear(year);
-                      d.setMonth(month);
-                      d.setDate(day);
-                      d.setHours(0, 0, 0, 0);
-                      this.productionDate = d;
-                      this.calculateExpiryFromProduction();
-                    })
-                }
 
-                Column({ space: 4 }) {
-                  Text('保质期')
-                    .fontSize(14)
-                    .fontColor($r('app.color.text_primary'))
-                  Row({ space: 8 }) {
-                    TextInput({ text: this.shelfLifeDaysText, placeholder: '如：7 / 6 / 1' })
-                      .layoutWeight(1)
-                      .height(44)
-                      .fontSize(15)
-                      .borderRadius(8)
-                      .backgroundColor($r('app.color.input_background'))
-                      .type(InputType.Number)
-                      .onChange((value: string) => {
-                        this.shelfLifeDaysText = value;
-                        this.calculateExpiryFromProduction();
-                      })
-                    Row({ space: 0 }) {
-                      Text('天')
-                        .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
-                        .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
-                        .borderRadius(8)
-                        .onClick(() => {
-                          this.shelfLifeUnit = 'day';
-                          this.calculateExpiryFromProduction();
-                        })
-                      Text('月')
-                        .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
-                        .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
-                        .borderRadius(8)
-                        .onClick(() => {
-                          this.shelfLifeUnit = 'month';
-                          this.calculateExpiryFromProduction();
-                        })
-                      Text('年')
-                        .fontSize(13)
-                        .fontColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
-                        .textAlign(TextAlign.Center).width(44).height(40)
-                        .backgroundColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
-                        .borderRadius(8)
-                        .onClick(() => {
-                          this.shelfLifeUnit = 'year';
-                          this.calculateExpiryFromProduction();
-                        })
-                    }
-                    .borderRadius(8)
-                    .clip(true)
-                  }
+            Column({ space: 7 }) {
+              Text($r('app.string.ui_food_category'))
+                .fontSize(14).fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+              Select(this.getCategoryOptions())
+                .width('100%').height(48)
+                .selected(FOOD_CATEGORIES.indexOf(this.selectedCategory))
+                .value(this.selectedCategory.length > 0 ? localizedFoodLabel(this.selectedCategory) :
+                  $r('app.string.food_form_select_category'))
+                .font({ size: 15 })
+                .fontColor($r('app.color.text_primary'))
+                .backgroundColor($r('app.color.input_background'))
+                .selectedOptionBgColor($r('app.color.button_secondary_bg'))
+                .selectedOptionFontColor($r('app.color.accent_link'))
+                .onSelect((index: number) => {
+                  if (index < 0 || index >= FOOD_CATEGORIES.length) return;
+                  this.selectedCategory = FOOD_CATEGORIES[index];
+                  this.updateExpiryDate();
+                })
+            }
+            .width('100%').alignItems(HorizontalAlign.Start)
+          }
+          .width('100%').padding(16)
+          .backgroundColor($r('app.color.card_background')).borderRadius(20)
+
+          Column({ space: 14 }) {
+            // 存储信息
+            this.buildSectionTitle($r('app.string.ui_storage_details'))
+
+            // 存储方式
+            Column({ space: 6 }) {
+              Text($r('app.string.ui_storage_method'))
+                .fontSize(14)
+                .fontColor($r('app.color.text_primary'))
+                .width('100%')
+              Row({ space: 3 }) {
+                this.buildStorageButton($r('app.string.ui_refrigerated'), StorageType.FRIDGE)
+                this.buildStorageButton($r('app.string.ui_frozen'), StorageType.FREEZER)
+                this.buildStorageButton($r('app.string.ui_room_temperature'), StorageType.ROOM)
+              }
+              .width('100%')
+              .borderRadius(13)
+              .padding(3)
+              .backgroundColor($r('app.color.input_background'))
+            }
+            .width('100%')
+
+
+            if (this.fromPhotoCapture) {
+              Column({ space: 6 }) {
+                Text($r('app.string.ui_suggested_freshness_editable'))
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+                Row({ space: 8 }) {
+                  this.buildFreshnessButton($r('app.string.ui_fresh'), 'fresh')
+                  this.buildFreshnessButton($r('app.string.ui_fair'), 'normal')
+                  this.buildFreshnessButton($r('app.string.ui_poor'), 'stale')
                 }
                 .width('100%')
               }
+              .width('100%')
+
             }
 
+            // 已开封
             Row() {
-              Text('到期日期（自动计算）')
+              Text($r('app.string.ui_opened'))
                 .fontSize(14)
                 .fontColor($r('app.color.text_primary'))
               Blank()
-              Text(this.hasExactProductionInfo ? '来自生产信息' : '来自品类与存储环境')
-                .fontSize(12)
-                .fontColor($r('app.color.accent_link'))
+              Toggle({ type: ToggleType.Switch, isOn: this.isOpened })
+                .selectedColor($r('app.color.button_primary_bg'))
+                .onChange((isOn: boolean) => {
+                  this.isOpened = isOn;
+                  this.updateExpiryDate();
+                })
             }
-            .width('100%')
-
-            Row() {
-              Text(this.formatDate(this.expiryDate))
-                .fontSize(16)
-                .fontColor($r('app.color.text_primary'))
-            }
-            .width('100%')
-            .height(44)
-            .padding({ left: 12, right: 12 })
-            .backgroundColor($r('app.color.input_background'))
-            .borderRadius(8)
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          // 营养信息
-          this.buildSectionTitle('营养信息')
-
-          Column({ space: 6 }) {
-            Text('本次总热量（kcal，选填）')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-
-            Row({ space: 8 }) {
-              TextInput({ text: this.caloriesText, placeholder: '输入本次入库总热量（kcal）' })
-                .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
-                .backgroundColor($r('app.color.input_background'))
-                .type(InputType.Number)
-                .onChange((value: string) => { this.caloriesText = value; })
-              Text('kcal')
-                .fontSize(14).fontColor($r('app.color.text_hint'))
-            }
-            if (this.caloriesText.length === 0) {
-              Text('💡 建议先在“热量获取”页录入营养标注与数量，再回到此页确认总热量')
-                .fontSize(12).fontColor($r('app.color.status_warning'))
-            }
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-          // 确认按钮
-          Button(this.isEditMode ? '保存修改' : '确认入库')
             .width('100%')
             .height(48)
-            .fontSize(16)
-            .fontColor($r('app.color.button_primary_text'))
-            .backgroundColor($r('app.color.button_primary_bg'))
-            .borderRadius(12)
-            .margin({ left: 16, right: 16, top: 8, bottom: 32 })
+
+
+            // 生产信息开关（展开/折叠）
+            Row() {
+              Column({ space: 2 }) {
+                Text($r('app.string.ui_production_date_and_shelf_life_are_known'))
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+                Text($r('app.string.ui_enter_the_production_date_and_shelf_life_to_calculate_the_expiry_date'))
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_hint'))
+              }
+              .layoutWeight(1).alignItems(HorizontalAlign.Start)
+              Toggle({ type: ToggleType.Switch, isOn: this.hasExactProductionInfo })
+                .selectedColor($r('app.color.button_primary_bg'))
+                .onChange((isOn: boolean) => {
+                  this.getUIContext().animateTo({ duration: 190, curve: Curve.EaseOut }, () => {
+                    this.hasExactProductionInfo = isOn;
+                    if (!isOn) {
+                      this.showProductionDatePicker = false;
+                      this.updateExpiryDate();
+                    } else {
+                      this.calculateExpiryFromProduction();
+                    }
+                  });
+                })
+            }
+            .width('100%')
+
+
+            // 日期与保质期信息
+            Column({ space: 6 }) {
+              if (this.hasExactProductionInfo) {
+                Column({ space: 8 }) {
+                  Row() {
+                    Text($r('app.string.ui_production_date'))
+                      .fontSize(14)
+                      .fontColor($r('app.color.text_primary'))
+                    Blank()
+                    Text(this.showProductionDatePicker ? $r('app.string.ui_collapse') : $r('app.string.ui_select_date'))
+                      .fontSize(13)
+                      .fontColor($r('app.color.accent_link'))
+                  }
+                  .width('100%')
+
+                  Row() {
+                    Text(this.formatDate(this.productionDate))
+                      .fontSize(16)
+                      .fontColor($r('app.color.text_primary'))
+                  }
+                  .width('100%')
+                  .height(44)
+                  .padding({ left: 12, right: 12 })
+                  .backgroundColor($r('app.color.input_background'))
+                  .borderRadius(8)
+                  .clickEffect(FOOD_PRESS_EFFECT)
+                  .onClick(() => {
+                    this.showProductionDatePicker = !this.showProductionDatePicker;
+                  })
+
+                  if (this.showProductionDatePicker) {
+                    DatePicker({
+                      start: new Date('2020-01-01'),
+                      end: new Date(),
+                      selected: this.productionDate
+                    })
+                      .width('100%')
+                      .transition(FoodMotion.reveal())
+                      .onDateChange((value: Date) => {
+                        const d = new Date();
+                        d.setFullYear(value.getFullYear());
+                        d.setMonth(value.getMonth());
+                        d.setDate(value.getDate());
+                        d.setHours(0, 0, 0, 0);
+                        this.productionDate = d;
+                        this.calculateExpiryFromProduction();
+                      })
+                  }
+
+                  Column({ space: 4 }) {
+                    Text($r('app.string.ui_shelf_life'))
+                      .fontSize(14)
+                      .fontColor($r('app.color.text_primary'))
+                    Row({ space: 8 }) {
+                      TextInput({ text: this.shelfLifeDaysText, placeholder: $r('app.string.ui_e_g_7_6_1') })
+                        .layoutWeight(1)
+                        .height(44)
+                        .fontSize(15)
+                        .borderRadius(8)
+                        .backgroundColor($r('app.color.input_background'))
+                        .type(InputType.Number)
+                        .onChange((value: string) => {
+                          this.shelfLifeDaysText = value;
+                          this.calculateExpiryFromProduction();
+                        })
+                      Row({ space: 0 }) {
+                        Text($r('app.string.watch_days_suffix'))
+                          .fontSize(13)
+                          .fontColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
+                          .textAlign(TextAlign.Center).width(44).height(40)
+                          .backgroundColor(this.shelfLifeUnit === 'day' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
+                          .borderRadius(8)
+                          .onClick(() => {
+                            this.shelfLifeUnit = 'day';
+                            this.calculateExpiryFromProduction();
+                          })
+                        Text($r('app.string.ui_months'))
+                          .fontSize(13)
+                          .fontColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
+                          .textAlign(TextAlign.Center).width(44).height(40)
+                          .backgroundColor(this.shelfLifeUnit === 'month' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
+                          .borderRadius(8)
+                          .onClick(() => {
+                            this.shelfLifeUnit = 'month';
+                            this.calculateExpiryFromProduction();
+                          })
+                        Text($r('app.string.ui_years'))
+                          .fontSize(13)
+                          .fontColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
+                          .textAlign(TextAlign.Center).width(44).height(40)
+                          .backgroundColor(this.shelfLifeUnit === 'year' ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
+                          .borderRadius(8)
+                          .onClick(() => {
+                            this.shelfLifeUnit = 'year';
+                            this.calculateExpiryFromProduction();
+                          })
+                      }
+                      .borderRadius(8)
+                      .clip(true)
+                    }
+                  }
+                  .width('100%')
+                }
+                .transition(FoodMotion.reveal())
+              }
+
+              Column({ space: 5 }) {
+                Text($r('app.string.ui_expiry_date_calculated_automatically'))
+                  .fontSize(13).fontColor($r('app.color.button_secondary_text'))
+                Text(this.formatDate(this.expiryDate))
+                  .fontSize(20).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
+                Text(this.hasExactProductionInfo ? $r('app.string.ui_based_on_production_date') :
+                  $r('app.string.ui_based_on_category_and_storage'))
+                  .fontSize(13).fontColor($r('app.color.text_secondary'))
+              }
+              .width('100%').padding(12).alignItems(HorizontalAlign.Start)
+              .borderRadius(13).backgroundColor($r('app.color.button_secondary_bg'))
+            }
+            .width('100%')
+          }
+          .width('100%').padding(16)
+          .backgroundColor($r('app.color.card_background')).borderRadius(20)
+
+          Column({ space: 8 }) {
+            Row({ space: 10 }) {
+              Column({ space: 4 }) {
+                Text($r('app.string.food_form_more_details'))
+                  .fontSize(16).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+                Text($r('app.string.food_form_more_details_hint'))
+                  .fontSize(13).fontColor($r('app.color.text_secondary'))
+              }
+              .layoutWeight(1).alignItems(HorizontalAlign.Start)
+              SymbolGlyph($r('sys.symbol.chevron_forward'))
+                .fontSize(15).fontColor([$r('app.color.accent_link')])
+                .rotate({ angle: this.showOptionalDetails ? 90 : 0 })
+                .animation({ duration: 190, curve: Curve.EaseOut })
+            }
+            .width('100%').constraintSize({ minHeight: 56 })
+            .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+            .backgroundColor($r('app.color.card_background')).borderRadius(16)
+            .focusable(true).clickEffect(FOOD_PRESS_EFFECT)
             .onClick(() => {
-              this.saveFoodItem();
+              this.getUIContext().animateTo({ duration: 190, curve: Curve.EaseOut }, () => {
+                this.showOptionalDetails = !this.showOptionalDetails;
+              });
             })
+
+            if (this.showOptionalDetails) {
+            Column({ space: 14 }) {
+              // 条码（如有）
+              if (this.barcode.length > 0 || !this.fromBarcodeScan) {
+                Column({ space: 6 }) {
+                  Text($r('app.string.ui_barcode_optional'))
+                    .fontSize(14)
+                    .fontColor($r('app.color.text_primary'))
+                  TextInput({ text: this.barcode, placeholder: $r('app.string.ui_e_g_6901234567890') })
+                    .width('100%')
+                    .height(44)
+                    .fontSize(15)
+                    .borderRadius(8)
+                    .backgroundColor(this.fromBarcodeScan ? $r('app.color.chip_background') : $r('app.color.input_background'))
+                    .enabled(!this.fromBarcodeScan)
+                    .onChange((value: string) => {
+                      this.barcode = value;
+                    })
+                }
+                .width('100%')
+
+              }
+
+              // 规格说明
+              Column({ space: 6 }) {
+                Text($r('app.string.ui_package_details_optional'))
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+                TextInput({ text: this.spec, placeholder: $r('app.string.ui_e_g_250_ml_500_g_1_bag') })
+                  .width('100%')
+                  .height(44)
+                  .fontSize(15)
+                  .borderRadius(8)
+                  .backgroundColor($r('app.color.input_background'))
+                  .onChange((value: string) => {
+                    this.spec = value;
+                  })
+              }
+              .width('100%')
+
+
+              Column({ space: 6 }) {
+                Text($r('app.string.ui_total_calories_kcal_optional'))
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+
+                Row({ space: 8 }) {
+                  TextInput({ text: this.caloriesText, placeholder: $r('app.string.ui_enter_total_calories_kcal') })
+                    .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
+                    .backgroundColor($r('app.color.input_background'))
+                    .type(InputType.Number)
+                    .onChange((value: string) => { this.caloriesText = value; })
+                  Text('kcal')
+                    .fontSize(14).fontColor($r('app.color.text_hint'))
+                }
+
+              }
+              .width('100%')
+            }
+            .width('100%').padding(16)
+            .backgroundColor($r('app.color.card_background')).borderRadius(20)
+              .transition(FoodMotion.reveal())
+            }
+          }
+          .width('100%')
         }
-        .padding({ top: 16 })
+        .width('100%')
+        .padding({ left: 16, right: 16, top: 66, bottom: 16 })
       }
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .layoutWeight(1)
+      .align(Alignment.Top)
       .scrollBar(BarState.Off)
+
+      Column() {
+        Button(this.isEditMode ? $r('app.string.ui_save_changes') : $r('app.string.ui_add_to_inventory'))
+          .attributeModifier(FoodButtonStyle.primary)
+          .width('100%')
+          .enabled(!this.isSaving)
+          .onClick(() => { this.saveFoodItem(); })
+      }
+      .width('100%')
+      .padding({ left: 18, right: 18, top: 8, bottom: Math.max(12, this.naviIndicatorHeight) })
+      .backgroundColor($r('app.color.page_background'))
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: this.pageTitle }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .bindToScrollable([this.scroller])
+    .onBackPressed(() => this.isSaving)
+    .onHidden(() => {
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
-  buildSectionTitle(title: string) {
+  buildSectionTitle(title: ResourceStr) {
     Text(title)
-      .fontSize(16)
-      .fontWeight(FontWeight.Medium)
+      .fontSize(18)
+      .fontWeight(FontWeight.Bold)
       .fontColor($r('app.color.text_primary'))
       .width('100%')
-      .padding({ left: 16, right: 16, top: 8 })
   }
 
   @Builder
-  buildStorageButton(label: string, type: string) {
+  buildStorageButton(label: ResourceStr, type: string) {
     Text(label)
       .fontSize(14)
       .fontColor(this.storageType === type ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
       .textAlign(TextAlign.Center)
       .layoutWeight(1)
-      .height(40)
-      .backgroundColor(this.storageType === type ? $r('app.color.button_primary_bg') : $r('app.color.button_neutral_bg'))
+      .height(44).borderRadius(10)
+      .backgroundColor(this.storageType === type ? $r('app.color.button_primary_bg') : Color.Transparent)
+      .clickEffect(FOOD_PRESS_EFFECT)
       .onClick(() => {
         this.storageType = type;
         this.updateExpiryDate();
@@ -694,7 +728,7 @@ struct AddFoodPage {
   }
 
   @Builder
-  buildFreshnessButton(label: string, value: string) {
+  buildFreshnessButton(label: ResourceStr, value: string) {
     Text(label)
       .fontSize(13)
       .fontColor(this.freshnessLevel === value ? $r('app.color.button_primary_text') : $r('app.color.button_neutral_text'))
@@ -708,4 +742,10 @@ struct AddFoodPage {
         this.updateExpiryDate();
       })
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 AddFoodPage）
+@Builder
+export function AddFoodPageBuilder() {
+  AddFoodPage()
 }

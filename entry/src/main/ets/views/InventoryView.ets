@@ -1,6 +1,7 @@
-import { router, promptAction } from '@kit.ArkUI';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { localizedFoodLabel } from '../common/Constants';
+import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodMotion } from '../common/FoodInterface';
 import { DatabaseHelper } from '../common/DatabaseHelper';
+import { AppNavigation } from '../common/AppNavigation';
 import { FoodItem, FamilyMember } from '../model/DataModels';
 import { EXPIRED_WASTE_REASON, getStorageTypeName, WASTE_REASONS } from '../common/Constants';
 
@@ -16,6 +17,7 @@ interface EditFoodParams {
 @Component
 export struct InventoryView {
   @Prop @Watch('onRefreshKeyChange') refreshKey: number = 0;
+  @Prop tabBarInset: number = 0;
   @State foodItems: FoodItem[] = [];
   @State filteredItems: FoodItem[] = [];
   @State isLoading: boolean = true;
@@ -27,24 +29,6 @@ export struct InventoryView {
   @State normalCount: number = 0;
   @State nearExpiryCount: number = 0;
   @State expiredCount: number = 0;
-  private currentDeviceType: string = deviceInfo.deviceType;
-
-  private isDesktopLikeDevice(): boolean {
-    return this.currentDeviceType === '2in1' || this.currentDeviceType === 'tablet';
-  }
-
-  private getFilterChipRowSpace(): number {
-    return this.isDesktopLikeDevice() ? 12 : 8;
-  }
-
-  private getFilterChipHorizontalPadding(): number {
-    return this.isDesktopLikeDevice() ? 12 : 10;
-  }
-
-  private getFilterChipMinHeight(): number {
-    return this.isDesktopLikeDevice() ? 58 : 54;
-  }
-
   aboutToAppear(): void {
     if (DatabaseHelper.getInstance().getStore() !== null) {
       this.loadFoodItems();
@@ -125,27 +109,37 @@ export struct InventoryView {
     }
   }
 
-  private getExpiryText(item: FoodItem): string {
-    if (item.expiryDate <= 0) return '未设置保质期';
+  private getExpiryText(item: FoodItem): ResourceStr {
+    if (item.expiryDate <= 0) return $r('app.string.ui_expiry_date_not_set');
     const days: number = item.getRemainingDays();
-    if (days < 0) return '已过期 ' + Math.abs(days) + ' 天';
-    if (days === 0) return '今天到期';
-    return '剩余 ' + days + ' 天';
+    if (days < 0) return $r('app.string.ui_expired_d_days_ago', Math.abs(days));
+    if (days === 0) return $r('app.string.watch_expire_today');
+    return $r('app.string.ui_expires_in_d_days', days);
   }
 
   private handleEat(item: FoodItem, memberName: string): void {
     DatabaseHelper.getInstance().consumeFood(item.id, memberName, item.calories, item.name).then(() => {
-      promptAction.showToast({ message: '已记录 ' + memberName + ' 食用', duration: 1500 });
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_recorded_as_eaten_by_s', memberName), duration: 1500 });
       this.showActionPanel = false;
       this.loadFoodItems();
+    }).catch(() => {
+      this.getUIContext().getPromptAction().showToast({
+        message: $r('app.string.ui_could_not_save_the_record_refresh_your_inventory_and_try_again'),
+        duration: 2000
+      });
     });
   }
 
   private handleWaste(item: FoodItem, reason: string): void {
     DatabaseHelper.getInstance().wasteFood(item.id, reason, item.calories, item.name).then(() => {
-      promptAction.showToast({ message: '已记录丢弃', duration: 1500 });
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_discard_recorded'), duration: 1500 });
       this.showActionPanel = false;
       this.loadFoodItems();
+    }).catch(() => {
+      this.getUIContext().getPromptAction().showToast({
+        message: $r('app.string.ui_could_not_save_the_record_refresh_your_inventory_and_try_again'),
+        duration: 2000
+      });
     });
   }
 
@@ -159,118 +153,83 @@ export struct InventoryView {
     return reason !== EXPIRED_WASTE_REASON;
   }
 
+  private selectInventoryFilter(filter: string): void {
+    if (filter === this.filterType) return;
+    this.getUIContext().animateTo({ duration: 170, curve: Curve.EaseOut }, () => {
+      this.filterType = filter;
+      this.applyFilter();
+    });
+  }
+
   build() {
-    Stack({ alignContent: Alignment.BottomEnd }) {
-      Column() {
-        // 顶部标题栏
-        Row() {
-          Text('食品库存')
-            .fontSize(22)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column({ space: 14 }) {
+        Row({ space: 12 }) {
+          Column({ space: 5 }) {
+            Text($r('app.string.ui_food_inventory'))
+              .fontSize(29).lineHeight(36).fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+            Text($r('app.string.inventory_count', this.foodItems.length))
+              .fontSize(14).fontColor($r('app.color.text_secondary'))
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Button() {
+            Row({ space: 6 }) {
+              SymbolGlyph($r('sys.symbol.plus'))
+                .fontSize(17).fontColor([$r('app.color.button_primary_text')])
+              Text($r('app.string.ui_add_food'))
+                .fontSize(14).fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.button_primary_text'))
+            }
+          }
+          .attributeModifier(FoodButtonStyle.compactPrimary)
+          .accessibilityText($r('app.string.ui_add_food'))
+          .onClick(() => { AppNavigation.push('EntrySelectionPage'); })
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20, top: 14 })
+
+        Row({ space: 2 }) {
+          this.inventoryFilter($r('app.string.ui_all'), this.foodItems.length, 'all')
+          this.inventoryFilter($r('app.string.status_normal'), this.normalCount, 'normal')
+          this.inventoryFilter($r('app.string.status_near_expiry'), this.nearExpiryCount, 'nearExpiry')
+          this.inventoryFilter($r('app.string.status_expired'), this.expiredCount, 'expired')
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20 })
+
+        if (this.isLoading) {
+          LoadingProgress()
+            .width(30).height(30).color($r('app.color.accent_link'))
+            .margin({ top: 24 })
           Blank()
-          Text(this.foodItems.length + ' 件')
-            .fontSize(14)
-            .fontColor($r('app.color.text_hint'))
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 12, bottom: 8 })
-
-        // 筛选chip栏 - 直接引用@State计数变量，不通过builder参数传递
-        Row({ space: this.getFilterChipRowSpace() }) {
-          // 全部
-          Row({ space: 4 }) {
-            Circle().width(8).height(8)
-              .fill(this.filterType === 'all' ? '#007DFF' : $r('app.color.text_disabled'))
-            Text('全部 ' + this.foodItems.length)
-              .fontSize(12).fontColor(this.filterType === 'all' ? '#007DFF' : $r('app.color.text_secondary'))
-          }
-          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
-          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
-          .borderRadius(16)
-          .backgroundColor(this.filterType === 'all' ? $r('app.color.card_background') : $r('app.color.chip_background'))
-          .hoverEffect(HoverEffect.Highlight)
-          .onClick(() => { this.filterType = 'all'; this.applyFilter(); })
-
-          // 正常
-          Row({ space: 4 }) {
-            Circle().width(8).height(8)
-              .fill(this.filterType === 'normal' ? '#34C759' : $r('app.color.text_disabled'))
-            Text('正常 ' + this.normalCount)
-              .fontSize(12).fontColor(this.filterType === 'normal' ? '#34C759' : $r('app.color.text_secondary'))
-          }
-          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
-          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
-          .borderRadius(16)
-          .backgroundColor(this.filterType === 'normal' ? $r('app.color.card_background') : $r('app.color.chip_background'))
-          .hoverEffect(HoverEffect.Highlight)
-          .onClick(() => { this.filterType = 'normal'; this.applyFilter(); })
-
-          // 临期
-          Row({ space: 4 }) {
-            Circle().width(8).height(8)
-              .fill(this.filterType === 'nearExpiry' ? '#FF9500' : $r('app.color.text_disabled'))
-            Text('临期 ' + this.nearExpiryCount)
-              .fontSize(12).fontColor(this.filterType === 'nearExpiry' ? '#FF9500' : $r('app.color.text_secondary'))
-          }
-          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
-          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
-          .borderRadius(16)
-          .backgroundColor(this.filterType === 'nearExpiry' ? $r('app.color.card_background') : $r('app.color.chip_background'))
-          .hoverEffect(HoverEffect.Highlight)
-          .onClick(() => { this.filterType = 'nearExpiry'; this.applyFilter(); })
-
-          // 过期
-          Row({ space: 4 }) {
-            Circle().width(8).height(8)
-              .fill(this.filterType === 'expired' ? '#FF3B30' : $r('app.color.text_disabled'))
-            Text('过期 ' + this.expiredCount)
-              .fontSize(12).fontColor(this.filterType === 'expired' ? '#FF3B30' : $r('app.color.text_secondary'))
-          }
-          .padding({ left: this.getFilterChipHorizontalPadding(), right: this.getFilterChipHorizontalPadding(), top: 6, bottom: 6 })
-          .constraintSize({ minHeight: this.getFilterChipMinHeight() })
-          .borderRadius(16)
-          .backgroundColor(this.filterType === 'expired' ? $r('app.color.card_background') : $r('app.color.chip_background'))
-          .hoverEffect(HoverEffect.Highlight)
-          .onClick(() => { this.filterType = 'expired'; this.applyFilter(); })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, bottom: 12 })
-
-        // 食品列表
-        if (this.filteredItems.length === 0 && !this.isLoading) {
-          this.buildEmptyState()
         } else {
-          List({ space: 12 }) {
-            ForEach(this.filteredItems, (item: FoodItem) => {
+          List() {
+            if (this.filteredItems.length === 0) {
               ListItem() {
-                this.buildFoodCard(item)
+                this.buildEmptyState()
               }
-            }, (item: FoodItem) => item.id.toString())
+            } else {
+              ForEach(this.filteredItems, (item: FoodItem) => {
+                ListItem() {
+                  this.buildFoodCard(item)
+                }
+              }, (item: FoodItem) => item.id.toString())
+            }
           }
+          .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           .width('100%')
           .layoutWeight(1)
-          .padding({ left: 16, right: 16, bottom: 16 })
+          .padding({ left: 20, right: 20 })
+          .divider({ strokeWidth: 1, color: $r('app.color.divider') })
+          .contentEndOffset(this.tabBarInset)
         }
       }
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.page_background'))
-
-      // FAB
-      Button('+')
-        .width(56)
-        .height(56)
-        .fontSize(28)
-        .fontColor($r('app.color.button_primary_text'))
-        .backgroundColor($r('app.color.button_primary_bg'))
-        .borderRadius(28)
-        .shadow({ radius: 8, color: '#40007DFF', offsetX: 0, offsetY: 4 })
-        .margin({ right: 20, bottom: 20 })
-        .hoverEffect(HoverEffect.Highlight)
-        .onClick(() => {
-          router.pushUrl({ url: 'pages/EntrySelectionPage' });
-        })
 
       // 长按操作面板遮罩
       if (this.showActionPanel && this.selectedItem !== null) {
@@ -284,12 +243,11 @@ export struct InventoryView {
               .fontSize(16).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
 
             if (this.selectedItem !== null && !this.selectedItem.isExpired()) {
-              Text('选择食用者').fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
+              Text($r('app.string.ui_who_ate_this')).fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
               Flex({ wrap: FlexWrap.Wrap }) {
                 ForEach(this.members, (member: FamilyMember) => {
                   Button(member.name)
-                    .height(40).fontSize(13).fontColor(Color.White)
-                    .backgroundColor('#34C759').borderRadius(18)
+                    .attributeModifier(FoodButtonStyle.compactSecondary)
                     .margin({ right: 8, bottom: 8 })
                     .onClick(() => {
                       if (this.selectedItem !== null) {
@@ -299,21 +257,18 @@ export struct InventoryView {
                 }, (member: FamilyMember) => member.id.toString())
               }
               if (this.members.length === 0) {
-                Text('请先在"我的"页面添加家庭成员')
+                Text($r('app.string.ui_add_a_family_member_in_profile_first'))
                   .fontSize(12).fontColor($r('app.color.text_hint'))
               }
             }
 
             Divider().color($r('app.color.divider'))
 
-            Text('丢弃原因').fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
+            Text($r('app.string.ui_reason_for_discarding')).fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
             Row({ space: 8 }) {
               ForEach(WASTE_REASONS, (reason: string) => {
-                Button(reason)
-                  .height(40).fontSize(13)
-                  .fontColor(this.isWasteReasonDisabled(reason) ? $r('app.color.text_disabled') : $r('app.color.chip_warning_text'))
-                  .backgroundColor(this.isWasteReasonDisabled(reason) ? $r('app.color.chip_background') : $r('app.color.chip_warning_bg'))
-                  .borderRadius(18)
+                Button(localizedFoodLabel(reason))
+                  .attributeModifier(FoodButtonStyle.compactNeutral)
                   .enabled(!this.isWasteReasonDisabled(reason))
                   .onClick(() => {
                     if (!this.isWasteReasonDisabled(reason) && this.selectedItem !== null) {
@@ -325,95 +280,142 @@ export struct InventoryView {
 
             Divider().color($r('app.color.divider'))
 
-            Button('编辑')
-              .width('100%').height(40).fontSize(14)
-              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
+            Button($r('app.string.ui_edit'))
+              .attributeModifier(FoodButtonStyle.secondary)
+              .width('100%')
               .onClick(() => {
                 this.showActionPanel = false;
                 if (this.selectedItem !== null) {
                   const params: EditFoodParams = { editMode: true, foodId: this.selectedItem.id };
-                  router.pushUrl({ url: 'pages/AddFoodPage', params: params });
+                  AppNavigation.push('AddFoodPage', params);
                 }
               })
           }
           .width('100%').padding(16)
           .backgroundColor($r('app.color.card_background'))
-          .borderRadius({ topLeft: 16, topRight: 16 })
+          .borderRadius(20)
+          .margin({ left: 12, right: 12, bottom: this.tabBarInset })
+          .transition(FoodMotion.panel())
         }
         .width('100%').height('100%')
         .backgroundColor($r('app.color.overlay_background'))
+        .transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut }))
       }
     }
     .width('100%')
     .height('100%')
-    .animation({ duration: 260, curve: Curve.EaseInOut })
+  }
+
+  @Builder
+  inventoryFilter(label: ResourceStr, count: number, filter: string) {
+    Column({ space: 4 }) {
+      Text(label)
+        .fontSize(13).fontWeight(FontWeight.Medium)
+        .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_secondary'))
+        .textAlign(TextAlign.Center)
+      Text(count.toString())
+        .fontSize(17).fontWeight(FontWeight.Bold)
+        .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_primary'))
+    }
+    .layoutWeight(1)
+    .constraintSize({ minHeight: 56 })
+    .padding({ top: 7, bottom: 7 })
+    .borderRadius(12)
+    .backgroundColor(this.filterType === filter ? $r('app.color.button_secondary_bg') : Color.Transparent)
+    .accessibilitySelected(this.filterType === filter)
+    .focusable(true)
+    .clickEffect(FOOD_PRESS_EFFECT)
+    .onClick(() => { this.selectInventoryFilter(filter); })
   }
 
   @Builder
   buildFoodCard(item: FoodItem) {
-    Row() {
-      Column()
-        .width(4).height(72).borderRadius(2).backgroundColor(item.getStatusColor())
-      Column({ space: 4 }) {
-        Row() {
-          Text(item.name)
-            .fontSize(16).fontWeight(FontWeight.Medium)
-            .fontColor(item.isExpired() ? $r('app.color.text_hint') : $r('app.color.text_primary'))
-            .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          Text(item.getStatusText())
-            .fontSize(11).fontColor(item.getStatusColor())
-            .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-            .borderRadius(10).backgroundColor(item.getStatusBgColor())
-        }
-        .width('100%')
+    Row({ space: 12 }) {
+      Column({ space: 5 }) {
+        Text(item.name)
+          .fontSize(17).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+          .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Row({ space: 8 }) {
+        Flex({ wrap: FlexWrap.Wrap }) {
           if (item.category.length > 0) {
-            Text(item.category).fontSize(13).fontColor($r('app.color.text_hint'))
+            Text(localizedFoodLabel(item.category)).fontSize(13).fontColor($r('app.color.text_secondary'))
+              .margin({ right: 8 })
           }
+          Text(getStorageTypeName(item.storageType)).fontSize(13).fontColor($r('app.color.text_secondary'))
+            .margin({ right: 8 })
           if (item.spec.length > 0) {
-            Text(item.spec).fontSize(13).fontColor($r('app.color.text_hint'))
+            Text(item.spec).fontSize(13).fontColor($r('app.color.text_secondary'))
+              .margin({ right: 8 })
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-          Text(getStorageTypeName(item.storageType)).fontSize(13).fontColor($r('app.color.text_hint'))
-        }
-
-        Row() {
-          Text(this.getExpiryText(item))
-            .fontSize(13).fontColor(item.getStatusColor()).layoutWeight(1)
           if (item.calories > 0) {
-            Text('本次 ' + item.calories.toFixed(0) + ' kcal').fontSize(13).fontColor($r('app.color.text_hint'))
+            Text($r('app.string.ui_this_item_s_kcal', item.calories.toFixed(0)))
+              .fontSize(13).fontColor($r('app.color.text_secondary'))
           }
         }
         .width('100%')
+
+        Text(this.getExpiryText(item)).fontSize(13).fontColor(item.getStatusColor())
       }
-      .layoutWeight(1).padding({ left: 12, right: 12, top: 10, bottom: 10 })
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Text(item.getStatusText())
+        .fontSize(12).fontWeight(FontWeight.Medium)
+        .fontColor(item.getStatusColor())
+        .padding({ left: 9, right: 9, top: 5, bottom: 5 })
+        .borderRadius(10)
+        .backgroundColor(item.getStatusBgColor())
+
+      SymbolGlyph($r('sys.symbol.chevron_forward'))
+        .fontSize(14).fontColor([$r('app.color.text_hint')])
     }
     .width('100%')
-    .backgroundColor(item.isExpired() ? $r('app.color.chip_background') : $r('app.color.card_background'))
-    .borderRadius(12)
-    .shadow({ radius: 4, color: '#0D000000', offsetX: 0, offsetY: 2 })
-    .opacity(item.isExpired() ? 0.7 : 1.0)
+    .padding({ top: 13, bottom: 13, left: 2, right: 2 })
+    .constraintSize({ minHeight: 74 })
+    .focusable(true)
     .hoverEffect(HoverEffect.Highlight)
+    .clickEffect(FOOD_PRESS_EFFECT)
     .onClick(() => {
       const params: FoodRouterParams = { foodId: item.id };
-      router.pushUrl({ url: 'pages/FoodDetailPage', params: params });
+      AppNavigation.push('FoodDetailPage', params);
     })
-    .gesture(
-      LongPressGesture({ repeat: false })
-        .onAction(() => {
-          this.selectedItem = item;
-          this.showActionPanel = true;
-        })
-    )
+    .gesture(LongPressGesture({ repeat: false }).onAction(() => {
+      this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, () => {
+        this.selectedItem = item;
+        this.showActionPanel = true;
+      });
+    }))
   }
 
   @Builder
   buildEmptyState() {
-    Column({ space: 16 }) {
-      Text('🍽️').fontSize(64)
-      Text('暂无食品库存').fontSize(16).fontColor($r('app.color.text_hint'))
-      Text('点击右下角 + 添加食品').fontSize(14).fontColor($r('app.color.text_disabled'))
+    Column({ space: 10 }) {
+      Row() {
+        SymbolGlyph($r('sys.symbol.archivebox'))
+          .fontSize(36).fontColor([$r('app.color.accent_link')])
+      }
+      .width(64).height(64).justifyContent(FlexAlign.Center)
+      .backgroundColor($r('app.color.button_secondary_bg')).borderRadius(18)
+
+      Text(this.foodItems.length === 0 ? $r('app.string.ui_your_inventory_is_empty') :
+        $r('app.string.inventory_filtered_empty'))
+        .fontSize(19).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+
+      if (this.foodItems.length === 0) {
+        Text($r('app.string.inventory_empty_description'))
+          .fontSize(14).fontColor($r('app.color.text_secondary'))
+      } else {
+        Button($r('app.string.ui_all'))
+          .attributeModifier(FoodButtonStyle.compactSecondary)
+          .onClick(() => { this.selectInventoryFilter('all'); })
+      }
     }
-    .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+    .width('100%')
+    .padding(22)
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor($r('app.color.card_background'))
+    .borderRadius(22)
+    .transition(FoodMotion.reveal())
   }
 }

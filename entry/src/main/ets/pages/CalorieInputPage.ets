@@ -1,4 +1,7 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { canReceiveRemoteFoodPhoto } from '../common/RemoteFoodPhoto';
+import { FoodButtonStyle, FoodMotion, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
+import { resolveLocalizedText } from '../common/Constants';
+import { localizedFoodLabel } from '../common/Constants';
 import { BarcodeService, NutritionMeta } from '../common/BarcodeService';
 import { OcrRecord } from '../model/DataModels';
 import { DatabaseHelper } from '../common/DatabaseHelper';
@@ -10,9 +13,11 @@ import { kjToKcal } from '../common/Constants';
 import {
   createCollaborationServiceMenuItems,
   CollaborationServiceStateDialog,
-  CollaborationServiceFilter
+  CollaborationServiceFilter,
+  CollaborationDeviceFilterType
 } from '@kit.ServiceCollaborationKit';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { HdsNavDestination } from '@kit.UIDesignKit';
+import { AppNavigation } from '../common/AppNavigation';
 
 // 路由参数接口
 interface CaloriePageParams {
@@ -43,7 +48,6 @@ interface NutritionParseResult {
   servingUnit: string;
 }
 
-@Entry
 @Component
 struct CalorieInputPage {
   @State barcode: string = '';
@@ -52,7 +56,8 @@ struct CalorieInputPage {
   @State spec: string = '';
   @State caloriesText: string = '';
   @State autoFillCalories: number = 0;
-  @State calorieSource: string = '';
+  @State calorieSource: ResourceStr = '';
+  private calorieSourceKind: string = '';
   @State calorieUnit: string = 'kJ';
   @State calorieBasis: string = 'per100'; // per100 | perServing
   @State per100Unit: string = 'g'; // g | ml
@@ -68,18 +73,28 @@ struct CalorieInputPage {
   @State ocrDialogPer100Unit: string = 'g';
   @State ocrDialogServingSize: string = '';
   @State ocrDialogServingUnit: string = 'g';
-  @State showCollaborationButton: boolean = true;
+  @State showCollaborationButton: boolean = false;
+  private isPageActive: boolean = true;
+
+  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+
+  @State isReadingNutritionLabel: boolean = false;
+  private scroller: Scroller = new Scroller();
 
   @Builder
   collaborationMenu() {
     Menu() {
-      createCollaborationServiceMenuItems([CollaborationServiceFilter.ALL]);
+      createCollaborationServiceMenuItems([CollaborationServiceFilter.TAKE_PHOTO,
+        CollaborationServiceFilter.IMAGE_PICKER], 1, [CollaborationDeviceFilterType.PHONE,
+        CollaborationDeviceFilterType.TABLET, CollaborationDeviceFilterType.PC_2IN1]);
     }
   }
 
   aboutToAppear(): void {
-    this.showCollaborationButton = deviceInfo.deviceType !== 'phone';
-    const params: CaloriePageParams = router.getParams() as CaloriePageParams;
+    this.showCollaborationButton = canReceiveRemoteFoodPhoto() &&
+      canIUse('SystemCapability.AI.OCR.TextRecognition');
+    const params: CaloriePageParams | undefined = AppNavigation.getParamByName('CalorieInputPage') as CaloriePageParams | undefined;
     if (params !== null && params !== undefined) {
       this.barcode = params.barcode;
       this.foodName = params.name;
@@ -131,20 +146,23 @@ struct CalorieInputPage {
           if (this.calorieBasis === 'perServing') {
             this.servingsText = '1';
           }
-          this.calorieSource = dict.isReliable ? '来自本地记忆（已标准化）' : '来自本地记忆（待补全）';
+          this.calorieSource = dict.isReliable ? $r('app.string.ui_from_saved_details_standardized') : $r('app.string.ui_from_saved_details_incomplete');
+          this.calorieSourceKind = 'saved';
         }
         this.isLoading = false;
       });
   }
 
   private async startOcrRecognition(): Promise<void> {
+    if (this.isReadingNutritionLabel) return;
+    this.isReadingNutritionLabel = true;
     try {
       if (!canIUse('SystemCapability.AI.OCR.TextRecognition')) {
-        promptAction.showToast({ message: '当前设备不支持OCR识别', duration: 2000 });
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_this_device_does_not_support_text_recognition'), duration: 2000 });
         return;
       }
 
-      const ctx: Context = getContext(this) as Context;
+      const ctx: Context = this.getUIContext().getHostContext() as Context;
       const captureUri: string = ctx.cacheDir + '/ocr_capture_' + Date.now().toString() + '.jpg';
       const pickerProfile: cameraPicker.PickerProfile = {
         cameraPosition: camera.CameraPosition.CAMERA_POSITION_BACK,
@@ -160,7 +178,7 @@ struct CalorieInputPage {
       // 参照官方示例：构建VisionInfo + TextRecognitionConfiguration后进行OCR
       const pixelMap: image.PixelMap | null = await this.getPixelMapFromUri(imageUri);
       if (pixelMap === null) {
-        promptAction.showToast({ message: '图片读取失败，请重试', duration: 2000 });
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_read_the_image_try_again'), duration: 2000 });
         return;
       }
       let recognizedText: string = '';
@@ -177,15 +195,25 @@ struct CalorieInputPage {
       } finally {
         pixelMap.release();
       }
-      this.applyOcrResultFromText(recognizedText, 'OCR识别');
+      this.applyOcrResultFromText(recognizedText);
     } catch (e) {
-      promptAction.showToast({ message: 'OCR识别失败，请重试', duration: 2000 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_could_not_scan_the_nutrition_label_try_again'), duration: 2000 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
+    } finally {
+      this.isReadingNutritionLabel = false;
     }
   }
 
-  private applyOcrResultFromText(recognizedText: string, sourceLabel: string): void {
+  private applyOcrResultFromText(recognizedText: string): void {
     if (recognizedText.trim().length === 0) {
-      promptAction.showToast({ message: '未识别到文本，请重试', duration: 2000 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_no_text_detected_try_again'), duration: 2000 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     const parsed: NutritionParseResult | null = this.parseNutritionFromText(recognizedText);
@@ -197,55 +225,51 @@ struct CalorieInputPage {
       this.ocrDialogServingSize = parsed.servingSize > 0 ? parsed.servingSize.toString() : '';
       this.ocrDialogServingUnit = parsed.servingUnit;
       this.showOcrCheckDialog = true;
-      promptAction.showToast({ message: '已接收' + sourceLabel + '结果，请校验', duration: 1800 });
-      return;
-    }
-    promptAction.showToast({ message: '未能识别到完整能量信息，请手动补录单位和基准', duration: 2200 });
-  }
-
-  private decodeBufferToText(buffer: ArrayBuffer): string {
-    const bytes: Uint8Array = new Uint8Array(buffer);
-    let text: string = '';
-    for (let i = 0; i < bytes.length; i++) {
-      text = text + String.fromCharCode(bytes[i]);
-    }
-    return text;
-  }
-
-  private handleCollaborationImage(buffer: ArrayBuffer): void {
-    const imgSource: image.ImageSource = image.createImageSource(buffer);
-    imgSource.createPixelMap().then(async (pixelMap: image.PixelMap): Promise<void> => {
-      let recognizedText: string = '';
       try {
-        const visionInfo: textRecognition.VisionInfo = { pixelMap: pixelMap };
-        const textConfig: textRecognition.TextRecognitionConfiguration = { isDirectionDetectionSupported: true };
-        const textResult: textRecognition.TextRecognitionResult =
-          await textRecognition.recognizeText(visionInfo, textConfig);
-        recognizedText = (textResult && typeof textResult.value === 'string') ? textResult.value : '';
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_scan_received_review_the_result'), duration: 1800 });
       } catch (e) {
-        recognizedText = '';
-      } finally {
-        pixelMap.release();
-        imgSource.release();
+        // Toast 展示失败时忽略
       }
-      this.applyOcrResultFromText(recognizedText, '协同图片');
-    }).catch(() => {
-      imgSource.release();
-      promptAction.showToast({ message: '协同图片解析失败', duration: 1800 });
-    });
+      return;
+    }
+    try {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_energy_details_are_incomplete_enter_the_unit_and_basis_manually'), duration: 2200 });
+    } catch (e) {
+      // Toast 展示失败时忽略
+    }
   }
 
-  private onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): void {
-    if (stateCode !== 0) {
+  private async onCollaborationState(stateCode: number, bufferType: string, buffer: ArrayBuffer): Promise<void> {
+    if (!this.isPageActive || stateCode !== 0 || bufferType !== 'general.image' || !buffer || buffer.byteLength === 0 ||
+      this.isReadingNutritionLabel) {
       return;
     }
-    if (bufferType === 'general.image') {
-      this.handleCollaborationImage(buffer);
-      return;
-    }
-    const payload: string = this.decodeBufferToText(buffer);
-    if (payload.trim().length > 0) {
-      this.applyOcrResultFromText(payload, '协同文本');
+
+    this.isReadingNutritionLabel = true;
+    try {
+      const source = image.createImageSource(buffer);
+      let recognizedText = '';
+      try {
+        const pixelMap = await source.createPixelMap();
+        try {
+          const visionInfo: textRecognition.VisionInfo = { pixelMap: pixelMap };
+          const config: textRecognition.TextRecognitionConfiguration = { isDirectionDetectionSupported: true };
+          recognizedText = (await textRecognition.recognizeText(visionInfo, config)).value ?? '';
+        } finally {
+          await pixelMap.release();
+        }
+      } finally {
+        await source.release();
+      }
+      if (this.isPageActive) this.applyOcrResultFromText(recognizedText);
+    } catch (error) {
+      if (this.isPageActive) {
+        this.getUIContext().getPromptAction().showToast({
+          message: $r('app.string.food_could_not_process_remote_photo'), duration: 1800
+        });
+      }
+    } finally {
+      this.isReadingNutritionLabel = false;
     }
   }
 
@@ -292,7 +316,11 @@ struct CalorieInputPage {
   private confirmOcrValue(): void {
     const finalValue: number = Number(this.ocrDialogValue) || 0;
     if (finalValue <= 0) {
-      promptAction.showToast({ message: '请填写有效能量值', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_a_valid_energy_value'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     this.caloriesText = finalValue.toString();
@@ -305,9 +333,14 @@ struct CalorieInputPage {
       this.servingsText = '1';
     }
     this.autoFillCalories = this.getReferenceKcal();
-    this.calorieSource = '来自OCR识别（已校验）';
+    this.calorieSource = $r('app.string.ui_from_a_reviewed_nutrition_label_scan');
+    this.calorieSourceKind = 'ocr';
     this.showOcrCheckDialog = false;
-    promptAction.showToast({ message: '已应用OCR结果，请继续补充本次入库量', duration: 1800 });
+    try {
+      this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_scan_applied_enter_the_amount_to_add'), duration: 1800 });
+    } catch (e) {
+      // Toast 展示失败时忽略
+    }
   }
 
   private parseNutritionFromText(text: string): NutritionParseResult | null {
@@ -528,9 +561,9 @@ struct CalorieInputPage {
   }
 
   private getBasisLabel(): string {
-    if (this.calorieBasis === 'per100') return '每100' + this.per100Unit;
-    if (this.calorieBasis === 'perServing') return '每份';
-    return '每100g';
+    if (this.calorieBasis === 'per100') return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_per_100_s').id, this.per100Unit);
+    if (this.calorieBasis === 'perServing') return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_per_serving').id);
+    return resolveLocalizedText(this.getUIContext().getHostContext(), $r('app.string.ui_per_100_g').id);
   }
 
   private getActualCalories(): number {
@@ -576,31 +609,47 @@ struct CalorieInputPage {
   private confirmAndProceed(): void {
     const rawValue: number = Number(this.caloriesText) || 0;
     if (rawValue <= 0) {
-      promptAction.showToast({ message: '请先填写营养标注值', duration: 1600 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_the_nutrition_label_value_first'), duration: 1600 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
     if (this.calorieBasis === 'per100' && (Number(this.amountText) || 0) <= 0) {
-      promptAction.showToast({ message: '请填写本次入库量（用于计算本份热量）', duration: 1800 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_the_amount_to_add_to_calculate_calories'), duration: 1800 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
     if (this.calorieBasis === 'perServing' && (Number(this.servingsText) || 0) <= 0) {
-      promptAction.showToast({ message: '请填写份数（用于计算本份热量）', duration: 1800 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_enter_the_number_of_servings_to_calculate_calories'), duration: 1800 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
     const finalCalories: number = this.getActualCalories();
     if (finalCalories < 0) {
-      promptAction.showToast({ message: '请补全数量信息', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_complete_the_quantity_information'), duration: 1500 });
+      } catch (e) {
+        // Toast 展示失败时忽略
+      }
       return;
     }
 
     // 存入ProductDict（严格模式：按份但未填写每份重量时，仅存原始标注，不沉淀标准化值）
     if (rawValue > 0) {
       let source: string = 'manual';
-      if (this.calorieSource.indexOf('OCR') >= 0) {
+      if (this.calorieSourceKind === 'ocr') {
         source = 'ocr';
-      } else if (this.calorieSource.indexOf('本地记忆') >= 0) {
+      } else if (this.calorieSourceKind === 'saved') {
         source = 'edited';
       }
       const meta: NutritionMeta = this.buildNutritionMetaForDict();
@@ -612,7 +661,11 @@ struct CalorieInputPage {
         // 产品字典写入失败不阻断流程
       });
       if (meta.basisType === 'perServing' && !meta.isReliable) {
-        promptAction.showToast({ message: '已按严格模式保存原始标注，待补全每份重量后再沉淀标准化值', duration: 2200 });
+        try {
+          this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_original_label_saved_enter_the_serving_size_to_calculate_a_standardized_value'), duration: 2200 });
+        } catch (e) {
+          // Toast 展示失败时忽略
+        }
       }
     }
 
@@ -637,57 +690,42 @@ struct CalorieInputPage {
       calories: finalCalories,
       fromBarcodeScan: true
     };
-    router.replaceUrl({ url: 'pages/AddFoodPage', params: params });
+    try {
+      AppNavigation.replace('AddFoodPage', params);
+    } catch (e) {
+      // 路由跳转失败时忽略
+    }
   }
 
   build() {
+    HdsNavDestination() {
     Column() {
-      CollaborationServiceStateDialog({
-        onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
-          this.onCollaborationState(stateCode, bufferType, buffer);
-        }
-      })
-
-      // 导航栏
-      Row() {
-        Button('返回')
-          .height(40)
-          .fontSize(14)
-          .fontColor($r('app.color.accent_link'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => {
-            router.back();
-          })
-        Text('热量获取')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-        Text('').width(56)
+      if (this.showCollaborationButton) {
+        CollaborationServiceStateDialog({
+          onState: (stateCode: number, bufferType: string, buffer: ArrayBuffer): void => {
+            this.onCollaborationState(stateCode, bufferType, buffer);
+          }
+        })
       }
-      .width('100%')
-      .padding({ left: 8, right: 8, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
 
-      Scroll() {
+      Scroll(this.scroller) {
         Column({ space: 16 }) {
           // 食品信息摘要
           Column({ space: 8 }) {
-            Text('食品信息')
+            Text($r('app.string.ui_food_information'))
               .fontSize(15)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_primary'))
               .width('100%')
-            this.buildInfoLine('名称', this.foodName)
+            this.buildInfoLine($r('app.string.ui_name'), this.foodName)
             if (this.category.length > 0) {
-              this.buildInfoLine('分类', this.category)
+              this.buildInfoLine($r('app.string.ui_category_2'), localizedFoodLabel(this.category))
             }
             if (this.spec.length > 0) {
-              this.buildInfoLine('规格', this.spec)
+              this.buildInfoLine($r('app.string.ui_package_size'), this.spec)
             }
             if (this.barcode.length > 0) {
-              this.buildInfoLine('条码', this.barcode)
+              this.buildInfoLine($r('app.string.ui_barcode'), this.barcode)
             }
           }
           .width('100%')
@@ -698,7 +736,7 @@ struct CalorieInputPage {
 
           // 能量输入区（原始营养标注 + 本次入库量）
           Column({ space: 12 }) {
-            Text('营养标注值（来自包装）')
+            Text($r('app.string.ui_energy_value_on_the_package'))
               .fontSize(15)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_primary'))
@@ -706,21 +744,21 @@ struct CalorieInputPage {
 
             if (this.autoFillCalories > 0) {
               Row({ space: 6 }) {
-                Text('✅').fontSize(14)
+                Image($r('app.media.icon_success')).width(14).height(14).draggable(false)
                 Text(this.calorieSource).fontSize(13).fontColor($r('app.color.status_success'))
               }
             }
 
             // 能量单位切换（不再固定为kcal）
             Row({ space: 0 }) {
-              Text('千焦 kJ（营养表常用）')
+              Text($r('app.string.ui_kilojoules_kj_common_on_labels'))
                 .fontSize(13)
                 .fontColor(this.calorieUnit === 'kJ' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
                 .backgroundColor(this.calorieUnit === 'kJ' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieUnit = 'kJ'; })
-              Text('千卡 kcal')
+              Text($r('app.string.ui_kilocalories_kcal'))
                 .fontSize(13)
                 .fontColor(this.calorieUnit === 'kcal' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
@@ -732,14 +770,14 @@ struct CalorieInputPage {
 
             // 基准切换（简化为每100单位 or 每份）
             Row({ space: 0 }) {
-              Text('每100单位')
+              Text($r('app.string.ui_per_100_units'))
                 .fontSize(13)
                 .fontColor(this.calorieBasis === 'per100' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
                 .backgroundColor(this.calorieBasis === 'per100' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
                 .borderRadius(8)
                 .onClick(() => { this.calorieBasis = 'per100'; })
-              Text('每份')
+              Text($r('app.string.ui_per_serving'))
                 .fontSize(13)
                 .fontColor(this.calorieBasis === 'perServing' ? Color.White : $r('app.color.text_secondary'))
                 .textAlign(TextAlign.Center).layoutWeight(1).height(40)
@@ -750,7 +788,7 @@ struct CalorieInputPage {
             .width('100%').borderRadius(8).clip(true)
 
             Row({ space: 8 }) {
-              TextInput({ text: this.caloriesText, placeholder: '输入' + this.getBasisLabel() + '的能量值' })
+              TextInput({ text: this.caloriesText, placeholder: $r('app.string.ui_enter_energy_value') })
                 .layoutWeight(1).height(48).fontSize(18).borderRadius(8)
                 .backgroundColor($r('app.color.input_background'))
                 .type(InputType.Number)
@@ -760,18 +798,18 @@ struct CalorieInputPage {
             .width('100%')
 
             if (this.calorieUnit === 'kJ' && this.caloriesText.length > 0) {
-              Text('≈ ' + this.getReferenceKcal() + ' kcal（仅换算一次）')
+              Text($r('app.string.ui_about_s_kcal_one_conversion', this.getReferenceKcal().toString()))
                 .fontSize(12).fontColor($r('app.color.accent_link'))
             }
 
             if (this.calorieBasis === 'per100') {
               Column({ space: 6 }) {
-                Text('本次入库量 *')
+                Text($r('app.string.ui_amount_to_add'))
                   .fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
                 Row({ space: 8 }) {
                   TextInput({
                     text: this.amountText,
-                    placeholder: this.per100Unit === 'ml' ? '输入本次体积（ml）' : '输入本次重量（g）'
+                    placeholder: this.per100Unit === 'ml' ? $r('app.string.ui_enter_volume_ml') : $r('app.string.ui_enter_weight_g')
                   })
                     .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
                     .backgroundColor($r('app.color.input_background')).type(InputType.Number)
@@ -796,20 +834,20 @@ struct CalorieInputPage {
               }
             } else {
               Column({ space: 8 }) {
-                Text('按份信息')
+                Text($r('app.string.ui_serving_information'))
                   .fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
 
                 Row({ space: 8 }) {
-                  TextInput({ text: this.servingsText, placeholder: '本次份数（如 1）' })
+                  TextInput({ text: this.servingsText, placeholder: $r('app.string.ui_number_of_servings_e_g_1') })
                     .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
                     .backgroundColor($r('app.color.input_background')).type(InputType.Number)
                     .onChange((value: string) => { this.servingsText = value; })
-                  Text('份')
+                  Text($r('app.string.ui_servings'))
                     .fontSize(14).fontColor($r('app.color.text_secondary'))
                 }
 
                 Row({ space: 8 }) {
-                  TextInput({ text: this.servingSizeText, placeholder: '每份重量/体积（严格模式建议填写）' })
+                  TextInput({ text: this.servingSizeText, placeholder: $r('app.string.ui_weight_or_volume_per_serving') })
                     .layoutWeight(1).height(44).fontSize(15).borderRadius(8)
                     .backgroundColor($r('app.color.input_background')).type(InputType.Number)
                     .onChange((value: string) => { this.servingSizeText = value; })
@@ -834,27 +872,28 @@ struct CalorieInputPage {
             }
 
             if (this.getActualCalories() > 0) {
-              Text('本次入库热量 ≈ ' + this.getActualCalories() + ' kcal')
+              Text($r('app.string.ui_about_s_kcal_for_this_amount', this.getActualCalories().toString()))
                 .fontSize(13).fontColor($r('app.color.status_success'))
             }
 
-            Button('实时拍照识别 (OCR)')
-              .width('100%').height(40).fontSize(14)
-              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
+            Button($r('app.string.ui_scan_a_nutrition_label_ocr'))
+              .attributeModifier(FoodButtonStyle.secondary)
+              .width('100%')
+              .enabled(!this.isReadingNutritionLabel)
               .onClick(() => { this.startOcrRecognition(); })
 
             if (this.showCollaborationButton) {
-              Button('手机协同传图识别')
-                .width('100%').height(40).fontSize(14)
-                .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
+              Button($r('app.string.food_pick_remote_photo'))
+                .attributeModifier(FoodButtonStyle.secondary)
+                .width('100%')
+                .enabled(!this.isReadingNutritionLabel)
                 .bindMenu(this.collaborationMenu)
             }
 
             if (this.caloriesText.length === 0 || this.caloriesText === '0') {
               Row({ space: 6 }) {
-                Text('⚠️')
-                  .fontSize(14)
-                Text('未录入热量值，建议补录用于健康统计')
+                Image($r('app.media.icon_warning')).width(14).height(14).draggable(false)
+                Text($r('app.string.ui_add_calories_to_include_this_food_in_health_reports'))
                   .fontSize(13)
                   .fontColor($r('app.color.chip_warning_text'))
               }
@@ -866,8 +905,8 @@ struct CalorieInputPage {
 
             if (this.calorieBasis === 'perServing' && (Number(this.servingSizeText) || 0) <= 0) {
               Row({ space: 6 }) {
-                Text('⚠️').fontSize(14)
-                Text('严格模式：未填写“每份重量/体积”时，不会沉淀标准化值（仅保存原始标注）')
+                Image($r('app.media.icon_warning')).width(14).height(14).draggable(false)
+                Text($r('app.string.ui_strict_mode_saves_only_the_original_label_value_until_a_serving_size_is_entered'))
                   .fontSize(12).fontColor($r('app.color.chip_warning_text'))
               }
               .width('100%')
@@ -884,17 +923,20 @@ struct CalorieInputPage {
 
           // 提示信息
           Column({ space: 8 }) {
-            Text('💡 热量获取方式')
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-            Text('• 查看食品包装上的营养成分表')
+            Row({ space: 6 }) {
+              Image($r('app.media.icon_info')).width(14).height(14).draggable(false)
+              Text($r('app.string.ui_how_to_find_calories'))
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+            }
+            Text($r('app.string.ui_check_the_nutrition_label_on_the_package'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-            Text('• 统一记录：原始标注值 + 单位 + 基准；避免重复换算')
+            Text($r('app.string.ui_save_the_original_label_value_unit_and_basis_to_avoid_converting_twice'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-            Text('• 严格模式：按份但未填每份重量时，不沉淀标准化值')
+            Text($r('app.string.ui_strict_mode_requires_the_serving_size_to_calculate_a_standardized_value'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
           }
@@ -906,19 +948,18 @@ struct CalorieInputPage {
           .alignItems(HorizontalAlign.Start)
 
           // 确认按钮
-          Button('下一步：设置保质期')
+          Button($r('app.string.ui_next_set_shelf_life'))
+            .attributeModifier(FoodButtonStyle.primary)
             .width('100%')
-            .height(48)
-            .fontSize(16)
-            .fontColor($r('app.color.button_primary_text'))
-            .backgroundColor($r('app.color.button_primary_bg'))
-            .borderRadius(12)
             .margin({ left: 16, right: 16, top: 8, bottom: 32 })
             .onClick(() => {
               this.confirmAndProceed();
             })
         }
+        // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
+        .padding({ top: 56 + this.statusBarHeight })
       }
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .layoutWeight(1)
       .scrollBar(BarState.Off)
 
@@ -928,6 +969,7 @@ struct CalorieInputPage {
             .width('100%')
             .height('100%')
             .backgroundColor($r('app.color.overlay_background'))
+            .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
             .onClick(() => {
               this.showOcrCheckDialog = false;
             })
@@ -937,22 +979,22 @@ struct CalorieInputPage {
         .position({ x: 0, y: 0 })
 
         Column({ space: 12 }) {
-          Text('OCR营养信息校验')
+          Text($r('app.string.ui_review_scanned_nutrition_information'))
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
 
-          Text('请检查识别值、单位和基准（100g/100ml/每份）')
+          Text($r('app.string.ui_check_the_scanned_value_unit_and_basis_100_g_100_ml_or_per_serving'))
             .fontSize(13)
             .fontColor($r('app.color.text_hint'))
             .width('100%')
 
           Column({ space: 4 }) {
-            Text('能量值')
+            Text($r('app.string.ui_energy'))
               .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-            TextInput({ text: this.ocrDialogValue, placeholder: '输入OCR识别结果' })
+            TextInput({ text: this.ocrDialogValue, placeholder: $r('app.string.ui_enter_the_scanned_value') })
               .width('100%')
               .height(44)
               .fontSize(15)
@@ -983,14 +1025,14 @@ struct CalorieInputPage {
           .width('100%').borderRadius(8).clip(true)
 
           Row({ space: 0 }) {
-            Text('每100单位')
+            Text($r('app.string.ui_per_100_units'))
               .fontSize(13)
               .fontColor(this.ocrDialogBasis === 'per100' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
               .backgroundColor(this.ocrDialogBasis === 'per100' ? $r('app.color.button_primary_bg') : $r('app.color.chip_background'))
               .borderRadius(8)
               .onClick(() => { this.ocrDialogBasis = 'per100'; })
-            Text('每份')
+            Text($r('app.string.ui_per_serving'))
               .fontSize(13)
               .fontColor(this.ocrDialogBasis === 'perServing' ? Color.White : $r('app.color.text_secondary'))
               .textAlign(TextAlign.Center).layoutWeight(1).height(40)
@@ -1002,7 +1044,7 @@ struct CalorieInputPage {
 
           if (this.ocrDialogBasis === 'per100') {
             Row({ space: 8 }) {
-              Text('每100单位类型').fontSize(12).fontColor($r('app.color.text_hint')).layoutWeight(1)
+              Text($r('app.string.ui_unit_for_the_100_unit_basis')).fontSize(13).fontColor($r('app.color.text_hint')).layoutWeight(1)
               Row({ space: 0 }) {
                 Text('g')
                   .fontSize(13)
@@ -1025,7 +1067,7 @@ struct CalorieInputPage {
 
           if (this.ocrDialogBasis === 'perServing') {
             Row({ space: 8 }) {
-              TextInput({ text: this.ocrDialogServingSize, placeholder: '每份重量/体积（可识别后手改）' })
+              TextInput({ text: this.ocrDialogServingSize, placeholder: $r('app.string.ui_weight_or_volume_per_serving_editable') })
                 .layoutWeight(1).height(40).fontSize(14).borderRadius(8)
                 .backgroundColor($r('app.color.input_background')).type(InputType.Number)
                 .onChange((value: string) => { this.ocrDialogServingSize = value; })
@@ -1050,23 +1092,15 @@ struct CalorieInputPage {
           }
 
           Row({ space: 12 }) {
-            Button('取消')
+            Button($r('app.string.ui_cancel'))
+              .attributeModifier(FoodButtonStyle.neutral)
               .layoutWeight(1)
-              .height(40)
-              .fontSize(14)
-              .fontColor($r('app.color.text_secondary'))
-              .backgroundColor($r('app.color.chip_background'))
-              .borderRadius(8)
               .onClick(() => {
                 this.showOcrCheckDialog = false;
               })
-            Button('确认')
+            Button($r('app.string.ui_confirm'))
+              .attributeModifier(FoodButtonStyle.primary)
               .layoutWeight(1)
-              .height(40)
-              .fontSize(14)
-              .fontColor($r('app.color.button_primary_text'))
-              .backgroundColor($r('app.color.button_primary_bg'))
-              .borderRadius(8)
               .onClick(() => {
                 this.confirmOcrValue();
               })
@@ -1078,6 +1112,7 @@ struct CalorieInputPage {
         .padding(20)
         .backgroundColor($r('app.color.card_background'))
         .borderRadius(16)
+        .transition(FoodMotion.panel())
         .position({ x: '7.5%', y: '28%' })
       }
     }
@@ -1085,10 +1120,24 @@ struct CalorieInputPage {
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
     .animation({ duration: 260, curve: Curve.EaseInOut })
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: $r('app.string.ui_calorie_information') }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .bindToScrollable([this.scroller])
+    .onShown(() => { this.isPageActive = true; })
+    .onHidden(() => {
+      this.isPageActive = false;
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
-  buildInfoLine(label: string, value: string) {
+  buildInfoLine(label: ResourceStr, value: ResourceStr) {
     Row() {
       Text(label)
         .fontSize(13)
@@ -1102,4 +1151,10 @@ struct CalorieInputPage {
     .width('100%')
     .padding({ top: 2, bottom: 2 })
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 CalorieInputPage）
+@Builder
+export function CalorieInputPageBuilder() {
+  CalorieInputPage()
 }

@@ -14,6 +14,7 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "routerMap": "$profile:router_map",
     "requestPermissions": [
       {
         "name": "ohos.permission.CAMERA",
@@ -47,7 +48,7 @@
         "description": "$string:EntryAbility_desc",
         "icon": "$media:layered_image",
         "label": "$string:EntryAbility_label",
-        "startWindowIcon": "$media:startIcon",
+        "startWindowIcon": "$media:foreground",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [

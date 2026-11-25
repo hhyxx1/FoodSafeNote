@@ -1,4 +1,4 @@
-import { fileIo } from '@kit.CoreFileKit';
+import { fileIo, picker } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
 import { DatabaseHelper } from './DatabaseHelper';
@@ -17,7 +17,7 @@ interface ExportData {
 
 interface ImportResult {
   success: boolean;
-  message: string;
+  message: ResourceStr;
   imported?: number;
   skipped?: number;
 }
@@ -65,7 +65,7 @@ export class DataExportService {
       const parsed: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
       const dictArray: ProductDict[] = parsed['productDict'] as ProductDict[];
       if (dictArray === undefined || dictArray === null) {
-        result.message = '文件格式错误：缺少productDict字段';
+        result.message = $r('app.string.ui_invalid_file_missing_product_dictionary');
         return result;
       }
 
@@ -82,15 +82,18 @@ export class DataExportService {
           continue;
         }
         seenKeys.add(normalized.dictKey);
-        await db.insertOrUpdateProductDict(normalized);
-        result.imported = (result.imported || 0) + 1;
+        if (await db.insertOrUpdateProductDict(normalized) > 0) {
+          result.imported = (result.imported || 0) + 1;
+        } else {
+          result.skipped = (result.skipped || 0) + 1;
+        }
         await DataExportService.yieldToUi(i);
       }
       result.success = true;
-      result.message = '字典导入成功';
+      result.message = $r('app.string.ui_product_dictionary_imported');
       return result;
     } catch (e) {
-      result.message = '导入失败: 数据格式错误';
+      result.message = $r('app.string.ui_import_failed_invalid_data_format');
       return result;
     }
   }
@@ -128,37 +131,53 @@ export class DataExportService {
     return JSON.stringify(data);
   }
 
-  // 保存JSON到文件
-  static async saveToFile(context: common.Context, content: string, fileName: string): Promise<string> {
-    const dir: string = context.filesDir;
-    const filePath: string = dir + '/' + fileName;
-    const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
-    fileIo.writeSync(file.fd, content);
-    fileIo.closeSync(file.fd);
-    return filePath;
+  static async saveToFile(context: common.UIAbilityContext, content: string, fileName: string): Promise<boolean> {
+    const options = new picker.DocumentSaveOptions();
+    options.newFileNames = [fileName];
+    const uris: string[] = await new picker.DocumentViewPicker(context).save(options);
+    if (uris.length === 0) return false;
+
+    const file = await fileIo.open(uris[0], fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
+    try {
+      await fileIo.write(file.fd, content);
+    } finally {
+      await fileIo.close(file);
+    }
+    return true;
   }
 
-  // 从文件读取JSON
+  static async pickImportFile(context: common.UIAbilityContext): Promise<string[]> {
+    const options = new picker.DocumentSelectOptions();
+    options.maxSelectNumber = 1;
+    options.fileSuffixFilters = ['.json'];
+    return await new picker.DocumentViewPicker(context).select(options);
+  }
+
   static async readFromFile(filePath: string): Promise<string> {
-    const file: fileIo.File = fileIo.openSync(filePath, fileIo.OpenMode.READ_ONLY);
-    const stat: fileIo.Stat = fileIo.statSync(filePath);
-    const buf = new ArrayBuffer(stat.size);
-    fileIo.readSync(file.fd, buf);
-    fileIo.closeSync(file.fd);
-    const decoder = util.TextDecoder.create('utf-8');
-    return decoder.decodeToString(new Uint8Array(buf));
+    const file = await fileIo.open(filePath, fileIo.OpenMode.READ_ONLY);
+    try {
+      const stat: fileIo.Stat = await fileIo.stat(file.fd);
+      const buffer = new ArrayBuffer(stat.size);
+      const length: number = await fileIo.read(file.fd, buffer);
+      const decoder = util.TextDecoder.create('utf-8');
+      return decoder.decodeToString(new Uint8Array(buffer, 0, length));
+    } finally {
+      await fileIo.close(file);
+    }
   }
 
   // 全量导入
   static async importAllData(jsonStr: string): Promise<ImportResult> {
     const result: ImportResult = { success: false, message: '', imported: 0, skipped: 0 };
+    const db = DatabaseHelper.getInstance();
+    db.deviceSync.pause();
     try {
       const data: ExportData = JSON.parse(jsonStr) as ExportData;
       if (data.foodItems === undefined && data.members === undefined) {
-        result.message = '文件格式错误';
+        result.message = $r('app.string.ui_invalid_file_format');
         return result;
       }
-      const db: DatabaseHelper = DatabaseHelper.getInstance();
+      const restoredFoodIds: Map<number, number> = new Map<number, number>();
 
       // 导入食品
       if (data.foodItems !== undefined) {
@@ -177,8 +196,18 @@ export class DataExportService {
           food.storageType = item.storageType;
           food.expiryDate = item.expiryDate;
           food.status = item.status;
-          await db.insertFoodItem(food);
-          result.imported = (result.imported || 0) + 1;
+          food.isOpened = item.isOpened === true;
+          food.createTime = item.createTime || 0;
+          food.consumedBy = item.consumedBy || '';
+          food.wasteReason = item.wasteReason || '';
+          food.consumeTime = item.consumeTime || 0;
+          const restoredId: number = await db.insertFoodItem(food);
+          if (restoredId > 0) {
+            if (item.id > 0) restoredFoodIds.set(item.id, restoredId);
+            result.imported = (result.imported || 0) + 1;
+          } else {
+            result.skipped = (result.skipped || 0) + 1;
+          }
           await DataExportService.yieldToUi(i);
         }
       }
@@ -193,8 +222,11 @@ export class DataExportService {
             continue;
           }
           memberSet.add(name);
-          await db.insertMember(name);
-          result.imported = (result.imported || 0) + 1;
+          if (await db.insertMember(name) > 0) {
+            result.imported = (result.imported || 0) + 1;
+          } else {
+            result.skipped = (result.skipped || 0) + 1;
+          }
           await DataExportService.yieldToUi(i);
         }
       }
@@ -215,8 +247,12 @@ export class DataExportService {
             result.skipped = (result.skipped || 0) + 1;
             continue;
           }
-          await db.insertConsumptionRecord(rec);
-          result.imported = (result.imported || 0) + 1;
+          rec.foodItemId = restoredFoodIds.get(rec.foodItemId) ?? 0;
+          if (await db.insertConsumptionRecord(rec) > 0) {
+            result.imported = (result.imported || 0) + 1;
+          } else {
+            result.skipped = (result.skipped || 0) + 1;
+          }
           await DataExportService.yieldToUi(i);
         }
       }
@@ -234,16 +270,22 @@ export class DataExportService {
           ocrRec.barcode = ocr.barcode;
           ocrRec.ocrValue = ocr.ocrValue;
           ocrRec.finalValue = ocr.finalValue;
-          await db.insertOcrRecord(ocrRec);
-          result.imported = (result.imported || 0) + 1;
+          ocrRec.createTime = ocr.createTime || 0;
+          if (await db.insertOcrRecord(ocrRec) > 0) {
+            result.imported = (result.imported || 0) + 1;
+          } else {
+            result.skipped = (result.skipped || 0) + 1;
+          }
           await DataExportService.yieldToUi(i);
         }
       }
 
       result.success = true;
-      result.message = '导入成功（' + (result.imported || 0) + ' 条，跳过 ' + (result.skipped || 0) + ' 条）';
+      result.message = $r('app.string.ui_import_complete_d_added_d_skipped', result.imported || 0, result.skipped || 0);
     } catch (e) {
-      result.message = '导入失败: 数据格式错误';
+      result.message = $r('app.string.ui_import_failed_invalid_data_format');
+    } finally {
+      db.deviceSync.resume();
     }
     return result;
   }

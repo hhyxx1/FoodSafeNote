@@ -1,0 +1,82 @@
+{
+  "dbSchema": [
+    {
+      "version": 0,
+      "bundleName": "com.dudh.foodsaferecord",
+      "dbName": "FoodSafeNoteShared",
+      "tables": [
+        {
+          "tableName": "food_items",
+          "deviceSyncFields": ["sync_key", "name", "category", "spec", "barcode", "calories", "storage_type", "expiry_date", "status", "create_time", "consumed_by", "waste_reason", "consume_time", "is_opened"],
+          "cloudType": ["Local"],
+          "fields": [
+            {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
+            {"columnName": "sync_key", "type": "Text", "primaryKey": true, "notNull": true, "autoIncrement": false},
+            {"columnName": "name", "type": "Text", "primaryKey": false, "notNull": true, "autoIncrement": false},
+            {"columnName": "category", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "spec", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "barcode", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "calories", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "storage_type", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "expiry_date", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "status", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "create_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "consumed_by", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "waste_reason", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "consume_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "is_opened", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false}
+          ]
+        },
+        {
+          "tableName": "family_members",
+          "deviceSyncFields": ["sync_key", "name", "create_time"],
+          "cloudType": ["Local"],
+          "fields": [
+            {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
+            {"columnName": "sync_key", "type": "Text", "primaryKey": true, "notNull": true, "autoIncrement": false},
+            {"columnName": "name", "type": "Text", "primaryKey": false, "notNull": true, "autoIncrement": false},
+            {"columnName": "create_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false}
+          ]
+        },
+        {
+          "tableName": "consumption_records",
+          "deviceSyncFields": ["sync_key", "food_sync_key", "food_name", "member_name", "type", "calories", "waste_reason", "create_time"],
+          "cloudType": ["Local"],
+          "fields": [
+            {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
+            {"columnName": "sync_key", "type": "Text", "primaryKey": true, "notNull": true, "autoIncrement": false},
+            {"columnName": "food_sync_key", "type": "Text", "primaryKey": false, "notNull": true, "autoIncrement": false},
+            {"columnName": "food_name", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "member_name", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "type", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "calories", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "waste_reason", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "create_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false}
+          ]
+        },
+        {
+          "tableName": "product_dict",
+          "deviceSyncFields": ["dict_key", "barcode", "name", "category", "spec", "calories", "raw_energy", "energy_unit", "basis_type", "serving_size", "serving_unit", "is_reliable", "source", "update_time"],
+          "cloudType": ["Local"],
+          "fields": [
+            {"columnName": "id", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": true},
+            {"columnName": "dict_key", "type": "Text", "primaryKey": true, "notNull": true, "autoIncrement": false},
+            {"columnName": "barcode", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "name", "type": "Text", "primaryKey": false, "notNull": true, "autoIncrement": false},
+            {"columnName": "category", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "spec", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "calories", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "raw_energy", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "energy_unit", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "basis_type", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "serving_size", "type": "Double", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "serving_unit", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "is_reliable", "type": "Integer", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "source", "type": "Text", "primaryKey": false, "notNull": false, "autoIncrement": false},
+            {"columnName": "update_time", "type": "Long", "primaryKey": false, "notNull": false, "autoIncrement": false}
+          ]
+        }
+      ]
+    }
+  ]
+}

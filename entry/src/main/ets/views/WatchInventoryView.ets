@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { FoodItem } from '../model/DataModels';
@@ -45,7 +44,7 @@ export struct WatchInventoryView {
 
   private getString(resId: number, fallback: string): string {
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       return ctx.resourceManager.getStringSync(resId);
     } catch (e) {
       return fallback;
@@ -84,7 +83,7 @@ export struct WatchInventoryView {
         Row({ space: 8 }) {
           Column({ space: 1 }) {
             Stack({ alignContent: Alignment.Center }) {
-              Circle().width(24).height(24).fill('#34C759')
+              Row().width(24).height(24).borderRadius(12).backgroundColor('#34C759')
               Text(this.normalCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
@@ -93,7 +92,7 @@ export struct WatchInventoryView {
 
           Column({ space: 1 }) {
             Stack({ alignContent: Alignment.Center }) {
-              Circle().width(24).height(24).fill('#FF9500')
+              Row().width(24).height(24).borderRadius(12).backgroundColor('#FF9500')
               Text(this.nearExpiryCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
@@ -102,7 +101,7 @@ export struct WatchInventoryView {
 
           Column({ space: 1 }) {
             Stack({ alignContent: Alignment.Center }) {
-              Circle().width(24).height(24).fill('#FF3B30')
+              Row().width(24).height(24).borderRadius(12).backgroundColor('#FF3B30')
               Text(this.expiredCount.toString())
                 .fontSize(11).fontWeight(FontWeight.Bold).fontColor(Color.White)
             }
@@ -154,7 +153,7 @@ export struct WatchInventoryView {
             ForEach(this.foodItems, (item: FoodItem) => {
               ListItem() {
                 Row() {
-                  Circle().width(6).height(6).fill(item.getStatusColor())
+                  Row().width(6).height(6).borderRadius(3).backgroundColor(item.getStatusColor())
                   Text(item.name)
                     .fontSize(12)
                     .fontColor($r('app.color.text_primary'))
@@ -171,10 +170,11 @@ export struct WatchInventoryView {
               }
               .onClick(() => {
                 const params: WatchFoodParams = { foodId: item.id };
-                router.pushUrl({ url: 'pages/WatchFoodDetailPage', params: params });
+                this.getUIContext().getRouter().pushUrl({ url: 'pages/WatchFoodDetailPage', params: params });
               })
             }, (item: FoodItem) => item.id.toString())
           }
+          .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           .layoutWeight(1)
         }
       }

@@ -1,168 +1,197 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { FoodButtonStyle, FOOD_TITLE_BAR_STYLE } from '../common/FoodInterface';
 import { common } from '@kit.AbilityKit';
+import { HdsNavDestination } from '@kit.UIDesignKit';
+import { AppNavigation } from '../common/AppNavigation';
 import { DataExportService } from '../common/DataExportService';
 import { formatTimestampFull } from '../common/Constants';
 
-@Entry
 @Component
 struct DataBackupPage {
   @State backupFiles: string[] = [];
   @State isExporting: boolean = false;
   @State isImporting: boolean = false;
-  @State lastExportPath: string = '';
+  private scroller: Scroller = new Scroller();
+  // 状态栏高度（vp），由 Index 写入 AppStorage；用于标题栏沉浸避让
+  @StorageProp('statusBarHeight') statusBarHeight: number = 0;
 
   aboutToAppear(): void {
     this.loadBackupFiles();
   }
 
   private loadBackupFiles(): void {
-    this.backupFiles = DataExportService.getBackupFiles(getContext(this));
+    this.backupFiles = DataExportService.getBackupFiles(this.getUIContext().getHostContext() as common.Context);
   }
 
   private async exportAll(): Promise<void> {
+    if (this.isExporting || this.isImporting) return;
     this.isExporting = true;
     try {
       const json: string = await DataExportService.exportAllData();
       const fileName: string = 'backup_' + Date.now() + '.json';
-      const path: string = await DataExportService.saveToFile(getContext(this), json, fileName);
-      this.lastExportPath = path;
-      promptAction.showToast({ message: '全量备份成功', duration: 2000 });
-      this.loadBackupFiles();
-    } catch (e) {
-      promptAction.showToast({ message: '导出失败', duration: 1500 });
-    }
-    this.isExporting = false;
-  }
-
-  private async importAll(): Promise<void> {
-    this.isImporting = true;
-    try {
-      const ctx: common.Context = getContext(this) as common.Context;
-      const dir: string = ctx.filesDir;
-      const filePath: string = dir + '/import_data.json';
-      const jsonStr: string = await DataExportService.readFromFile(filePath);
-      const result = await DataExportService.importAllData(jsonStr);
-      if (result.success) {
-        promptAction.showToast({ message: '全量导入成功', duration: 2000 });
-      } else {
-        promptAction.showToast({ message: result.message, duration: 2000 });
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      if (await DataExportService.saveToFile(ctx, json, fileName)) {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_full_backup_exported'), duration: 2000 });
       }
     } catch (e) {
-      promptAction.showToast({ message: '导入失败：文件不存在或格式错误', duration: 2000 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_export_failed'), duration: 1500 });
+      } catch (e) {
+        // 提示失败，忽略
+      }
+    } finally {
+      this.isExporting = false;
     }
-    this.isImporting = false;
+  }
+
+  private async importAll(backupFile: string = ''): Promise<void> {
+    if (this.isExporting || this.isImporting) return;
+    this.isImporting = true;
+    try {
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const files: string[] = backupFile.length > 0 ? [ctx.filesDir + '/' + backupFile] :
+        await DataExportService.pickImportFile(ctx);
+      if (files.length === 0) return;
+      const jsonStr: string = await DataExportService.readFromFile(files[0]);
+      const choice = await this.getUIContext().getPromptAction().showDialog({
+        title: $r('app.string.ui_import_full_backup_file'),
+        message: $r('app.string.ui_import_backup_adds_records'),
+        buttons: [
+          { text: $r('app.string.ui_cancel'), color: '#6B7280' },
+          { text: $r('app.string.ui_confirm'), color: '#007DFF' }
+        ]
+      }).catch(() => null);
+      if (choice === null || choice.index !== 1) return;
+      const result = await DataExportService.importAllData(jsonStr);
+      if (result.success) {
+        AppNavigation.notifyDataChanged();
+        this.getUIContext().getPromptAction().showToast({ message: result.message, duration: 2000 });
+      } else {
+        this.getUIContext().getPromptAction().showToast({ message: result.message, duration: 2000 });
+      }
+    } catch (e) {
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_import_failed_the_file_is_missing_or_has_an_invalid_format'), duration: 2000 });
+      } catch (e) {
+        // 提示失败，忽略
+      }
+    } finally {
+      this.isImporting = false;
+    }
   }
 
   private async exportDict(): Promise<void> {
+    if (this.isExporting || this.isImporting) return;
     this.isExporting = true;
     try {
       const json: string = await DataExportService.exportProductDict();
       const fileName: string = 'dict_' + Date.now() + '.json';
-      const path: string = await DataExportService.saveToFile(getContext(this), json, fileName);
-      this.lastExportPath = path;
-      promptAction.showToast({ message: '产品字典导出成功', duration: 2000 });
-      this.loadBackupFiles();
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      if (await DataExportService.saveToFile(ctx, json, fileName)) {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_product_dictionary_exported'), duration: 2000 });
+      }
     } catch (e) {
-      promptAction.showToast({ message: '导出失败', duration: 1500 });
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.ui_export_failed'), duration: 1500 });
+      } catch (e) {
+        // 提示失败，忽略
+      }
+    } finally {
+      this.isExporting = false;
     }
-    this.isExporting = false;
   }
 
   build() {
+    HdsNavDestination() {
     Column() {
-      // 导航栏
-      Row() {
-        Button('返回')
-          .height(40).fontSize(14).fontColor($r('app.color.accent_link'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { router.back(); })
-        Text('数据备份与恢复')
-          .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-          .layoutWeight(1).textAlign(TextAlign.Center)
-        Text('').width(56)
-      }
-      .width('100%')      .padding({ left: 8, right: 8, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
-
-      Scroll() {
+      Scroll(this.scroller) {
         Column({ space: 16 }) {
-          // 导出操作
           Column({ space: 12 }) {
-            Text('数据导出')
-              .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
-            Text('导出数据为JSON文件，保存在应用沙箱目录')
-              .fontSize(13).fontColor($r('app.color.text_hint')).width('100%')
+            Text($r('app.string.ui_export_data'))
+              .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
+            Text($r('app.string.ui_choose_where_to_save_backup'))
+              .fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
 
-            Button('全量导出（食品+成员+字典）')
-              .width('100%').height(44).fontSize(14)
-              .fontColor($r('app.color.button_primary_text')).backgroundColor($r('app.color.button_primary_bg')).borderRadius(8)
-              .enabled(!this.isExporting)
+            Button($r('app.string.ui_export_foods_members_and_dictionary'))
+              .attributeModifier(FoodButtonStyle.primary)
+              .width('100%')
+              .enabled(!this.isImporting && !this.isExporting)
               .onClick(() => { this.exportAll(); })
 
-            Button('产品字典单独导出')
-              .width('100%').height(44).fontSize(14)
-              .fontColor($r('app.color.button_secondary_text')).backgroundColor($r('app.color.button_secondary_bg')).borderRadius(8)
-              .enabled(!this.isExporting)
+            Button($r('app.string.ui_export_product_dictionary_only'))
+              .attributeModifier(FoodButtonStyle.text)
+              .width('100%')
+              .enabled(!this.isImporting && !this.isExporting)
               .onClick(() => { this.exportDict(); })
-
-            Button('全量导入（从沙箱目录）')
-              .width('100%').height(44).fontSize(14)
-              .fontColor($r('app.color.button_success_text')).backgroundColor($r('app.color.button_success_bg')).borderRadius(8)
-              .enabled(!this.isImporting)
-              .onClick(() => { this.importAll(); })
-
-            Text('导入说明：将备份JSON文件重命名为 import_data.json 放入应用沙箱目录')
-              .fontSize(11).fontColor($r('app.color.text_hint')).width('100%')
-
-            if (this.lastExportPath.length > 0) {
-              Text('最近导出: ' + this.lastExportPath)
-                .fontSize(11).fontColor($r('app.color.status_success')).width('100%')
-            }
           }
-          .width('100%').padding(16).margin({ left: 16, right: 16, top: 16 })
-          .backgroundColor($r('app.color.card_background')).borderRadius(16)
+          .width('100%').padding(16).margin({ left: 16, right: 16, top: 10 })
+          .backgroundColor($r('app.color.card_background')).borderRadius(20)
 
-          // 安全提示
-          Column({ space: 8 }) {
-            Text('💡 数据安全说明')
-              .fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-            Text('• 所有数据仅存储在本地设备')
-              .fontSize(13).fontColor($r('app.color.text_secondary'))
-            Text('• 导出文件保存在应用沙箱目录')
-              .fontSize(13).fontColor($r('app.color.text_secondary'))
-            Text('• 卸载应用将清除所有本地数据')
-              .fontSize(13).fontColor($r('app.color.text_secondary'))
-            Text('• 建议定期导出备份重要数据')
-              .fontSize(13).fontColor($r('app.color.text_secondary'))
+          Column({ space: 10 }) {
+            Text($r('app.string.backup_restore_heading'))
+              .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
+            Text($r('app.string.backup_restore_description'))
+              .fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
+            Button($r('app.string.ui_import_full_backup_file'))
+              .attributeModifier(FoodButtonStyle.secondary)
+              .width('100%')
+              .enabled(!this.isImporting && !this.isExporting)
+              .onClick(() => { this.importAll(); })
           }
           .width('100%').padding(16).margin({ left: 16, right: 16 })
-          .backgroundColor($r('app.color.chip_success_bg')).borderRadius(16)
-          .alignItems(HorizontalAlign.Start)
+          .backgroundColor($r('app.color.card_background')).borderRadius(20)
+
+          Text($r('app.string.ui_uninstalling_the_app_deletes_its_local_data'))
+            .fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
+            .padding({ left: 18, right: 18 })
 
           // 备份文件列表
           Column({ space: 12 }) {
-            Text('备份文件')
-              .fontSize(15).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
+            Text($r('app.string.ui_backup_files'))
+              .fontSize(17).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
             if (this.backupFiles.length === 0) {
-              Text('暂无备份文件')
+              Text($r('app.string.ui_no_backup_files'))
                 .fontSize(13).fontColor($r('app.color.text_hint')).width('100%')
                 .textAlign(TextAlign.Center).padding({ top: 16, bottom: 16 })
             } else {
               ForEach(this.backupFiles, (file: string) => {
                 Row() {
-                  Text('📄').fontSize(16).width(28)
+                  Image($r('app.media.icon_file')).width(16).height(16).draggable(false).margin({ right: 12 })
                   Text(file).fontSize(13).fontColor($r('app.color.text_primary')).layoutWeight(1)
                 }
                 .width('100%').padding({ top: 6, bottom: 6 })
+                .enabled(!this.isImporting && !this.isExporting && !file.startsWith('dict_') && file !== 'import_dict.json')
+                .onClick(() => { this.importAll(file); })
               }, (file: string) => file)
             }
           }
           .width('100%').padding(16).margin({ left: 16, right: 16, bottom: 32 })
           .backgroundColor($r('app.color.card_background')).borderRadius(16)
         }
+        // 标题栏沉浸避让：状态栏高度 + 标题栏高度(56vp)
+        .padding({ top: 56 + this.statusBarHeight })
       }
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .layoutWeight(1).scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
+    }
+    .titleBar({
+      content: {
+        title: { mainTitle: $r('app.string.ui_backup_and_restore') }
+      },
+      style: FOOD_TITLE_BAR_STYLE
+    })
+    .bindToScrollable([this.scroller])
+    .onBackPressed(() => this.isImporting || this.isExporting)
+    .onHidden(() => {
+      AppNavigation.notifyDataChanged();
+    })
+    .backgroundColor($r('app.color.page_background'))
   }
+}
+
+// Navigation 系统路由表入口（router_map.json 中注册为 DataBackupPage）
+@Builder
+export function DataBackupPageBuilder() {
+  DataBackupPage()
 }
