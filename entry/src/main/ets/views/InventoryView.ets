@@ -1,3 +1,4 @@
+import { FoodSegmentSelector, FoodSegmentOption } from '../common/FoodSegmentSelector';
 import { IntakeParams } from '../common/FoodIntake';
 import { localizedFoodLabel } from '../common/Constants';
 import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodMotion } from '../common/FoodInterface';
@@ -14,6 +15,13 @@ interface EditFoodParams {
   editMode: boolean;
   foodId: number;
 }
+
+const INVENTORY_FILTERS: FoodSegmentOption[] = [
+  { id: 'all', label: $r('app.string.ui_all') },
+  { id: 'normal', label: $r('app.string.status_normal') },
+  { id: 'nearExpiry', label: $r('app.string.status_near_expiry') },
+  { id: 'expired', label: $r('app.string.status_expired') }
+];
 
 @Component
 export struct InventoryView {
@@ -180,10 +188,8 @@ export struct InventoryView {
 
   private selectInventoryFilter(filter: string): void {
     if (filter === this.filterType) return;
-    this.getUIContext().animateTo({ duration: 170, curve: Curve.EaseOut }, () => {
-      this.filterType = filter;
-      this.applyFilter();
-    });
+    this.filterType = filter;
+    this.applyFilter();
   }
 
   build() {
@@ -209,19 +215,20 @@ export struct InventoryView {
             .layoutWeight(1).onClick(() => { this.openIntake('scan'); })
           Button($r('app.string.ui_add_manually')).attributeModifier(FoodButtonStyle.compactSecondary)
             .layoutWeight(1).onClick(() => { this.openIntake('single'); })
-          Button($r('app.string.intake_other_methods')).attributeModifier(FoodButtonStyle.text)
-            .onClick(() => { AppNavigation.push('EntrySelectionPage'); })
+          Button($r('app.string.intake_other_methods')).attributeModifier(FoodButtonStyle.compactNeutral)
+            .layoutWeight(1).onClick(() => { AppNavigation.push('EntrySelectionPage'); })
         }
         .width('100%').padding({ left: 20, right: 20 })
 
-        Row({ space: 2 }) {
-          this.inventoryFilter($r('app.string.ui_all'), 'all')
-          this.inventoryFilter($r('app.string.status_normal'), 'normal')
-          this.inventoryFilter($r('app.string.status_near_expiry'), 'nearExpiry')
-          this.inventoryFilter($r('app.string.status_expired'), 'expired')
+        Column() {
+          FoodSegmentSelector({
+            options: INVENTORY_FILTERS,
+            selectedId: this.filterType,
+            counts: [this.foodItems.length, this.normalCount, this.nearExpiryCount, this.expiredCount],
+            onSelect: (id: string) => { this.selectInventoryFilter(id); }
+          })
         }
-        .width('100%')
-        .padding({ left: 20, right: 20 })
+        .width('100%').padding({ left: 20, right: 20 })
 
         if (this.pendingDateCount > 0 || this.filterType === 'pendingDate') {
           Button($r('app.string.intake_pending_count', this.pendingDateCount))
@@ -340,29 +347,6 @@ export struct InventoryView {
     }
     .width('100%')
     .height('100%')
-  }
-
-  @Builder
-  inventoryFilter(label: ResourceStr, filter: string) {
-    Column({ space: 4 }) {
-      Text(label)
-        .fontSize(13).fontWeight(FontWeight.Medium)
-        .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_secondary'))
-        .textAlign(TextAlign.Center)
-      Text((filter === 'all' ? this.foodItems.length : filter === 'normal' ? this.normalCount :
-        filter === 'nearExpiry' ? this.nearExpiryCount : this.expiredCount).toString())
-        .fontSize(17).fontWeight(FontWeight.Bold)
-        .fontColor(this.filterType === filter ? $r('app.color.accent_link') : $r('app.color.text_primary'))
-    }
-    .layoutWeight(1)
-    .constraintSize({ minHeight: 56 })
-    .padding({ top: 7, bottom: 7 })
-    .borderRadius(12)
-    .backgroundColor(this.filterType === filter ? $r('app.color.button_secondary_bg') : Color.Transparent)
-    .accessibilitySelected(this.filterType === filter)
-    .focusable(true)
-    .clickEffect(FOOD_PRESS_EFFECT)
-    .onClick(() => { this.selectInventoryFilter(filter); })
   }
 
   @Builder

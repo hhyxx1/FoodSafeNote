@@ -1,4 +1,4 @@
-import { FoodButtonStyle } from '../common/FoodInterface';
+import { FoodButtonStyle, FoodMotion } from '../common/FoodInterface';
 import { InventoryView } from '../views/InventoryView';
 import { HealthView } from '../views/HealthView';
 import { MineView } from '../views/MineView';
@@ -59,7 +59,6 @@ struct Index {
   @State healthTabBgDark: string = '#4A3535';
   @State dictTabBgDark: string = '#3A4148';
   private readonly phoneTabBarHeight: number = 60;
-  private readonly phoneTabSlideDuration: number = 220;
   // 手势条（navigation indicator）高度，单位 vp；0 表示未知（胶囊退回默认间距）
   @State naviIndicatorHeight: number = 0;
 
@@ -385,7 +384,7 @@ struct Index {
     .vertical(false)
     .barOverlap(true)
     .barHeight(this.phoneTabBarHeight)
-    .animationDuration(this.phoneTabSlideDuration)
+    .animationDuration(FoodMotion.selectionDuration)
     .barFloatingStyle({
       // 手势条存在时胶囊上抬到手势条正上方（跟随官方示例），否则用系统默认间距
       barBottomMargin: this.getPhoneBarBottomMargin(),
@@ -649,7 +648,7 @@ struct Index {
               .fontSize(22)
               .fontColor([$r('app.color.accent_link')])
               .translate({ x: (targetIndex - this.phoneHighlightIndex) * this.phoneTabWidths[targetIndex] })
-              .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
+              .animation(FoodMotion.selection)
           }
           .width(44)
           .height(28)
@@ -661,7 +660,7 @@ struct Index {
         .height(28)
         .justifyContent(FlexAlign.Center)
         .translate({ x: ((this.phoneHighlightIndex - targetIndex) * 100).toString() + '%' })
-        .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
+        .animation(FoodMotion.selection)
         .hitTestBehavior(HitTestMode.None)
       }
       .width('100%')
@@ -675,7 +674,7 @@ struct Index {
         .fontSize(12)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.phoneHighlightIndex === targetIndex ? $r('app.color.accent_link') : $r('app.color.tab_inactive'))
-        .animation({ duration: this.phoneTabSlideDuration, curve: Curve.EaseOut })
+        .animation(FoodMotion.selection)
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Center)

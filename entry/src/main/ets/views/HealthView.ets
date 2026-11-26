@@ -1,10 +1,18 @@
-import { FoodButtonStyle, FOOD_PRESS_EFFECT, FoodJournalMetric, FoodMotion } from '../common/FoodInterface';
+import { FoodSegmentSelector, FoodSegmentOption } from '../common/FoodSegmentSelector';
+import { FoodButtonStyle, FoodJournalMetric, FoodMotion } from '../common/FoodInterface';
 import { resolveLocalizedText } from '../common/Constants';
 import { localizedFoodLabel, localizedFoodLabelText } from '../common/Constants';
 import { DatabaseHelper } from '../common/DatabaseHelper';
 import { AppNavigation } from '../common/AppNavigation';
 import { ConsumptionRecord, DailyCalorie, WasteStat } from '../model/DataModels';
 import { padZero } from '../common/Constants';
+
+const HEALTH_RANGES: FoodSegmentOption[] = [
+  { id: 'today', label: $r('app.string.watch_today') },
+  { id: 'week', label: $r('app.string.ui_last_7_days') },
+  { id: 'month', label: $r('app.string.ui_last_30_days') },
+  { id: 'custom', label: $r('app.string.ui_custom') }
+];
 
 @Component
 export struct HealthView {
@@ -136,14 +144,11 @@ export struct HealthView {
       .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 4 })
 
       Column() {
-        Row({ space: 3 }) {
-          this.buildTimeBtn($r('app.string.watch_today'), 'today')
-          this.buildTimeBtn($r('app.string.ui_last_7_days'), 'week')
-          this.buildTimeBtn($r('app.string.ui_last_30_days'), 'month')
-          this.buildTimeBtn($r('app.string.ui_custom'), 'custom')
-        }
-        .padding(4).backgroundColor($r('app.color.chip_background')).borderRadius(26)
-        .width('100%')
+        FoodSegmentSelector({
+          options: HEALTH_RANGES,
+          selectedId: this.viewMode,
+          onSelect: (id: string) => { this.selectRange(id); }
+        })
       }
       .width('100%').padding({ left: 20, right: 20 })
 
@@ -317,23 +322,12 @@ export struct HealthView {
     .width('100%').height('100%').backgroundColor($r('app.color.page_background'))
   }
 
-  @Builder
-  buildTimeBtn(label: ResourceStr, mode: string) {
-    Button(label)
-      .type(ButtonType.Capsule)
-      .fontSize(13).fontWeight(FontWeight.Medium)
-      .fontColor(this.viewMode === mode ? $r('app.color.accent_link') : $r('app.color.text_secondary'))
-      .layoutWeight(1).height(44)
-      .padding({ left: 3, right: 3 })
-      .backgroundColor(this.viewMode === mode ? $r('app.color.card_background') : Color.Transparent)
-      .accessibilitySelected(this.viewMode === mode)
-      .clickEffect(FOOD_PRESS_EFFECT)
-      .onClick(() => {
-        this.getUIContext().animateTo({ duration: 170, curve: Curve.EaseOut }, () => {
-          this.viewMode = mode;
-          this.showDatePicker = mode === 'custom';
-        });
-        this.loadData();
-      })
+  private selectRange(id: string): void {
+    if (this.viewMode === id && (id !== 'custom' || this.showDatePicker)) return;
+    this.getUIContext().animateTo(FoodMotion.selection, () => {
+      this.viewMode = id;
+      this.showDatePicker = id === 'custom';
+    });
+    void this.loadData();
   }
 }

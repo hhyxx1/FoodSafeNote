@@ -26,7 +26,7 @@ export const FOOD_TITLE_BAR_STYLE: TitleBarStyleOptions = {
   blurStrategy: BlurStrategy.DISABLE
 };
 
-export const FOOD_PRESS_EFFECT: ClickEffect = { level: ClickEffectLevel.LIGHT, scale: 0.97 };
+export const FOOD_PRESS_EFFECT: ClickEffect = { level: ClickEffectLevel.LIGHT, scale: 0.96 };
 
 export class FoodButtonStyle implements AttributeModifier<ButtonAttribute> {
   static readonly primary = new FoodButtonStyle($r('app.color.button_primary_bg'),
@@ -37,6 +37,7 @@ export class FoodButtonStyle implements AttributeModifier<ButtonAttribute> {
     $r('app.color.button_neutral_text'));
   static readonly text = new FoodButtonStyle(Color.Transparent, $r('app.color.accent_link'));
   static readonly danger = new FoodButtonStyle($r('app.color.button_danger_bg'), $r('app.color.button_danger_text'));
+  static readonly segment = new FoodButtonStyle(Color.Transparent, $r('app.color.text_primary'), true);
   static readonly compactPrimary = new FoodButtonStyle($r('app.color.button_primary_bg'),
     $r('app.color.button_primary_text'), true);
   static readonly compactSecondary = new FoodButtonStyle($r('app.color.button_secondary_bg'),
@@ -71,6 +72,9 @@ export class FoodButtonStyle implements AttributeModifier<ButtonAttribute> {
 }
 
 export class FoodMotion {
+  static readonly selectionDuration: number = 220;
+  static readonly selection: AnimateParam = { duration: FoodMotion.selectionDuration, curve: Curve.EaseOut };
+
   static reveal(): TransitionEffect {
     return TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 8 }))
       .animation({ duration: 180, curve: Curve.EaseOut });
